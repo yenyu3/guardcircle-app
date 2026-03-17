@@ -7,7 +7,7 @@
 
 ```bash
 # 1. 進入專案資料夾
-cd GuardCircle
+cd guardcircle-app\frontend
 
 # 2. 安裝套件（第一次需要）
 npm install --legacy-peer-deps
