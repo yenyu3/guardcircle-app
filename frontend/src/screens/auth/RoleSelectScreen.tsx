@@ -9,7 +9,7 @@ import { RootStackParamList } from '../../navigation';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import ShieldHeartIcon from '../../components/ShieldHeartIcon';
+import AppHeader from '../../components/Header';
 
 const DS = {
   bg: '#fff8f1',
@@ -82,8 +82,8 @@ const roles: {
 
 export default function RoleSelectScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const { setRole } = useAppStore();
-  const [selected, setSelected] = useState<Role>('gatekeeper');
+  const { setRole, suggestedRole } = useAppStore();
+  const [selected, setSelected] = useState<Role>(suggestedRole ?? 'gatekeeper');
 
   const handleConfirm = () => {
     setRole(selected);
@@ -93,15 +93,7 @@ export default function RoleSelectScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       {/* Header — fixed, outside ScrollView */}
-      <View style={styles.header}>
-        <View style={styles.headerBrand}>
-          <ShieldHeartIcon size={28} color={DS.primary} bgColor={DS.bg} />
-          <Text style={styles.headerTitle}>GuardCircle</Text>
-        </View>
-        <View style={styles.avatar}>
-          <Ionicons name="person" size={18} color={DS.outline} />
-        </View>
-      </View>
+      <AppHeader />
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Title */}
@@ -110,6 +102,7 @@ export default function RoleSelectScreen() {
             你想怎麼使用{'\n'}<Text style={styles.titleAccent}>守護圈？</Text>
           </Text>
           <Text style={styles.sub}>選擇最符合你的使用方式，之後可以在設定中切換。</Text>
+
         </View>
 
         {/* Cards */}
@@ -173,17 +166,10 @@ export default function RoleSelectScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: DS.bg },
 
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingVertical: 12,
-    backgroundColor: DS.bg,
-  },
-  headerBrand: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerTitle: { fontSize: 20, fontWeight: '800', color: DS.primary, letterSpacing: -0.5 },
-  avatar: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: '#ebe1d3', alignItems: 'center', justifyContent: 'center',
-  },
+  header: {},
+  headerBrand: {},
+  headerTitle: {},
+  avatar: {},
 
   scroll: { paddingHorizontal: 20, paddingBottom: 40 },
 
@@ -191,6 +177,13 @@ const styles = StyleSheet.create({
   title: { fontSize: 30, fontWeight: '800', color: DS.onSurface, lineHeight: 38, marginBottom: 12 },
   titleAccent: { color: DS.primary },
   sub: { fontSize: 14, color: DS.secondary, lineHeight: 22 },
+  suggestBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    marginTop: 12, backgroundColor: DS.surface,
+    borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8,
+    alignSelf: 'flex-start',
+  },
+  suggestText: { fontSize: 13, color: DS.primary, fontWeight: '600' },
 
   cards: { gap: 16, marginBottom: 32 },
 

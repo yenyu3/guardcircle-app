@@ -1,33 +1,46 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
-import { Colors, Typography } from '../theme';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import ShieldHeartIcon from './ShieldHeartIcon';
+
+const DS = {
+  bg: '#fff8f1',
+  primary: '#89502e',
+  outline: '#85736b',
+};
 
 interface Props {
-  title: string;
-  onBack?: () => void;
   rightElement?: React.ReactNode;
 }
 
-export default function Header({ title, onBack, rightElement }: Props) {
+export default function AppHeader({ rightElement }: Props) {
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.row}>
-        {onBack ? (
-          <TouchableOpacity onPress={onBack} style={styles.back}>
-            <Ionicons name="chevron-back" size={24} color={Colors.text} />
-          </TouchableOpacity>
-        ) : <View style={styles.back} />}
-        <Text style={styles.title}>{title}</Text>
-        <View style={styles.back}>{rightElement}</View>
+    <View style={styles.header}>
+      <View style={styles.brand}>
+        <ShieldHeartIcon size={28} color={DS.primary} bgColor={DS.bg} />
+        <Text style={styles.title}>GuardCircle</Text>
       </View>
-    </SafeAreaView>
+      <View style={styles.right}>
+        {rightElement ?? (
+          <View style={styles.avatar}>
+            <Ionicons name="person" size={18} color={DS.outline} />
+          </View>
+        )}
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { backgroundColor: Colors.bg },
-  row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-  back: { width: 40, alignItems: 'center' },
-  title: { ...Typography.h3, flex: 1, textAlign: 'center' },
+  header: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingVertical: 12, backgroundColor: DS.bg,
+  },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  title: { fontSize: 20, fontWeight: '800', color: DS.primary, letterSpacing: -0.5 },
+  right: {},
+  avatar: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: '#ebe1d3', alignItems: 'center', justifyContent: 'center',
+  },
 });

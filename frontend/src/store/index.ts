@@ -7,9 +7,10 @@ interface AppState {
   family: Family;
   isLoggedIn: boolean;
   hasFamilyCircle: boolean;
+  suggestedRole: Role | null;
   setRole: (role: Role) => void;
   setUser: (user: Partial<User>) => void;
-  login: (nickname: string, email: string) => void;
+  login: (nickname: string, email: string, birthYear?: number) => void;
   logout: () => void;
   joinFamily: () => void;
 }
@@ -19,6 +20,7 @@ export const useAppStore = create<AppState>((set) => ({
   family: mockFamily,
   isLoggedIn: false,
   hasFamilyCircle: false,
+  suggestedRole: null,
 
   setRole: (role) =>
     set((s) => ({ currentUser: { ...s.currentUser, role } })),
@@ -26,11 +28,18 @@ export const useAppStore = create<AppState>((set) => ({
   setUser: (user) =>
     set((s) => ({ currentUser: { ...s.currentUser, ...user } })),
 
-  login: (nickname, email) =>
+  login: (nickname, email, birthYear) => {
+    let suggestedRole: Role | null = null;
+    if (birthYear !== undefined) {
+      const age = new Date().getFullYear() - birthYear;
+      suggestedRole = age <= 18 ? 'solver' : age <= 59 ? 'gatekeeper' : 'guardian';
+    }
     set((s) => ({
       isLoggedIn: true,
+      suggestedRole,
       currentUser: { ...s.currentUser, nickname, email },
-    })),
+    }));
+  },
 
   logout: () =>
     set({ isLoggedIn: false, hasFamilyCircle: false }),
