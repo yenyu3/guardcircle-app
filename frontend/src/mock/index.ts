@@ -25,6 +25,7 @@ export const mockFamily: Family = {
     { id: 'u2', nickname: '小明', role: 'gatekeeper', status: 'safe', lastActive: '剛剛' },
     { id: 'u3', nickname: '阿志', role: 'solver', status: 'safe', lastActive: '1小時前' },
     { id: 'u4', nickname: '媽媽', role: 'guardian', status: 'pending', lastActive: '30分鐘前' },
+    { id: 'u5', nickname: '大兒子', role: 'gatekeeper', status: 'safe', lastActive: '5分鐘前' },
   ],
 };
 
