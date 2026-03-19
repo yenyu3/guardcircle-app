@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Pressable, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Radius } from '../../theme';
@@ -26,34 +26,57 @@ const DS = {
   tertiaryContainer: '#88d0d8',
 };
 
-const roles: { role: Role; icon: keyof typeof Ionicons.glyphMap; title: string; titleEn: string; desc: string; recommended?: boolean; iconBg: string; iconColor: string }[] = [
+const roles: {
+  role: Role;
+  icon: keyof typeof Ionicons.glyphMap;
+  titleEn: string;
+  quote: string;
+  tagline: string;
+  taglineIcon: keyof typeof Ionicons.glyphMap;
+  imgColors: [string, string];
+  imgIcon: keyof typeof Ionicons.glyphMap;
+  img: any;
+  iconColor: string;
+  selectedBorder: string;
+}[] = [
   {
     role: 'guardian',
     icon: 'shield-outline',
-    title: '守護者',
     titleEn: 'Guardian',
-    desc: '我希望家人協助我確認可疑訊息',
-    iconBg: DS.primaryContainer + '44',
+    quote: '"我希望家人協助我確認可疑訊息。"',
+    tagline: '感到安全與被守護',
+    taglineIcon: 'shield-outline',
+    imgColors: ['#6aab7a', '#2d6e4e'],
+    imgIcon: 'people',
+    img: require('../../public/guardian.png'),
     iconColor: DS.primary,
+    selectedBorder: DS.primaryContainer,
   },
   {
     role: 'gatekeeper',
-    icon: 'eye',
-    title: '守門人',
+    icon: 'eye-outline',
     titleEn: 'Gatekeeper',
-    desc: '我想保護家人，監控家人的安全狀態',
-    recommended: true,
-    iconBg: DS.primary,
-    iconColor: '#ffffff',
+    quote: '"我想保護家人，監控家人的安全狀態。"',
+    tagline: '負責任且保持警覺',
+    taglineIcon: 'bar-chart-outline',
+    imgColors: ['#2c2c2c', '#1a1a2e'],
+    imgIcon: 'phone-portrait-outline',
+    img: require('../../public/gatekeeper.png'),
+    iconColor: DS.outline,
+    selectedBorder: DS.primaryContainer,
   },
   {
     role: 'solver',
     icon: 'bulb-outline',
-    title: '識破者',
     titleEn: 'Solver',
-    desc: '我想快速識破詐騙，了解最新詐騙手法',
-    iconBg: DS.tertiaryContainer + '44',
-    iconColor: DS.tertiary,
+    quote: '"我想快速識破詐騙，了解最新詐騙手法。"',
+    tagline: '聰明且善於分析',
+    taglineIcon: 'bulb-outline',
+    imgColors: ['#0d3d4a', '#0a2a35'],
+    imgIcon: 'analytics-outline',
+    img: require('../../public/solver.png'),
+    iconColor: DS.outline,
+    selectedBorder: DS.primaryContainer,
   },
 ];
 
@@ -94,32 +117,39 @@ export default function RoleSelectScreen() {
           {roles.map((r) => {
             const active = selected === r.role;
             return (
-              <View key={r.role}>
-                {r.recommended && (
-                  <View style={styles.recommendedWrap}>
-                    <View style={styles.recommendedBadge}>
-                      <Text style={styles.recommendedText}>推薦</Text>
-                    </View>
-                  </View>
-                )}
-                <TouchableOpacity
-                  onPress={() => setSelected(r.role)}
-                  activeOpacity={0.85}
-                  style={[styles.card, active && styles.cardSelected]}
-                >
-                  <View style={[styles.iconWrap, { backgroundColor: r.iconBg }]}>
-                    <Ionicons name={r.icon} size={26} color={r.iconColor} />
-                  </View>
-                  <Text style={styles.roleTitle}>{r.titleEn}</Text>
-                  <Text style={styles.roleDesc}>{r.desc}</Text>
+              <TouchableOpacity
+                key={r.role}
+                onPress={() => setSelected(r.role)}
+                activeOpacity={0.88}
+                style={[styles.card, active && { borderColor: r.selectedBorder, borderWidth: 2 }]}
+              >
+                {/* Image area */}
+                <View style={styles.cardImg}>
+                  <Image source={r.img} style={styles.cardImgPhoto} resizeMode="cover" />
                   {active && (
-                    <View style={styles.selectedRow}>
-                      <Text style={styles.selectedLabel}>已選擇</Text>
-                      <Ionicons name="checkmark-circle" size={16} color={DS.primary} />
+                    <View style={styles.checkBadge}>
+                      <Ionicons name="checkmark" size={14} color="#fff" />
                     </View>
                   )}
-                </TouchableOpacity>
-              </View>
+                </View>
+
+                {/* Content */}
+                <View style={styles.cardBody}>
+                  <View style={styles.cardTitleRow}>
+                    <View style={styles.titleWithIcon}>
+                      <Text style={styles.roleTitle}>{r.titleEn}</Text>
+                      <Ionicons name={r.icon} size={16} color={active ? DS.primary : r.iconColor} />
+                    </View>
+                  </View>
+                  <Text style={styles.roleQuote}>{r.quote}</Text>
+                  <View style={styles.taglineRow}>
+                    <Ionicons name={r.taglineIcon} size={13} color={active ? DS.primary : DS.outlineVariant} />
+                    <Text style={[styles.taglineText, active && { color: DS.primary }]}>
+                      {r.tagline.toUpperCase()}
+                    </Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
             );
           })}
         </View>
@@ -157,34 +187,37 @@ const styles = StyleSheet.create({
 
   scroll: { paddingHorizontal: 20, paddingBottom: 40 },
 
-  titleWrap: { marginTop: 12, marginBottom: 28 },
+  titleWrap: { marginTop: 12, marginBottom: 24 },
   title: { fontSize: 30, fontWeight: '800', color: DS.onSurface, lineHeight: 38, marginBottom: 12 },
   titleAccent: { color: DS.primary },
   sub: { fontSize: 14, color: DS.secondary, lineHeight: 22 },
 
   cards: { gap: 16, marginBottom: 32 },
 
-  recommendedWrap: { alignItems: 'center', marginBottom: -14, zIndex: 1 },
-  recommendedBadge: {
-    backgroundColor: DS.primary, paddingHorizontal: 14, paddingVertical: 4,
-    borderRadius: Radius.full,
-  },
-  recommendedText: { color: '#fff', fontSize: 10, fontWeight: '700', letterSpacing: 1.5 },
-
   card: {
-    backgroundColor: DS.cardBg, borderRadius: 20,
-    padding: 24, borderWidth: 2, borderColor: 'transparent',
+    backgroundColor: '#ffffff', borderRadius: 20,
+    borderWidth: 2, borderColor: 'transparent', overflow: 'hidden',
+    flexDirection: 'row', height: 140,
+    shadowColor: '#1f1b12', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.07, shadowRadius: 12, elevation: 3,
   },
-  cardSelected: {
-    backgroundColor: DS.cardSelected,
-    borderColor: DS.primary,
-    shadowColor: DS.primary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 20, elevation: 6,
+  cardImg: {
+    width: 100, overflow: 'hidden',
   },
-  iconWrap: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-  roleTitle: { fontSize: 22, fontWeight: '800', color: DS.onSurface, marginBottom: 8 },
-  roleDesc: { fontSize: 14, color: DS.secondary, lineHeight: 22 },
-  selectedRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 16 },
-  selectedLabel: { fontSize: 12, fontWeight: '700', color: DS.primary, letterSpacing: 1 },
+  cardImgPhoto: {
+    width: 100, height: '100%',
+  },
+  checkBadge: {
+    position: 'absolute', top: 8, left: 8,
+    width: 22, height: 22, borderRadius: 11,
+    backgroundColor: DS.primary, alignItems: 'center', justifyContent: 'center',
+  },
+  cardBody: { flex: 2, padding: 14, justifyContent: 'center' },
+  cardTitleRow: { marginBottom: 6 },
+  titleWithIcon: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  roleTitle: { fontSize: 17, fontWeight: '800', color: DS.onSurface },
+  roleQuote: { fontSize: 12, color: DS.secondary, lineHeight: 18, marginBottom: 10 },
+  taglineRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  taglineText: { fontSize: 10, fontWeight: '700', color: DS.outlineVariant, letterSpacing: 1 },
 
   ctaBtn: {
     borderRadius: Radius.full, paddingVertical: 18,
