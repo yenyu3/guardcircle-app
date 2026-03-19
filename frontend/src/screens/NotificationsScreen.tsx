@@ -3,25 +3,27 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors, Radius } from '../theme';
+import { Colors, Radius, Shadow } from '../theme';
 import { RootStackParamList } from '../navigation';
 import { mockNotifications } from '../mock';
-import Card from '../components/Card';
 import { Ionicons } from '@expo/vector-icons';
 import AppHeader from '../components/Header';
 
-const typeIcon: Record<string, { icon: string; color: string }> = {
-  HIGH_RISK: { icon: 'warning', color: Colors.danger },
-  GUARDIAN_REPLY: { icon: 'checkmark-circle', color: Colors.safe },
-  ESCALATE: { icon: 'alert-circle', color: Colors.danger },
-  WEEKLY_REPORT: { icon: 'bar-chart', color: Colors.primaryDark },
-  CONTRIBUTE_CONFIRM: { icon: 'star', color: Colors.warning },
-  FAMILY_JOIN: { icon: 'people', color: Colors.primaryDark },
+const typeConfig: Record<string, { icon: string; color: string; subtitle: string }> = {
+  HIGH_RISK:          { icon: 'warning',          color: Colors.danger,      subtitle: '高風險警報' },
+  GUARDIAN_REPLY:     { icon: 'checkmark-circle',  color: Colors.safe,        subtitle: '守門人回應' },
+  ESCALATE:           { icon: 'alert-circle',      color: Colors.danger,      subtitle: '緊急升級' },
+  WEEKLY_REPORT:      { icon: 'bar-chart',         color: Colors.primaryDark, subtitle: '每週報告' },
+  CONTRIBUTE_CONFIRM: { icon: 'star',              color: Colors.warning,     subtitle: '貢獻確認' },
+  FAMILY_JOIN:        { icon: 'people',            color: Colors.primaryDark, subtitle: '家庭圈動態' },
 };
 
 export default function NotificationsScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const [notifs, setNotifs] = useState(mockNotifications);
+
+  const markAllRead = () =>
+    setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
 
   const markRead = (id: string) =>
     setNotifs((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
@@ -36,29 +38,49 @@ export default function NotificationsScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <AppHeader
-        rightElement={
-          unread > 0 ? (
-            <View style={styles.badge}><Text style={styles.badgeText}>{unread}</Text></View>
-          ) : undefined
-        }
-      />
-      <ScrollView contentContainerStyle={styles.container}>
+      <AppHeader notifCount={unread} />
+
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        {/* Unread bar */}
+        {unread > 0 && (
+          <View style={styles.unreadBar}>
+            <Text style={styles.unreadCount}>{unread} 則未讀</Text>
+            <TouchableOpacity style={styles.markAllBtn} onPress={markAllRead}>
+              <Ionicons name="checkmark-done" size={16} color={Colors.primaryDark} />
+              <Text style={styles.markAllText}>全部已讀</Text>
+            </TouchableOpacity>
+          </View>
+        )}
         {notifs.map((n) => {
-          const ic = typeIcon[n.type] || { icon: 'notifications', color: Colors.primaryDark };
+          const cfg = typeConfig[n.type] ?? { icon: 'notifications', color: Colors.primaryDark, subtitle: '通知' };
           return (
-            <TouchableOpacity key={n.id} onPress={() => handlePress(n)} activeOpacity={0.8}>
-              <Card style={[styles.notifCard, !n.read ? styles.unread : null] as any}>
-                <View style={[styles.iconWrap, { backgroundColor: ic.color + '22' }]}>
-                  <Ionicons name={ic.icon as any} size={22} color={ic.color} />
+            <TouchableOpacity key={n.id} onPress={() => handlePress(n)} activeOpacity={0.85}>
+              <View style={[styles.card, !n.read && styles.cardUnread]}>
+
+                {/* Top row: icon + title/subtitle + time */}
+                <View style={styles.topRow}>
+                  <View style={styles.iconWrap}>
+                    <Ionicons name={cfg.icon as any} size={24} color={cfg.color} />
+                  </View>
+                  <View style={styles.titleBlock}>
+                    <View style={styles.titleRow}>
+                      <Text style={styles.title}>{n.title}</Text>
+                      <Text style={styles.time}>{n.createdAt}</Text>
+                    </View>
+                    <Text style={styles.subtitle}>{cfg.subtitle}</Text>
+                  </View>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.notifTitle}>{n.title}</Text>
-                  <Text style={styles.notifSummary}>{n.summary}</Text>
-                  <Text style={styles.notifTime}>{n.createdAt}</Text>
-                </View>
-                {!n.read && <View style={styles.dot} />}
-              </Card>
+
+                {/* Divider */}
+                <View style={styles.divider} />
+
+                {/* Insight row */}
+                <Text style={styles.insightText}>
+                  <Text style={styles.insightLabel}>AI 洞察：</Text>
+                  {n.summary}
+                </Text>
+
+              </View>
             </TouchableOpacity>
           );
         })}
@@ -67,18 +89,54 @@ export default function NotificationsScreen() {
   );
 }
 
+const CARD_BG = '#F9F3EB';
+const ICON_BG = '#E8E1D8';
+
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 20, paddingBottom: 8 },
-  title: { fontSize: 22, fontWeight: '800', color: Colors.text },
-  badge: { backgroundColor: Colors.danger, borderRadius: Radius.full, paddingHorizontal: 8, paddingVertical: 2 },
-  badgeText: { fontSize: 12, fontWeight: '700', color: Colors.white },
-  container: { padding: 16, paddingTop: 8, paddingBottom: 32 },
-  notifCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 10 },
-  unread: { borderLeftWidth: 3, borderLeftColor: Colors.primary },
-  iconWrap: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
-  notifTitle: { fontSize: 14, fontWeight: '700', color: Colors.text, marginBottom: 3 },
-  notifSummary: { fontSize: 13, color: Colors.textLight, lineHeight: 18, marginBottom: 4 },
-  notifTime: { fontSize: 11, color: Colors.textMuted },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.primary, marginTop: 6 },
+
+  container: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 32, gap: 16 },
+
+  unreadBar: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  unreadCount: { fontSize: 13, fontWeight: '600', color: Colors.textMuted },
+  markAllBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 12, paddingVertical: 6,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.card,
+  },
+  markAllText: { fontSize: 13, fontWeight: '600', color: Colors.primaryDark },
+
+  card: {
+    backgroundColor: CARD_BG,
+    borderRadius: Radius.xl,
+    padding: 20,
+    gap: 16,
+    ...Shadow.card,
+  },
+  cardUnread: {
+    borderWidth: 1.5,
+    borderColor: Colors.primary + '60',
+  },
+
+  topRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 16 },
+  iconWrap: {
+    width: 56, height: 56, borderRadius: 28,
+    backgroundColor: ICON_BG,
+    alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0,
+  },
+  titleBlock: { flex: 1, gap: 4, paddingTop: 2 },
+  titleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
+  title: { flex: 1, fontSize: 17, fontWeight: '700', color: Colors.text, lineHeight: 22 },
+  subtitle: { fontSize: 14, color: Colors.textMuted },
+  time: { fontSize: 13, color: Colors.textMuted, flexShrink: 0, marginTop: 2 },
+
+  divider: { height: 1, backgroundColor: Colors.text + '0D' },
+
+  insightLabel: { fontSize: 15, fontWeight: '700', color: Colors.primaryDark },
+  insightText: { fontSize: 15, color: Colors.textLight, lineHeight: 24 },
 });

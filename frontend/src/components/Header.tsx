@@ -23,10 +23,10 @@ const avatarMap: Record<string, any> = {
 };
 
 interface Props {
-  rightElement?: React.ReactNode;
+  notifCount?: number;
 }
 
-export default function AppHeader({ rightElement }: Props) {
+export default function AppHeader({ notifCount }: Props) {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { currentUser } = useAppStore();
   const gender = currentUser.gender === 'female' ? 'female' : currentUser.gender === 'male' ? 'male' : null;
@@ -47,13 +47,14 @@ export default function AppHeader({ rightElement }: Props) {
         <ShieldHeartIcon size={28} color={DS.primary} bgColor={DS.bg} />
         <Text style={styles.title}>GuardCircle</Text>
       </View>
-      <View style={styles.right}>
-        {rightElement ?? (
-          <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
-            {avatarElement}
-          </TouchableOpacity>
+      <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={styles.avatarWrap}>
+        {avatarElement}
+        {!!notifCount && notifCount > 0 && (
+          <View style={styles.notifBadge}>
+            <Text style={styles.notifBadgeText}>{notifCount > 99 ? '99+' : notifCount}</Text>
+          </View>
         )}
-      </View>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -65,7 +66,7 @@ const styles = StyleSheet.create({
   },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   title: { fontSize: 20, fontWeight: '800', color: DS.primary, letterSpacing: -0.5 },
-  right: {},
+  avatarWrap: { position: 'relative' },
   avatar: {
     width: 36, height: 36, borderRadius: 18,
     backgroundColor: '#ebe1d3', alignItems: 'center', justifyContent: 'center',
@@ -73,4 +74,12 @@ const styles = StyleSheet.create({
   avatarImg: {
     width: 36, height: 36, borderRadius: 18,
   },
+  notifBadge: {
+    position: 'absolute', top: -4, right: -4,
+    backgroundColor: '#e53935', borderRadius: 10,
+    minWidth: 18, height: 18, paddingHorizontal: 4,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1.5, borderColor: DS.bg,
+  },
+  notifBadgeText: { fontSize: 10, fontWeight: '800', color: '#fff' },
 });

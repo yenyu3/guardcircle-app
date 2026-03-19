@@ -19,15 +19,12 @@ export default function FamilyScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <AppHeader
-        rightElement={
-          <Button title="邀請家人" onPress={() => navigation.navigate('FamilyInvite')} variant="secondary" style={{ paddingHorizontal: 14 }} />
-        }
-      />
+      <AppHeader />
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.titleRow}>
           <Text style={styles.title}>{familyName}</Text>
           <Text style={styles.sub}>ID: GC-482951</Text>
+          <Button title="邀請家人" onPress={() => navigation.navigate('FamilyInvite')} variant="secondary" style={styles.inviteBtn} />
         </View>
 
         {/* Stats */}
@@ -106,6 +103,7 @@ const styles = StyleSheet.create({
   titleRow: { marginBottom: 16 },
   title: { fontSize: 22, fontWeight: '800', color: Colors.text },
   sub: { fontSize: 12, color: Colors.textMuted },
+  inviteBtn: { alignSelf: 'flex-start', marginTop: 8, paddingHorizontal: 14 },
   statsRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
   statCard: { flex: 1, alignItems: 'center', gap: 4, paddingVertical: 14 },
   statNum: { fontSize: 24, fontWeight: '800', color: Colors.text },

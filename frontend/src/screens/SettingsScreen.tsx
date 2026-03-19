@@ -1,79 +1,101 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Radius } from '../theme';
+import { Colors, Radius, Shadow } from '../theme';
 import { useAppStore } from '../store';
 import { RootStackParamList } from '../navigation';
-import Avatar from '../components/Avatar';
-import Card from '../components/Card';
 
 const roleLabel = { guardian: '守護者', gatekeeper: '守門人', solver: '識破者' };
 
+const avatarMap: Record<string, any> = {
+  guardian_female:   require('../public/guardian_w.png'),
+  guardian_male:     require('../public/guardian_m.png'),
+  gatekeeper_female: require('../public/gatekeeper_w.png'),
+  gatekeeper_male:   require('../public/gatekeeper_m.png'),
+  solver_female:     require('../public/solver_w.png'),
+  solver_male:       require('../public/solver_m.png'),
+};
+
 const menuItems = [
-  { icon: 'person-outline', label: '個人資料', screen: 'SettingsProfile' },
-  { icon: 'people-outline', label: '家庭圈設定', screen: 'SettingsFamily' },
-  { icon: 'notifications-outline', label: '通知設定', screen: 'SettingsAndroid' },
-  { icon: 'phone-portrait-outline', label: 'Android 通知授權', screen: 'SettingsAndroid' },
-  { icon: 'lock-closed-outline', label: '隱私設定', screen: 'SettingsPrivacy' },
+  { icon: 'person-outline',        label: '個人資料',        screen: 'SettingsProfile' },
+  { icon: 'people-outline',        label: '家庭守護設定',     screen: 'SettingsFamily' },
+  { icon: 'notifications-outline', label: '通知提醒設定',     screen: 'SettingsAndroid' },
+  { icon: 'lock-closed-outline',   label: '隱私與安全',       screen: 'SettingsPrivacy' },
+  { icon: 'information-circle-outline', label: '關於守護圈',  screen: 'SettingsAndroid' },
 ] as const;
 
 export default function SettingsScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { currentUser, logout } = useAppStore();
 
+  const gender = currentUser.gender === 'female' ? 'female' : currentUser.gender === 'male' ? 'male' : null;
+  const avatarKey = gender ? `${currentUser.role}_${gender}` : null;
+  const avatarSrc = avatarKey ? avatarMap[avatarKey] : null;
+
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={22} color={Colors.primaryDark} />
-          <Text style={styles.backText}>設定</Text>
+          <Ionicons name="arrow-back" size={24} color={Colors.text} />
         </TouchableOpacity>
+        <Text style={styles.headerTitle}>設定</Text>
+        <View style={styles.headerRight} />
+      </View>
 
-        {/* Profile card */}
-        <TouchableOpacity onPress={() => navigation.navigate('SettingsProfile')}>
-          <Card style={styles.profileCard}>
-            <Avatar initials={currentUser.nickname[0]} size={56} color={Colors.primaryDark} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.nickname}>{currentUser.nickname}</Text>
-              <Text style={styles.email}>{currentUser.email}</Text>
-              <View style={styles.rolePill}>
-                <Text style={styles.roleText}>{roleLabel[currentUser.role]}</Text>
-              </View>
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        {/* Profile */}
+        <View style={styles.profileSection}>
+          {avatarSrc ? (
+            <Image source={avatarSrc} style={styles.avatarImg} />
+          ) : (
+            <View style={styles.avatarFallback}>
+              <Ionicons name="person" size={44} color={Colors.primaryDark} />
             </View>
-            <Ionicons name="chevron-forward" size={20} color={Colors.textMuted} />
-          </Card>
-        </TouchableOpacity>
+          )}
+          <Text style={styles.nickname}>{currentUser.nickname}</Text>
+          <View style={styles.rolePill}>
+            <Text style={styles.roleText}>{roleLabel[currentUser.role]}</Text>
+          </View>
+        </View>
 
-        {/* Menu */}
-        <Card style={styles.menuCard}>
+        {/* Section label */}
+        <Text style={styles.sectionLabel}>帳戶與安全</Text>
+
+        {/* Menu card */}
+        <View style={[styles.menuCard, Shadow.card]}>
           {menuItems.map((item, i) => (
             <TouchableOpacity
               key={item.label}
               style={[styles.menuRow, i < menuItems.length - 1 && styles.menuBorder]}
               onPress={() => navigation.navigate(item.screen as any)}
+              activeOpacity={0.7}
             >
-              <View style={styles.menuIcon}>
+              <View style={styles.iconWrap}>
                 <Ionicons name={item.icon as any} size={20} color={Colors.primaryDark} />
               </View>
               <Text style={styles.menuLabel}>{item.label}</Text>
-              <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+              <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
             </TouchableOpacity>
           ))}
-        </Card>
+        </View>
 
         {/* Logout */}
         <TouchableOpacity
           style={styles.logoutBtn}
-          onPress={() => Alert.alert('登出', '確定要登出嗎？', [
-            { text: '取消' },
-            { text: '登出', style: 'destructive', onPress: () => { logout(); navigation.replace('Login'); } },
-          ])}
+          activeOpacity={0.8}
+          onPress={() =>
+            Alert.alert('登出', '確定要登出嗎？', [
+              { text: '取消' },
+              { text: '登出', style: 'destructive', onPress: () => { logout(); navigation.replace('Login'); } },
+            ])
+          }
         >
-          <Ionicons name="log-out-outline" size={18} color={Colors.danger} />
-          <Text style={styles.logoutText}>登出</Text>
+          <Ionicons name="log-out-outline" size={20} color={Colors.danger} />
+          <Text style={styles.logoutText}>登出帳號</Text>
         </TouchableOpacity>
 
         <Text style={styles.version}>守護圈 GuardCircle v1.0.0 Demo</Text>
@@ -84,20 +106,71 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
-  container: { padding: 20, paddingBottom: 40 },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 16 },
-  backText: { fontSize: 20, fontWeight: '800', color: Colors.text },
-  profileCard: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 16 },
-  nickname: { fontSize: 18, fontWeight: '700', color: Colors.text },
-  email: { fontSize: 13, color: Colors.textLight, marginBottom: 6 },
-  rolePill: { backgroundColor: Colors.card, borderRadius: Radius.full, paddingHorizontal: 10, paddingVertical: 3, alignSelf: 'flex-start' },
-  roleText: { fontSize: 12, fontWeight: '700', color: Colors.primaryDark },
-  menuCard: { padding: 0, overflow: 'hidden', marginBottom: 16 },
-  menuRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 },
-  menuBorder: { borderBottomWidth: 1, borderBottomColor: Colors.border },
-  menuIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.card, alignItems: 'center', justifyContent: 'center' },
-  menuLabel: { flex: 1, fontSize: 15, color: Colors.text, fontWeight: '500' },
-  logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 16, backgroundColor: Colors.dangerBg, borderRadius: Radius.lg, marginBottom: 20 },
+
+  header: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 20, paddingVertical: 14,
+  },
+  backBtn: { width: 36, alignItems: 'flex-start' },
+  headerTitle: { flex: 1, textAlign: 'center', fontSize: 20, fontWeight: '700', color: Colors.text },
+  headerRight: { width: 36 },
+
+  container: { paddingHorizontal: 20, paddingBottom: 40 },
+
+  profileSection: { alignItems: 'center', paddingVertical: 24, gap: 8 },
+  avatarImg: {
+    width: 112, height: 112, borderRadius: 56,
+    borderWidth: 4, borderColor: Colors.white,
+    ...Shadow.strong,
+  },
+  avatarFallback: {
+    width: 112, height: 112, borderRadius: 56,
+    backgroundColor: Colors.card,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 4, borderColor: Colors.white,
+    ...Shadow.strong,
+  },
+  nickname: { fontSize: 24, fontWeight: '700', color: Colors.text, marginTop: 4 },
+  rolePill: {
+    backgroundColor: Colors.primary + '33',
+    borderRadius: Radius.full,
+    paddingHorizontal: 14, paddingVertical: 4,
+  },
+  roleText: { fontSize: 13, fontWeight: '600', color: Colors.primaryDark },
+
+  sectionLabel: {
+    fontSize: 12, fontWeight: '700', color: Colors.textMuted,
+    textTransform: 'uppercase', letterSpacing: 1.5,
+    marginBottom: 10, marginTop: 4, paddingHorizontal: 4,
+  },
+
+  menuCard: {
+    backgroundColor: Colors.white,
+    borderRadius: Radius.lg,
+    overflow: 'hidden',
+    marginBottom: 28,
+  },
+  menuRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 20, minHeight: 64, gap: 14,
+  },
+  menuBorder: { borderBottomWidth: 1, borderBottomColor: Colors.bg },
+  iconWrap: {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: Colors.primary + '1A',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  menuLabel: { flex: 1, fontSize: 15, fontWeight: '500', color: Colors.text },
+
+  logoutBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8, backgroundColor: Colors.white,
+    borderRadius: Radius.lg, paddingVertical: 18,
+    borderWidth: 1, borderColor: '#FDDEDE',
+    ...Shadow.card,
+    marginBottom: 20,
+  },
   logoutText: { fontSize: 15, fontWeight: '700', color: Colors.danger },
+
   version: { fontSize: 12, color: Colors.textMuted, textAlign: 'center' },
 });

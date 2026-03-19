@@ -75,32 +75,32 @@ export const mockEvents: DetectEvent[] = [
 
 export const mockNotifications: Notification[] = [
   {
-    id: 'n1', type: 'HIGH_RISK', title: '⚠️ 阿嬤收到高風險訊息',
+    id: 'n1', type: 'HIGH_RISK', title: '阿嬤收到高風險訊息',
     summary: '偵測到假冒銀行客服詐騙，已通知守門人',
     createdAt: '14:32', read: false, eventId: 'e1',
   },
   {
-    id: 'n2', type: 'GUARDIAN_REPLY', title: '✅ 小明已回應警報',
+    id: 'n2', type: 'GUARDIAN_REPLY', title: '小明已回應警報',
     summary: '小明確認：這是詐騙，請阿嬤勿理會',
     createdAt: '14:35', read: false, eventId: 'e1',
   },
   {
-    id: 'n3', type: 'ESCALATE', title: '🔴 媽媽點擊了可疑網址',
+    id: 'n3', type: 'ESCALATE', title: '媽媽點擊了可疑網址',
     summary: '釣魚網站風險分數88，需要立即確認',
     createdAt: '昨天 09:15', read: true, eventId: 'e2',
   },
   {
-    id: 'n4', type: 'WEEKLY_REPORT', title: '📊 本週防詐報告出爐',
+    id: 'n4', type: 'WEEKLY_REPORT', title: '本週防詐報告出爐',
     summary: '林家守護圈本週攔截3次危險，做得很好！',
     createdAt: '週一', read: true,
   },
   {
-    id: 'n5', type: 'CONTRIBUTE_CONFIRM', title: '🎯 你的回報已被採用',
+    id: 'n5', type: 'CONTRIBUTE_CONFIRM', title: '你的回報已被採用',
     summary: '你回報的詐騙案例已加入知識庫，獲得+20點',
     createdAt: '週日', read: true,
   },
   {
-    id: 'n6', type: 'FAMILY_JOIN', title: '👋 媽媽加入了守護圈',
+    id: 'n6', type: 'FAMILY_JOIN', title: '媽媽加入了守護圈',
     summary: '媽媽已成功加入林家守護圈',
     createdAt: '上週', read: true,
   },
