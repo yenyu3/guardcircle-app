@@ -8,6 +8,7 @@ export interface User {
   email: string;
   role: Role;
   birthYear?: number;
+  gender?: 'male' | 'female' | 'other';
   avatar?: string;
   familyIds: string[];
   contributionPoints?: number;

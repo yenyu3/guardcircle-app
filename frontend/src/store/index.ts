@@ -10,7 +10,7 @@ interface AppState {
   suggestedRole: Role | null;
   setRole: (role: Role) => void;
   setUser: (user: Partial<User>) => void;
-  login: (nickname: string, email: string, birthYear?: number) => void;
+  login: (nickname: string, email: string, birthYear?: number, gender?: string) => void;
   logout: () => void;
   joinFamily: () => void;
 }
@@ -28,16 +28,17 @@ export const useAppStore = create<AppState>((set) => ({
   setUser: (user) =>
     set((s) => ({ currentUser: { ...s.currentUser, ...user } })),
 
-  login: (nickname, email, birthYear) => {
+  login: (nickname: string, email: string, birthYear?: number, gender?: string) => {
     let suggestedRole: Role | null = null;
     if (birthYear !== undefined) {
       const age = new Date().getFullYear() - birthYear;
       suggestedRole = age <= 18 ? 'solver' : age <= 59 ? 'gatekeeper' : 'guardian';
     }
+    const genderMapped = gender === '男' ? 'male' : gender === '女' ? 'female' : gender === '其他' ? 'other' : undefined;
     set((s) => ({
       isLoggedIn: true,
       suggestedRole,
-      currentUser: { ...s.currentUser, nickname, email },
+      currentUser: { ...s.currentUser, nickname, email, birthYear, gender: genderMapped },
     }));
   },
 

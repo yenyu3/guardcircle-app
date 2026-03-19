@@ -11,6 +11,7 @@ import Card from '../components/Card';
 import RiskBadge from '../components/RiskBadge';
 import Avatar from '../components/Avatar';
 import Button from '../components/Button';
+import AppHeader from '../components/Header';
 
 export default function FamilyScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
@@ -18,13 +19,15 @@ export default function FamilyScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.title}>{familyName}</Text>
-            <Text style={styles.sub}>ID: GC-482951</Text>
-          </View>
+      <AppHeader
+        rightElement={
           <Button title="邀請家人" onPress={() => navigation.navigate('FamilyInvite')} variant="secondary" style={{ paddingHorizontal: 14 }} />
+        }
+      />
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>{familyName}</Text>
+          <Text style={styles.sub}>ID: GC-482951</Text>
         </View>
 
         {/* Stats */}
@@ -100,7 +103,7 @@ export default function FamilyScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
   container: { padding: 20, paddingBottom: 32 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+  titleRow: { marginBottom: 16 },
   title: { fontSize: 22, fontWeight: '800', color: Colors.text },
   sub: { fontSize: 12, color: Colors.textMuted },
   statsRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },

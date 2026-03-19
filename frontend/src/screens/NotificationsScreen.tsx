@@ -8,6 +8,7 @@ import { RootStackParamList } from '../navigation';
 import { mockNotifications } from '../mock';
 import Card from '../components/Card';
 import { Ionicons } from '@expo/vector-icons';
+import AppHeader from '../components/Header';
 
 const typeIcon: Record<string, { icon: string; color: string }> = {
   HIGH_RISK: { icon: 'warning', color: Colors.danger },
@@ -35,10 +36,13 @@ export default function NotificationsScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <Text style={styles.title}>通知</Text>
-        {unread > 0 && <View style={styles.badge}><Text style={styles.badgeText}>{unread}</Text></View>}
-      </View>
+      <AppHeader
+        rightElement={
+          unread > 0 ? (
+            <View style={styles.badge}><Text style={styles.badgeText}>{unread}</Text></View>
+          ) : undefined
+        }
+      />
       <ScrollView contentContainerStyle={styles.container}>
         {notifs.map((n) => {
           const ic = typeIcon[n.type] || { icon: 'notifications', color: Colors.primaryDark };

@@ -13,6 +13,7 @@ import RiskBadge from '../components/RiskBadge';
 import Avatar from '../components/Avatar';
 import Banner from '../components/Banner';
 import Button from '../components/Button';
+import AppHeader from '../components/Header';
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -179,6 +180,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <AppHeader />
       {!hasFamilyCircle && (
         <Banner message="你還沒有加入家庭圈，前往設定加入" variant="info" />
       )}

@@ -120,6 +120,7 @@ export default function LoginScreen() {
   const [birthYear, setBirthYear] = useState("");
   const [birthMonth, setBirthMonth] = useState("");
   const [birthDay, setBirthDay] = useState("");
+  const [gender, setGender] = useState("");
 
   const strength =
     password.length === 0
@@ -134,7 +135,7 @@ export default function LoginScreen() {
   const handleSubmit = () => {
     if (!nickname || !email || !password) return;
     const yr = birthYear ? parseInt(birthYear, 10) : undefined;
-    login(nickname, email, yr);
+    login(nickname, email, yr, gender);
     navigation.replace("RoleSelect");
   };
 
@@ -229,6 +230,31 @@ export default function LoginScreen() {
               />
             </View>
 
+            {/* Gender */}
+            <Text style={styles.label}>性別</Text>
+            <View style={styles.birthRow}>
+              {["男", "女", "其他"].map((g) => (
+                <TouchableOpacity
+                  key={g}
+                  style={[
+                    styles.genderBtn,
+                    gender === g && styles.genderBtnActive,
+                  ]}
+                  onPress={() => setGender(g)}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.genderText,
+                      gender === g && styles.genderTextActive,
+                    ]}
+                  >
+                    {g}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
             {/* Password */}
             <Text style={styles.label}>密碼</Text>
             <View style={styles.pwWrap}>
@@ -284,7 +310,7 @@ export default function LoginScreen() {
             <Pressable
               onPress={handleSubmit}
               style={({ pressed }) => [
-                { marginTop: 28, opacity: pressed ? 0.85 : 1 },
+                { marginTop: 24, opacity: pressed ? 0.85 : 1 },
               ]}
             >
               <LinearGradient
@@ -301,7 +327,9 @@ export default function LoginScreen() {
             {/* Toggle */}
             <View style={styles.toggleRow}>
               <Text style={styles.toggleText}>已有帳號？</Text>
-              <TouchableOpacity onPress={handleSubmit}>
+              <TouchableOpacity
+                onPress={() => navigation.replace("RoleSelect")}
+              >
                 <Text style={styles.toggleLink}>直接登入</Text>
               </TouchableOpacity>
             </View>
@@ -317,16 +345,17 @@ const styles = StyleSheet.create({
   scroll: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingVertical: 40,
+    paddingVertical: 16,
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "flex-start",
+    paddingTop: 28,
   },
 
   brand: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    marginBottom: 32,
+    marginBottom: 16,
   },
   brandName: {
     fontSize: 24,
@@ -358,22 +387,22 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: DS.secondary,
     textAlign: "center",
-    marginBottom: 28,
+    marginBottom: 16,
     lineHeight: 22,
   },
 
   label: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: "700",
     color: DS.onSurface,
-    marginBottom: 8,
+    marginBottom: 6,
     marginTop: 16,
   },
   input: {
     backgroundColor: DS.inputBg,
     borderRadius: Radius.full,
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 14,
     fontSize: 15,
     color: DS.onSurface,
   },
@@ -389,7 +418,7 @@ const styles = StyleSheet.create({
 
   pwWrap: { flexDirection: "row", alignItems: "center", gap: 8 },
   eyeBtn: {
-    padding: 16,
+    padding: 14,
     backgroundColor: DS.inputBg,
     borderRadius: Radius.full,
   },
@@ -407,7 +436,7 @@ const styles = StyleSheet.create({
 
   ctaBtn: {
     borderRadius: Radius.full,
-    paddingVertical: 18,
+    paddingVertical: 14,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -420,17 +449,27 @@ const styles = StyleSheet.create({
   },
   ctaText: { color: "#fff", fontSize: 16, fontWeight: "700" },
 
-  toggleRow: { flexDirection: "row", justifyContent: "center", marginTop: 24 },
+  toggleRow: { flexDirection: "row", justifyContent: "center", marginTop: 16 },
   toggleText: { fontSize: 13, color: DS.secondary },
   toggleLink: { fontSize: 13, fontWeight: "700", color: DS.primary },
 
   optional: { fontSize: 11, fontWeight: "400", color: DS.outline },
   birthRow: { flexDirection: "row", gap: 8 },
+  genderBtn: {
+    flex: 1,
+    backgroundColor: DS.inputBg,
+    borderRadius: Radius.full,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  genderBtnActive: { backgroundColor: DS.primary },
+  genderText: { fontSize: 15, color: DS.outline, fontWeight: "600" },
+  genderTextActive: { color: "#fff" },
   birthPicker: {
     backgroundColor: DS.inputBg,
     borderRadius: Radius.full,
     paddingHorizontal: 14,
-    paddingVertical: 16,
+    paddingVertical: 14,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",

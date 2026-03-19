@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../theme';
 import { useAppStore } from '../store';
 import { RootStackParamList } from '../navigation';
+import AppHeader from '../components/Header';
 
 const entries = [
   { key: 'text', icon: 'chatbubble-ellipses', label: '貼上文字 / 訊息', sub: '複製可疑訊息貼上分析', screen: 'DetectInputText' },
@@ -22,6 +23,7 @@ export default function DetectScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <AppHeader />
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={[styles.title, isGuardian && styles.titleLarge]}>偵測可疑內容</Text>
         <Text style={[styles.sub, isGuardian && styles.subLarge]}>選擇你想要確認的內容類型</Text>
