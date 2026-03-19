@@ -27,7 +27,10 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>設定</Text>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <Ionicons name="chevron-back" size={22} color={Colors.primaryDark} />
+          <Text style={styles.backText}>設定</Text>
+        </TouchableOpacity>
 
         {/* Profile card */}
         <TouchableOpacity onPress={() => navigation.navigate('SettingsProfile')}>
@@ -82,7 +85,8 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
   container: { padding: 20, paddingBottom: 40 },
-  title: { fontSize: 22, fontWeight: '800', color: Colors.text, marginBottom: 16 },
+  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 16 },
+  backText: { fontSize: 20, fontWeight: '800', color: Colors.text },
   profileCard: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 16 },
   nickname: { fontSize: 18, fontWeight: '700', color: Colors.text },
   email: { fontSize: 13, color: Colors.textLight, marginBottom: 6 },

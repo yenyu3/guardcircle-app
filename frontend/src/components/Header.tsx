@@ -1,8 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import ShieldHeartIcon from './ShieldHeartIcon';
 import { useAppStore } from '../store';
+import { RootStackParamList } from '../navigation';
 
 const DS = {
   bg: '#fff8f1',
@@ -24,10 +27,19 @@ interface Props {
 }
 
 export default function AppHeader({ rightElement }: Props) {
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { currentUser } = useAppStore();
   const gender = currentUser.gender === 'female' ? 'female' : currentUser.gender === 'male' ? 'male' : null;
   const avatarKey = gender ? `${currentUser.role}_${gender}` : null;
   const avatarSrc = avatarKey ? avatarMap[avatarKey] : null;
+
+  const avatarElement = avatarSrc ? (
+    <Image source={avatarSrc} style={styles.avatarImg} />
+  ) : (
+    <View style={styles.avatar}>
+      <Ionicons name="person" size={18} color={DS.outline} />
+    </View>
+  );
 
   return (
     <View style={styles.header}>
@@ -37,13 +49,9 @@ export default function AppHeader({ rightElement }: Props) {
       </View>
       <View style={styles.right}>
         {rightElement ?? (
-          avatarSrc ? (
-            <Image source={avatarSrc} style={styles.avatarImg} />
-          ) : (
-            <View style={styles.avatar}>
-              <Ionicons name="person" size={18} color={DS.outline} />
-            </View>
-          )
+          <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
+            {avatarElement}
+          </TouchableOpacity>
         )}
       </View>
     </View>

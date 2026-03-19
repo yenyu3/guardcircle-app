@@ -27,6 +27,8 @@ import DetectInputImageScreen from '../screens/detect/DetectInputImageScreen';
 import AnalyzingScreen from '../screens/detect/AnalyzingScreen';
 import ResultScreen from '../screens/detect/ResultScreen';
 import ResultHighScreen from '../screens/detect/ResultHighScreen';
+import ResultMediumScreen from '../screens/detect/ResultMediumScreen';
+import ResultSafeScreen from '../screens/detect/ResultSafeScreen';
 
 // Family
 import FamilyRecordScreen from '../screens/family/FamilyRecordScreen';
@@ -52,13 +54,16 @@ export type RootStackParamList = {
   RoleSelect: undefined;
   FamilyJoin: undefined;
   Main: undefined;
+  Settings: undefined;
   DetectInputText: undefined;
   DetectInputUrl: undefined;
   DetectInputPhone: undefined;
   DetectInputImage: undefined;
   Analyzing: { type: string; input: string };
-  Result: { riskLevel: 'safe' | 'medium'; scamType: string; riskScore: number; riskFactors: string[]; summary: string; hasFinancialKeyword?: boolean };
+  Result: { riskLevel: 'safe' | 'medium' | 'high'; scamType: string; riskScore: number; riskFactors: string[]; summary: string; hasFinancialKeyword?: boolean };
   ResultHigh: { scamType: string; riskScore: number; riskFactors: string[]; summary: string };
+  ResultMedium: { scamType: string; riskScore: number; riskFactors: string[]; summary: string };
+  ResultSafe: undefined;
   FamilyRecord: undefined;
   FamilyEventDetail: { eventId: string };
   FamilyCreate: undefined;
@@ -98,7 +103,6 @@ function MainTabs() {
       <Tab.Screen name="Detect" component={DetectScreen} options={{ tabBarLabel: '偵測' }} />
       <Tab.Screen name="Family" component={FamilyScreen} options={{ tabBarLabel: '家庭圈' }} />
       <Tab.Screen name="Notifications" component={NotificationsScreen} options={{ tabBarLabel: '通知' }} />
-      <Tab.Screen name="Settings" component={SettingsScreen} options={{ tabBarLabel: '設定' }} />
     </Tab.Navigator>
   );
 }
@@ -119,12 +123,15 @@ export default function AppNavigator() {
         <Stack.Screen name="Analyzing" component={AnalyzingScreen} />
         <Stack.Screen name="Result" component={ResultScreen} />
         <Stack.Screen name="ResultHigh" component={ResultHighScreen} />
+        <Stack.Screen name="ResultMedium" component={ResultMediumScreen} />
+        <Stack.Screen name="ResultSafe" component={ResultSafeScreen} />
         <Stack.Screen name="FamilyRecord" component={FamilyRecordScreen} />
         <Stack.Screen name="FamilyEventDetail" component={FamilyEventDetailScreen} />
         <Stack.Screen name="FamilyCreate" component={FamilyCreateScreen} />
         <Stack.Screen name="FamilyInvite" component={FamilyInviteScreen} />
         <Stack.Screen name="FamilyManage" component={FamilyManageScreen} />
         <Stack.Screen name="GuardianAlert" component={GuardianAlertScreen} />
+        <Stack.Screen name="Settings" component={SettingsScreen} />
         <Stack.Screen name="WeeklyReport" component={WeeklyReportScreen} />
         <Stack.Screen name="KnowledgeCard" component={KnowledgeCardScreen} />
         <Stack.Screen name="SettingsProfile" component={SettingsProfileScreen} />

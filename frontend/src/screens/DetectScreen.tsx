@@ -56,6 +56,31 @@ export default function DetectScreen() {
             <Text style={styles.shareBtnText}>模擬分享入口（Demo）</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Result preview */}
+        <View style={styles.shareSection}>
+          <Text style={styles.shareTitle}>結果頁面預覽（測試用）</Text>
+          <View style={styles.previewRow}>
+            <TouchableOpacity
+              style={[styles.previewBtn, { backgroundColor: '#E97A7A' }]}
+              onPress={() => navigation.navigate('ResultHigh', { scamType: '假冒銀行', riskScore: 92, riskFactors: ['要求轉帳', '偽造官方身份'], summary: '這個訊息要求你轉帳，很可能是詐騙' })}
+            >
+              <Text style={styles.previewBtnText}>🔴 高風險</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.previewBtn, { backgroundColor: '#F5C842' }]}
+              onPress={() => navigation.navigate('ResultMedium', { scamType: '可疑訊息', riskScore: 55, riskFactors: ['要求提供個人資料', '要求進行轉帳'], summary: '此訊息含有可疑特徵' })}
+            >
+              <Text style={styles.previewBtnText}>🟡 中風險</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.previewBtn, { backgroundColor: '#7BBF8E' }]}
+              onPress={() => navigation.navigate('ResultSafe')}
+            >
+              <Text style={styles.previewBtnText}>🟢 安全</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -82,4 +107,7 @@ const styles = StyleSheet.create({
   shareTitle: { fontSize: 13, color: Colors.textMuted, marginBottom: 10 },
   shareBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: Colors.card, borderRadius: Radius.full, paddingHorizontal: 20, paddingVertical: 12 },
   shareBtnText: { fontSize: 14, fontWeight: '600', color: Colors.primaryDark },
+  previewRow: { flexDirection: 'row', gap: 10, marginTop: 4 },
+  previewBtn: { flex: 1, borderRadius: Radius.lg, paddingVertical: 14, alignItems: 'center' },
+  previewBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
 });
