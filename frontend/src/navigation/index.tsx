@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Colors } from '../theme';
 import { useAppStore } from '../store';
 
@@ -81,28 +82,75 @@ export type RootStackParamList = {
 const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
 
+const TAB_ITEMS = [
+  { name: 'Home', label: '首頁', icon: 'home-outline', iconActive: 'home' },
+  { name: 'Detect', label: '偵測', icon: 'radio-outline', iconActive: 'radio' },
+  { name: 'Family', label: '家庭圈', icon: 'people-outline', iconActive: 'people' },
+  { name: 'Notifications', label: '通知', icon: 'person-outline', iconActive: 'person' },
+] as const;
+
+function CustomTabBar({ state, navigation }: any) {
+  return (
+    <View style={tabStyles.bar}>
+      {state.routes.map((route: any, index: number) => {
+        const item = TAB_ITEMS[index];
+        const focused = state.index === index;
+        return (
+          <TouchableOpacity
+            key={route.key}
+            style={tabStyles.item}
+            onPress={() => navigation.navigate(route.name)}
+            activeOpacity={0.7}
+          >
+            <View style={[tabStyles.pill, focused && tabStyles.pillActive]}>
+              <Ionicons
+                name={(focused ? item.iconActive : item.icon) as any}
+                size={24}
+                color={focused ? Colors.primaryDark : '#a89080'}
+              />
+            </View>
+            <Text style={[tabStyles.label, focused && tabStyles.labelActive]}>{item.label}</Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+}
+
+const tabStyles = StyleSheet.create({
+  bar: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,248,241,0.92)',
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    borderTopWidth: 1,
+    borderTopColor: '#f0d9c0',
+    paddingTop: 10,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 12,
+    paddingHorizontal: 8,
+    shadowColor: '#1f1b12',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  item: { flex: 1, alignItems: 'center', gap: 4 },
+  pill: { width: 52, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  pillActive: { backgroundColor: '#ebe1d3' },
+  label: { fontSize: 11, fontWeight: '600', color: '#a89080' },
+  labelActive: { color: Colors.primaryDark },
+});
+
 function MainTabs() {
-  const role = useAppStore((s) => s.currentUser.role);
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarActiveTintColor: Colors.primaryDark,
-        tabBarInactiveTintColor: Colors.textMuted,
-        tabBarStyle: { backgroundColor: Colors.white, borderTopColor: Colors.border, height: 60, paddingBottom: 8 },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-        tabBarIcon: ({ color, size }) => {
-          const icons: Record<string, string> = {
-            Home: 'home', Detect: 'shield-checkmark', Family: 'people', Notifications: 'notifications', Settings: 'settings',
-          };
-          return <Ionicons name={(icons[route.name] || 'ellipse') as any} size={size} color={color} />;
-        },
-      })}
+      tabBar={(props) => <CustomTabBar {...props} />}
+      screenOptions={{ headerShown: false }}
     >
-      <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: '首頁' }} />
-      <Tab.Screen name="Detect" component={DetectScreen} options={{ tabBarLabel: '偵測' }} />
-      <Tab.Screen name="Family" component={FamilyScreen} options={{ tabBarLabel: '家庭圈' }} />
-      <Tab.Screen name="Notifications" component={NotificationsScreen} options={{ tabBarLabel: '通知' }} />
+      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Detect" component={DetectScreen} />
+      <Tab.Screen name="Family" component={FamilyScreen} />
+      <Tab.Screen name="Notifications" component={NotificationsScreen} />
     </Tab.Navigator>
   );
 }

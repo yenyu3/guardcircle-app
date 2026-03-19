@@ -10,10 +10,10 @@ import { RootStackParamList } from '../navigation';
 import AppHeader from '../components/Header';
 
 const entries = [
-  { key: 'text', icon: 'chatbubble-ellipses', label: '貼上文字 / 訊息', sub: '複製可疑訊息貼上分析', screen: 'DetectInputText' },
-  { key: 'url', icon: 'link', label: '貼上網址', sub: '分析可疑連結是否安全', screen: 'DetectInputUrl' },
-  { key: 'phone', icon: 'call', label: '輸入電話號碼', sub: '查詢電話是否有詐騙紀錄', screen: 'DetectInputPhone' },
-  { key: 'image', icon: 'image', label: '上傳截圖', sub: '上傳對話截圖進行分析', screen: 'DetectInputImage' },
+  { key: 'text', icon: 'chatbubble-outline', label: '貼上文字 / 訊息', sub: '複製可疑訊息貼上分析', screen: 'DetectInputText' },
+  { key: 'url', icon: 'link-outline', label: '貼上網址', sub: '分析可疑連結是否安全', screen: 'DetectInputUrl' },
+  { key: 'phone', icon: 'call-outline', label: '輸入電話號碼', sub: '查詢電話是否有詐騙紀錄', screen: 'DetectInputPhone' },
+  { key: 'image', icon: 'image-outline', label: '上傳截圖', sub: '上傳對話截圖進行分析', screen: 'DetectInputImage' },
 ] as const;
 
 export default function DetectScreen() {
@@ -24,28 +24,35 @@ export default function DetectScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <AppHeader />
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={[styles.title, isGuardian && styles.titleLarge]}>偵測可疑內容</Text>
-        <Text style={[styles.sub, isGuardian && styles.subLarge]}>選擇你想要確認的內容類型</Text>
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        {/* Hero */}
+        <View style={styles.hero}>
+          <Text style={[styles.title, isGuardian && styles.titleLarge]}>偵測可疑內容</Text>
+          <Text style={[styles.sub, isGuardian && styles.subLarge]}>選擇你想要確認的內容類型</Text>
+        </View>
 
-        <View style={styles.grid}>
+        {/* Detection list */}
+        <View style={styles.list}>
           {entries.map((e) => (
             <TouchableOpacity
               key={e.key}
-              style={[styles.card, isGuardian && styles.cardLarge, Shadow.card]}
+              style={[styles.card, Shadow.card]}
               onPress={() => navigation.navigate(e.screen as any)}
-              activeOpacity={0.8}
+              activeOpacity={0.75}
             >
               <View style={styles.iconWrap}>
-                <Ionicons name={e.icon as any} size={isGuardian ? 32 : 26} color={Colors.primaryDark} />
+                <Ionicons name={e.icon as any} size={isGuardian ? 34 : 30} color={Colors.primaryDark} />
               </View>
-              <Text style={[styles.cardLabel, isGuardian && styles.cardLabelLarge]}>{e.label}</Text>
-              {!isGuardian && <Text style={styles.cardSub}>{e.sub}</Text>}
+              <View style={styles.cardText}>
+                <Text style={[styles.cardLabel, isGuardian && styles.cardLabelLarge]}>{e.label}</Text>
+                <Text style={[styles.cardSub, isGuardian && styles.cardSubLarge]}>{e.sub}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={Colors.textMuted} />
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* Mock share sheet entry */}
+        {/* Share entry */}
         <View style={styles.shareSection}>
           <Text style={styles.shareTitle}>從其他 App 分享過來</Text>
           <TouchableOpacity
@@ -58,8 +65,8 @@ export default function DetectScreen() {
         </View>
 
         {/* Result preview */}
-        <View style={styles.shareSection}>
-          <Text style={styles.shareTitle}>結果頁面預覽（測試用）</Text>
+        <View style={styles.previewSection}>
+          <Text style={styles.previewLabel}>結果頁面預覽（測試用）</Text>
           <View style={styles.previewRow}>
             <TouchableOpacity
               style={[styles.previewBtn, { backgroundColor: '#E97A7A' }]}
@@ -88,26 +95,39 @@ export default function DetectScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
-  container: { padding: 20, paddingBottom: 32 },
-  title: { fontSize: 22, fontWeight: '800', color: Colors.text, marginBottom: 6 },
-  titleLarge: { fontSize: 28 },
-  sub: { fontSize: 14, color: Colors.textLight, marginBottom: 20 },
-  subLarge: { fontSize: 17, marginBottom: 24 },
-  grid: { gap: 14 },
+  container: { paddingHorizontal: 20, paddingBottom: 40 },
+  hero: { marginTop: 28, marginBottom: 28 },
+  title: { fontSize: 32, fontWeight: '800', color: Colors.text, marginBottom: 6, letterSpacing: -0.5 },
+  titleLarge: { fontSize: 38 },
+  sub: { fontSize: 15, color: Colors.textLight, fontWeight: '500' },
+  subLarge: { fontSize: 18 },
+  list: { gap: 14 },
   card: {
-    backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 20,
-    flexDirection: 'row', alignItems: 'center', gap: 16,
+    backgroundColor: '#fcf2e3',
+    borderRadius: Radius.xl,
+    paddingVertical: 22,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 18,
   },
-  cardLarge: { padding: 26 },
-  iconWrap: { width: 52, height: 52, borderRadius: 26, backgroundColor: Colors.card, alignItems: 'center', justifyContent: 'center' },
-  cardLabel: { fontSize: 16, fontWeight: '700', color: Colors.text, flex: 1 },
-  cardLabelLarge: { fontSize: 20 },
-  cardSub: { fontSize: 12, color: Colors.textMuted, position: 'absolute', bottom: 12, right: 16 },
+  iconWrap: {
+    width: 68, height: 68, borderRadius: 34,
+    backgroundColor: '#ffdbca',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  cardText: { flex: 1 },
+  cardLabel: { fontSize: 19, fontWeight: '700', color: Colors.text, marginBottom: 4 },
+  cardLabelLarge: { fontSize: 23 },
+  cardSub: { fontSize: 14, color: Colors.textLight },
+  cardSubLarge: { fontSize: 17 },
+  previewSection: { marginTop: 20 },
   shareSection: { marginTop: 28, alignItems: 'center' },
   shareTitle: { fontSize: 13, color: Colors.textMuted, marginBottom: 10 },
-  shareBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: Colors.card, borderRadius: Radius.full, paddingHorizontal: 20, paddingVertical: 12 },
+  shareBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#fcf2e3', borderRadius: Radius.full, paddingHorizontal: 20, paddingVertical: 12 },
   shareBtnText: { fontSize: 14, fontWeight: '600', color: Colors.primaryDark },
-  previewRow: { flexDirection: 'row', gap: 10, marginTop: 4 },
+  previewLabel: { fontSize: 12, color: Colors.textMuted, textAlign: 'center', marginBottom: 12, letterSpacing: 1, textTransform: 'uppercase' },
+  previewRow: { flexDirection: 'row', gap: 10 },
   previewBtn: { flex: 1, borderRadius: Radius.lg, paddingVertical: 14, alignItems: 'center' },
   previewBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
 });
