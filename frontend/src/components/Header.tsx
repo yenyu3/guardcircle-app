@@ -23,14 +23,13 @@ const avatarMap: Record<string, any> = {
 };
 
 interface Props {
-  notifCount?: number;
   title?: string;
   onBack?: () => void;
   rightIcon?: keyof typeof Ionicons.glyphMap;
   onRightPress?: () => void;
 }
 
-export default function AppHeader({ notifCount, title, onBack, rightIcon, onRightPress }: Props) {
+export default function AppHeader({ title, onBack, rightIcon, onRightPress }: Props) {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { currentUser } = useAppStore();
   const gender = currentUser.gender === 'female' ? 'female' : currentUser.gender === 'male' ? 'male' : null;
@@ -67,11 +66,6 @@ export default function AppHeader({ notifCount, title, onBack, rightIcon, onRigh
       </View>
       <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={styles.avatarWrap}>
         {avatarElement}
-        {!!notifCount && notifCount > 0 && (
-          <View style={styles.notifBadge}>
-            <Text style={styles.notifBadgeText}>{notifCount > 99 ? '99+' : notifCount}</Text>
-          </View>
-        )}
       </TouchableOpacity>
     </View>
   );
@@ -94,12 +88,4 @@ const styles = StyleSheet.create({
   avatarImg: {
     width: 36, height: 36, borderRadius: 18,
   },
-  notifBadge: {
-    position: 'absolute', top: -4, right: -4,
-    backgroundColor: '#e53935', borderRadius: 10,
-    minWidth: 18, height: 18, paddingHorizontal: 4,
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, borderColor: DS.bg,
-  },
-  notifBadgeText: { fontSize: 10, fontWeight: '800', color: '#fff' },
 });

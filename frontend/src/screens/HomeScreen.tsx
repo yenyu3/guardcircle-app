@@ -63,7 +63,7 @@ function GuardianHome() {
       </View>
 
       {/* Main CTA Button */}
-      <Pressable onPress={() => (navigation as any).navigate('Detect')} activeOpacity={0.85}>
+      <Pressable onPress={() => (navigation as any).navigate('Detect')}>
         <LinearGradient
           colors={['#E97A7A', '#f0a0a0']}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
@@ -259,7 +259,6 @@ function GatekeeperHome() {
         </Text>
         <Pressable
           onPress={() => navigation.navigate('KnowledgeCard', { cardId: 'k1' })}
-          activeOpacity={0.9}
         >
           <LinearGradient
             colors={['#89502e', '#ffb38a']}
@@ -390,7 +389,7 @@ export default function HomeScreen() {
   const { currentUser, hasFamilyCircle } = useAppStore();
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['top']}>
       <AppHeader />
       {!hasFamilyCircle && (
         <Banner message="你還沒加入家庭圈，前往設定加入" variant="info" onPress={() => (navigation as any).navigate('Settings')} style={{ marginHorizontal: 20, marginTop: 12 }} />

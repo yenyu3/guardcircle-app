@@ -36,14 +36,10 @@ export default function SettingsScreen() {
   const avatarSrc = avatarKey ? avatarMap[avatarKey] : null;
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={Colors.text} />
-        </TouchableOpacity>
         <Text style={styles.headerTitle}>設定</Text>
-        <View style={styles.headerRight} />
       </View>
 
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>

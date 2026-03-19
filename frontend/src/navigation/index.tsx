@@ -17,7 +17,6 @@ import FamilyJoinScreen from '../screens/auth/FamilyJoinScreen';
 import HomeScreen from '../screens/HomeScreen';
 import DetectScreen from '../screens/DetectScreen';
 import FamilyScreen from '../screens/FamilyScreen';
-import NotificationsScreen from '../screens/NotificationsScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 
 // Detect flow
@@ -86,7 +85,7 @@ const TAB_ITEMS = [
   { name: 'Home', label: '首頁', icon: 'home-outline', iconActive: 'home' },
   { name: 'Detect', label: '偵測', icon: 'radio-outline', iconActive: 'radio' },
   { name: 'Family', label: '家庭圈', icon: 'people-outline', iconActive: 'people' },
-  { name: 'Notifications', label: '通知', icon: 'person-outline', iconActive: 'person' },
+  { name: 'Settings', label: '設定', icon: 'settings-outline', iconActive: 'settings' },
 ] as const;
 
 function CustomTabBar({ state, navigation }: any) {
@@ -150,7 +149,7 @@ function MainTabs() {
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Detect" component={DetectScreen} />
       <Tab.Screen name="Family" component={FamilyScreen} />
-      <Tab.Screen name="Notifications" component={NotificationsScreen} />
+      <Tab.Screen name="Settings" component={SettingsScreen} />
     </Tab.Navigator>
   );
 }
@@ -179,7 +178,6 @@ export default function AppNavigator() {
         <Stack.Screen name="FamilyInvite" component={FamilyInviteScreen} />
         <Stack.Screen name="FamilyManage" component={FamilyManageScreen} />
         <Stack.Screen name="GuardianAlert" component={GuardianAlertScreen} />
-        <Stack.Screen name="Settings" component={SettingsScreen} />
         <Stack.Screen name="WeeklyReport" component={WeeklyReportScreen} />
         <Stack.Screen name="KnowledgeCard" component={KnowledgeCardScreen} />
         <Stack.Screen name="SettingsProfile" component={SettingsProfileScreen} />
