@@ -1,6 +1,7 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, ViewStyle } from 'react-native';
-import { Colors, Radius, Typography } from '../theme';
+import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, ViewStyle, Pressable } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Colors, Radius } from '../theme';
 
 interface Props {
   title: string;
@@ -12,17 +13,40 @@ interface Props {
   style?: ViewStyle;
 }
 
+const GRAD_START = '#89502e';
+const GRAD_END   = '#ffb38a';
+
 export default function Button({ title, onPress, variant = 'primary', size = 'normal', disabled, loading, style }: Props) {
-  const bg = variant === 'primary' ? Colors.primary
-    : variant === 'danger' ? Colors.danger
-    : variant === 'secondary' ? Colors.card
-    : 'transparent';
-  const textColor = variant === 'ghost' ? Colors.primary
-    : variant === 'secondary' ? Colors.text
-    : Colors.white;
-  const borderColor = variant === 'ghost' ? Colors.primary : 'transparent';
   const height = size === 'large' ? 60 : 48;
   const fontSize = size === 'large' ? 18 : 16;
+
+  if (variant === 'primary') {
+    return (
+      <Pressable
+        onPress={onPress}
+        disabled={disabled || loading}
+        style={[{ opacity: disabled ? 0.45 : 1 }, style]}
+      >
+        <LinearGradient
+          colors={[GRAD_START, GRAD_END]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.btn, { height }]}
+        >
+          {loading
+            ? <ActivityIndicator color="#fff" />
+            : <Text style={[styles.text, { color: '#fff', fontSize }]}>{title}</Text>
+          }
+        </LinearGradient>
+      </Pressable>
+    );
+  }
+
+  const bg = variant === 'danger' ? Colors.danger
+    : variant === 'secondary' ? Colors.card
+    : 'transparent';
+  const textColor = variant === 'ghost' ? Colors.primary : variant === 'secondary' ? Colors.text : Colors.white;
+  const borderColor = variant === 'ghost' ? Colors.primary : 'transparent';
 
   return (
     <TouchableOpacity
@@ -35,11 +59,10 @@ export default function Button({ title, onPress, variant = 'primary', size = 'no
         style,
       ]}
     >
-      {loading ? (
-        <ActivityIndicator color={textColor} />
-      ) : (
-        <Text style={[styles.text, { color: textColor, fontSize }]}>{title}</Text>
-      )}
+      {loading
+        ? <ActivityIndicator color={textColor} />
+        : <Text style={[styles.text, { color: textColor, fontSize }]}>{title}</Text>
+      }
     </TouchableOpacity>
   );
 }

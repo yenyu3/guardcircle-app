@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,7 +7,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../theme';
 import { RootStackParamList } from '../navigation';
 import { mockFamily } from '../mock';
-import Avatar from '../components/Avatar';
+import { LinearGradient } from 'expo-linear-gradient';
+import NpcAvatar from '../components/NpcAvatar';
 import AppHeader from '../components/Header';
 
 const STATUS_COLOR: Record<string, string> = {
@@ -54,7 +55,7 @@ export default function FamilyScreen() {
             return (
               <View key={m.id} style={styles.memberItem}>
                 <View style={styles.avatarWrap}>
-                  <Avatar initials={m.nickname[0]} size={72} color={dotColor} />
+                  <NpcAvatar avatar={m.avatar} initials={m.nickname[0]} size={72} color={dotColor} borderColor={dotColor + '44'} borderWidth={2} />
                   <View style={[styles.statusDot, { backgroundColor: dotColor }]} />
                 </View>
                 <Text style={styles.memberName}>{m.nickname}</Text>
@@ -72,10 +73,16 @@ export default function FamilyScreen() {
         </ScrollView>
 
         {/* CTA */}
-        <TouchableOpacity style={styles.ctaBtn} onPress={() => navigation.navigate('FamilyInvite')} activeOpacity={0.85}>
-          <Ionicons name="person-add" size={20} color={Colors.text} />
-          <Text style={styles.ctaText}>邀請新成員</Text>
-        </TouchableOpacity>
+        <Pressable onPress={() => navigation.navigate('FamilyInvite')} style={{ marginVertical: 24 }}>
+          <LinearGradient
+            colors={['#89502e', '#ffb38a']}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={styles.ctaBtn}
+          >
+            <Ionicons name="person-add" size={20} color="#fff" />
+            <Text style={[styles.ctaText, { color: '#fff' }]}>邀請新成員</Text>
+          </LinearGradient>
+        </Pressable>
 
         {/* Timeline */}
         <Text style={[styles.sectionTitle, { marginBottom: 16 }]}>最近動態</Text>
@@ -116,7 +123,10 @@ const styles = StyleSheet.create({
   memberStatus: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
   inviteCircle: { width: 72, height: 72, borderRadius: 36, borderWidth: 2, borderStyle: 'dashed', borderColor: Colors.primary + '66', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff8' },
   inviteLabel: { fontSize: 13, fontWeight: '700', color: Colors.primary },
-  ctaBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: Colors.primary, borderRadius: Radius.xl, paddingVertical: 16, marginVertical: 24, ...Shadow.strong },
+  ctaBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    borderRadius: Radius.xl, paddingVertical: 16, ...Shadow.strong,
+  },
   ctaText: { fontSize: 16, fontWeight: '700', color: Colors.text },
   timeline: { position: 'relative', gap: 20 },
   timelineLine: { position: 'absolute', left: 19, top: 8, bottom: 8, width: 2, backgroundColor: Colors.primary + '22' },

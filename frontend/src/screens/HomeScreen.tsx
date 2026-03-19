@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, Pressable } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -62,14 +63,16 @@ function GuardianHome() {
       </View>
 
       {/* Main CTA Button */}
-      <TouchableOpacity
-        style={styles.gMainBtn}
-        onPress={() => (navigation as any).navigate('Detect')}
-        activeOpacity={0.85}
-      >
-        <Ionicons name="warning" size={28} color={Colors.white} />
-        <Text style={styles.gMainBtnText}>我收到可疑訊息</Text>
-      </TouchableOpacity>
+      <Pressable onPress={() => (navigation as any).navigate('Detect')} activeOpacity={0.85}>
+        <LinearGradient
+          colors={['#E97A7A', '#f0a0a0']}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={styles.gMainBtn}
+        >
+          <Ionicons name="warning" size={28} color={Colors.white} />
+          <Text style={styles.gMainBtnText}>我收到可疑訊息</Text>
+        </LinearGradient>
+      </Pressable>
       <Text style={styles.gMainBtnHint}>若感到不安，點擊此處讓我們幫您檢查</Text>
 
       {/* Family Section */}
@@ -254,9 +257,18 @@ function GatekeeperHome() {
         <Text style={styles.gkInsightBody}>
           我們偵測到近期針對家庭用戶的深偽語音詐騙有所增加。閱讀我們的三步驟家庭保護指南。
         </Text>
-        <View style={styles.gkInsightReadBtn}>
-          <Text style={styles.gkInsightReadText}>立即閱讀</Text>
-        </View>
+        <Pressable
+          onPress={() => navigation.navigate('KnowledgeCard', { cardId: 'k1' })}
+          activeOpacity={0.9}
+        >
+          <LinearGradient
+            colors={['#89502e', '#ffb38a']}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={styles.gkInsightReadBtn}
+          >
+            <Text style={styles.gkInsightReadText}>立即閱讀</Text>
+          </LinearGradient>
+        </Pressable>
       </TouchableOpacity>
 
     </ScrollView>
@@ -318,7 +330,11 @@ function SolverHome() {
       </View>
 
       {/* Contribution Card */}
-      <View style={styles.slContribCard}>
+      <LinearGradient
+        colors={['#89502e', '#ffb38a']}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={styles.slContribCard}
+      >
         <Text style={styles.slContribTitle}>My Contribution</Text>
         <View style={styles.slContribRow}>
           <View>
@@ -339,7 +355,7 @@ function SolverHome() {
         <View style={styles.slProgressBg}>
           <View style={[styles.slProgressFill, { width: '80%' }]} />
         </View>
-      </View>
+      </LinearGradient>
 
       {/* Knowledge Card */}
       <TouchableOpacity
@@ -412,7 +428,7 @@ const styles = StyleSheet.create({
   safetySub: { fontSize: 16, color: Colors.textLight },
   // Main CTA
   gMainBtn: {
-    backgroundColor: '#E97A7A', borderRadius: Radius.xl, paddingVertical: 24, paddingHorizontal: 20,
+    borderRadius: Radius.xl, paddingVertical: 24, paddingHorizontal: 20,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 10,
     ...Shadow.strong,
   },
@@ -548,7 +564,7 @@ const styles = StyleSheet.create({
   slTrendLink: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   slTrendLinkText: { fontSize: 14, fontWeight: '700', color: Colors.primaryDark },
   slContribCard: {
-    backgroundColor: Colors.primaryDark, borderRadius: Radius.lg, padding: 24, marginBottom: 16,
+    borderRadius: Radius.lg, padding: 24, marginBottom: 16,
     ...Shadow.strong,
   },
   slContribTitle: { fontSize: 18, fontWeight: '800', color: Colors.white, marginBottom: 20 },

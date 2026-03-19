@@ -7,7 +7,7 @@ import { Colors, Radius } from '../../theme';
 import { mockFamily } from '../../mock';
 import Header from '../../components/Header';
 import Card from '../../components/Card';
-import Avatar from '../../components/Avatar';
+import NpcAvatar from '../../components/NpcAvatar';
 
 const roleLabel = { guardian: '守護者', gatekeeper: '守門人', solver: '識破者' };
 const roleColor = { guardian: Colors.danger, gatekeeper: Colors.primaryDark, solver: Colors.safe };
@@ -25,7 +25,7 @@ export default function FamilyManageScreen() {
             <View style={styles.priority}>
               <Text style={styles.priorityNum}>{i + 1}</Text>
             </View>
-            <Avatar initials={m.nickname[0]} size={44} color={roleColor[m.role]} />
+            <NpcAvatar avatar={m.avatar} initials={m.nickname[0]} size={44} color={roleColor[m.role]} borderColor={roleColor[m.role] + '44'} borderWidth={2} />
             <View style={{ flex: 1 }}>
               <Text style={styles.memberName}>{m.nickname}</Text>
               <View style={[styles.rolePill, { backgroundColor: roleColor[m.role] + '22' }]}>
