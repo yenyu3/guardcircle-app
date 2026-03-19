@@ -24,9 +24,13 @@ const avatarMap: Record<string, any> = {
 
 interface Props {
   notifCount?: number;
+  title?: string;
+  onBack?: () => void;
+  rightIcon?: keyof typeof Ionicons.glyphMap;
+  onRightPress?: () => void;
 }
 
-export default function AppHeader({ notifCount }: Props) {
+export default function AppHeader({ notifCount, title, onBack, rightIcon, onRightPress }: Props) {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { currentUser } = useAppStore();
   const gender = currentUser.gender === 'female' ? 'female' : currentUser.gender === 'male' ? 'male' : null;
@@ -40,6 +44,20 @@ export default function AppHeader({ notifCount }: Props) {
       <Ionicons name="person" size={18} color={DS.outline} />
     </View>
   );
+
+  if (title) {
+    return (
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.iconBtn} onPress={onBack ?? (() => navigation.goBack())}>
+          <Ionicons name="arrow-back" size={22} color={DS.primary} />
+        </TouchableOpacity>
+        <Text style={styles.pageTitle}>{title}</Text>
+        <TouchableOpacity style={styles.iconBtn} onPress={onRightPress} disabled={!onRightPress}>
+          {rightIcon ? <Ionicons name={rightIcon} size={22} color={DS.primary} /> : null}
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.header}>
@@ -64,6 +82,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingVertical: 12, backgroundColor: DS.bg,
   },
+  pageTitle: { fontSize: 18, fontWeight: '700', color: DS.primary },
+  iconBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   title: { fontSize: 20, fontWeight: '800', color: DS.primary, letterSpacing: -0.5 },
   avatarWrap: { position: 'relative' },

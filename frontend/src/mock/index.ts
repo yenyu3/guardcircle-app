@@ -21,11 +21,11 @@ export const mockFamily: Family = {
   code: '482951',
   createdAt: '2024-11-01',
   members: [
-    { id: 'u1', nickname: '阿嬤', role: 'guardian', status: 'safe', lastActive: '10分鐘前' },
-    { id: 'u2', nickname: '小明', role: 'gatekeeper', status: 'safe', lastActive: '剛剛' },
-    { id: 'u3', nickname: '阿志', role: 'solver', status: 'safe', lastActive: '1小時前' },
-    { id: 'u4', nickname: '媽媽', role: 'guardian', status: 'pending', lastActive: '30分鐘前' },
-    { id: 'u5', nickname: '大兒子', role: 'gatekeeper', status: 'safe', lastActive: '5分鐘前' },
+    { id: 'u1', nickname: '阿嬪', role: 'guardian', status: 'safe', lastActive: '10分鐘前', avatar: 'npc_w1' },
+    { id: 'u2', nickname: '小明', role: 'gatekeeper', status: 'safe', lastActive: '剛剛', avatar: 'npc_m1' },
+    { id: 'u3', nickname: '阿志', role: 'solver', status: 'safe', lastActive: '1小時前', avatar: 'npc_m2' },
+    { id: 'u4', nickname: '媽媽', role: 'guardian', status: 'pending', lastActive: '30分鐘前', avatar: 'npc_w2' },
+    { id: 'u5', nickname: '大兒子', role: 'gatekeeper', status: 'safe', lastActive: '5分鐘前', avatar: 'npc_m3' },
   ],
 };
 

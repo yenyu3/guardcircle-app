@@ -8,6 +8,7 @@ import { Colors, Radius, Shadow } from '../theme';
 import { RootStackParamList } from '../navigation';
 import { mockFamily } from '../mock';
 import Avatar from '../components/Avatar';
+import AppHeader from '../components/Header';
 
 const STATUS_COLOR: Record<string, string> = {
   safe: Colors.safe,
@@ -35,16 +36,7 @@ export default function FamilyScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={22} color={Colors.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{mockFamily.name}</Text>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('FamilyManage')}>
-          <Ionicons name="settings-outline" size={22} color={Colors.text} />
-        </TouchableOpacity>
-      </View>
+      <AppHeader />
 
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         {/* Members */}
@@ -111,10 +103,7 @@ export default function FamilyScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: Colors.text },
-  iconBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  container: { paddingHorizontal: 20, paddingBottom: 40 },
+  container: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 40 },
   sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
   sectionTitle: { fontSize: 17, fontWeight: '700', color: Colors.text },
   countPill: { backgroundColor: Colors.primary + '22', borderRadius: Radius.full, paddingHorizontal: 12, paddingVertical: 4 },
