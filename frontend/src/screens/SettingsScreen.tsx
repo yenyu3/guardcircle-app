@@ -20,11 +20,10 @@ const avatarMap: Record<string, any> = {
 };
 
 const menuItems = [
-  { icon: 'person-outline',        label: '個人資料',        screen: 'SettingsProfile' },
-  { icon: 'people-outline',        label: '家庭守護設定',     screen: 'SettingsFamily' },
-  { icon: 'notifications-outline', label: '通知提醒設定',     screen: 'SettingsAndroid' },
-  { icon: 'lock-closed-outline',   label: '隱私與安全',       screen: 'SettingsPrivacy' },
-  { icon: 'information-circle-outline', label: '關於守護圈',  screen: 'SettingsAndroid' },
+  { icon: 'person-outline',        label: '個人資料',    screen: 'SettingsProfile' },
+  { icon: 'notifications-outline', label: '通知提醒設定', screen: 'SettingsAndroid' },
+  { icon: 'lock-closed-outline',   label: '隱私與安全',  screen: 'SettingsPrivacy' },
+  { icon: 'options-outline',       label: '進階設定',    screen: 'SettingsAdvanced' },
 ] as const;
 
 export default function SettingsScreen() {

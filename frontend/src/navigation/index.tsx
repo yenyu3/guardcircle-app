@@ -43,6 +43,7 @@ import SettingsProfileScreen from '../screens/settings/SettingsProfileScreen';
 import SettingsFamilyScreen from '../screens/settings/SettingsFamilyScreen';
 import SettingsPrivacyScreen from '../screens/settings/SettingsPrivacyScreen';
 import SettingsAndroidScreen from '../screens/settings/SettingsAndroidScreen';
+import SettingsAdvancedScreen from '../screens/settings/SettingsAdvancedScreen';
 
 // Other
 import WeeklyReportScreen from '../screens/WeeklyReportScreen';
@@ -75,6 +76,7 @@ export type RootStackParamList = {
   SettingsProfile: undefined;
   SettingsFamily: undefined;
   SettingsPrivacy: undefined;
+  SettingsAdvanced: undefined;
   SettingsAndroid: undefined;
 };
 
@@ -181,8 +183,8 @@ export default function AppNavigator() {
         <Stack.Screen name="WeeklyReport" component={WeeklyReportScreen} />
         <Stack.Screen name="KnowledgeCard" component={KnowledgeCardScreen} />
         <Stack.Screen name="SettingsProfile" component={SettingsProfileScreen} />
-        <Stack.Screen name="SettingsFamily" component={SettingsFamilyScreen} />
         <Stack.Screen name="SettingsPrivacy" component={SettingsPrivacyScreen} />
+        <Stack.Screen name="SettingsAdvanced" component={SettingsAdvancedScreen} />
         <Stack.Screen name="SettingsAndroid" component={SettingsAndroidScreen} />
       </Stack.Navigator>
     </NavigationContainer>
