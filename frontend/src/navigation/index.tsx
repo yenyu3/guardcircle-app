@@ -36,7 +36,6 @@ import FamilyRecordScreen from '../screens/family/FamilyRecordScreen';
 import FamilyEventDetailScreen from '../screens/family/FamilyEventDetailScreen';
 import FamilyCreateScreen from '../screens/family/FamilyCreateScreen';
 import FamilyInviteScreen from '../screens/family/FamilyInviteScreen';
-import FamilyManageScreen from '../screens/family/FamilyManageScreen';
 import GuardianAlertScreen from '../screens/family/GuardianAlertScreen';
 
 // Settings
@@ -71,7 +70,6 @@ export type RootStackParamList = {
   FamilyEventDetail: { eventId: string };
   FamilyCreate: undefined;
   FamilyInvite: undefined;
-  FamilyManage: undefined;
   GuardianAlert: { eventId: string };
   WeeklyReport: undefined;
   KnowledgeCard: { cardId?: string };
@@ -85,18 +83,19 @@ export type RootStackParamList = {
 const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
 
-const TAB_ITEMS = [
-  { name: 'Home', label: '首頁', icon: 'home-outline', iconActive: 'home' },
-  { name: 'Detect', label: '偵測', icon: 'radio-outline', iconActive: 'radio' },
-  { name: 'Family', label: '家庭圈', icon: 'people-outline', iconActive: 'people' },
-  { name: 'Settings', label: '設定', icon: 'settings-outline', iconActive: 'settings' },
-] as const;
+const TAB_ITEMS: Record<string, { label: string; icon: string; iconActive: string }> = {
+  Home:     { label: '首頁',   icon: 'home-outline',     iconActive: 'home' },
+  Detect:   { label: '偵測',   icon: 'radio-outline',    iconActive: 'radio' },
+  Family:   { label: '家庭圈', icon: 'people-outline',   iconActive: 'people' },
+  Settings: { label: '設定',   icon: 'settings-outline', iconActive: 'settings' },
+} as const;
 
 function CustomTabBar({ state, navigation }: any) {
   return (
     <View style={tabStyles.bar}>
       {state.routes.map((route: any, index: number) => {
-        const item = TAB_ITEMS[index];
+        const item = TAB_ITEMS[route.name];
+        if (!item) return null;
         const focused = state.index === index;
         return (
           <TouchableOpacity
@@ -145,6 +144,9 @@ const tabStyles = StyleSheet.create({
 });
 
 function MainTabs() {
+  const { currentUser } = useAppStore();
+  const isGuardian = currentUser.role === 'guardian';
+
   return (
     <Tab.Navigator
       tabBar={(props) => <CustomTabBar {...props} />}
@@ -152,7 +154,7 @@ function MainTabs() {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Detect" component={DetectScreen} />
-      <Tab.Screen name="Family" component={FamilyScreen} />
+      {!isGuardian && <Tab.Screen name="Family" component={FamilyScreen} />}
       <Tab.Screen name="Settings" component={SettingsScreen} />
     </Tab.Navigator>
   );
@@ -181,7 +183,6 @@ export default function AppNavigator() {
         <Stack.Screen name="FamilyEventDetail" component={FamilyEventDetailScreen} />
         <Stack.Screen name="FamilyCreate" component={FamilyCreateScreen} />
         <Stack.Screen name="FamilyInvite" component={FamilyInviteScreen} />
-        <Stack.Screen name="FamilyManage" component={FamilyManageScreen} />
         <Stack.Screen name="GuardianAlert" component={GuardianAlertScreen} />
         <Stack.Screen name="WeeklyReport" component={WeeklyReportScreen} />
         <Stack.Screen name="KnowledgeCard" component={KnowledgeCardScreen} />

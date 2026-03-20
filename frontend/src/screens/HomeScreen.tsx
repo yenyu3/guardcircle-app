@@ -23,23 +23,28 @@ function getGreeting() {
 // ── Guardian Home ──────────────────────────────────────────────
 function GuardianHome() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const { currentUser, events, family } = useAppStore();
-  // 屬於自己的未解除事件（high_risk 或 pending）
-  const activeEvents = events.filter(
-    (e) => e.userId === currentUser.id && (e.status === 'high_risk' || e.status === 'pending')
-  );
-  const isSafe = activeEvents.length === 0;
+  const { currentUser, family } = useAppStore();
   const guardians = family.members.filter((m) => m.role !== 'guardian').slice(0, 3);
 
-  const pulse = useRef(new Animated.Value(1)).current;
+  const glow = useRef(new Animated.Value(0)).current;
+  const iconScale = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, { toValue: 1.08, duration: 1000, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 1, duration: 1000, useNativeDriver: true }),
+        Animated.timing(glow, { toValue: 1, duration: 1500, useNativeDriver: true }),
+        Animated.timing(glow, { toValue: 0, duration: 1500, useNativeDriver: true }),
+      ])
+    ).start();
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(iconScale, { toValue: 1.08, duration: 1500, useNativeDriver: true }),
+        Animated.timing(iconScale, { toValue: 1, duration: 1500, useNativeDriver: true }),
       ])
     ).start();
   }, []);
+
+  const glowOpacity = glow.interpolate({ inputRange: [0, 1], outputRange: [0.25, 0.55] });
+  const glowScale = glow.interpolate({ inputRange: [0, 1], outputRange: [1, 1.45] });
 
   return (
     <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
@@ -47,37 +52,38 @@ function GuardianHome() {
       <Text style={styles.gGreeting}>{getGreeting()}，{currentUser.nickname}</Text>
       <Text style={styles.gSubtitle}>今天天氣晴朗，記得多喝水。</Text>
 
-      {/* Safety Status Card */}
-      <View style={styles.safetyCard}>
-        <View style={styles.safetyCircleWrap}>
-          <Animated.View style={[styles.safetyPulse, { transform: [{ scale: pulse }] }]} />
-          <View style={[styles.safetyCircle, { borderColor: isSafe ? '#d1fae5' : '#fde68a' }]}>
-            <Ionicons
-              name={isSafe ? 'checkmark-circle' : 'alert-circle'}
-              size={72}
-              color={isSafe ? '#10b981' : Colors.warning}
-            />
-          </View>
-        </View>
-        <Text style={styles.safetyTitle}>{isSafe ? '今天安全' : `${activeEvents.length} 件待確認`}</Text>
-        <Text style={styles.safetySub}>{isSafe ? '系統已完成即時掃描' : '家人正在幫你確認，請稍候'}</Text>
-      </View>
-
-      {/* Main CTA Button */}
-      <Pressable onPress={() => (navigation as any).navigate('Detect')}>
+      {/* Large Square CTA */}
+      <Pressable
+        onPress={() => (navigation as any).navigate('Detect')}
+        style={({ pressed }) => [{ opacity: pressed ? 0.92 : 1, transform: [{ scale: pressed ? 0.97 : 1 }] }]}
+      >
         <LinearGradient
-          colors={['#E97A7A', '#f0a0a0']}
+          colors={['#E25858', '#FF9560']}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={styles.gMainBtn}
+          style={styles.gCtaSquare}
         >
-          <Ionicons name="warning" size={28} color={Colors.white} />
-          <Text style={styles.gMainBtnText}>我收到可疑訊息</Text>
+          {/* Icon + Breathing glow */}
+          <View style={styles.gCtaIconWrap}>
+            <Animated.View
+              style={[
+                styles.gCtaGlow,
+                { opacity: glowOpacity, transform: [{ scale: glowScale }] },
+              ]}
+            />
+            <Animated.View style={{ transform: [{ scale: iconScale }], zIndex: 1 }}>
+              <Ionicons name="warning" size={100} color="rgba(255,255,255,0.95)" />
+            </Animated.View>
+          </View>
+          {/* Text */}
+          <View style={styles.gCtaTextWrap}>
+            <Text style={styles.gCtaTitle}>我收到可疑訊息</Text>
+            <Text style={styles.gCtaSub}>讓我們幫您檢查，確保安全</Text>
+          </View>
         </LinearGradient>
       </Pressable>
-      <Text style={styles.gMainBtnHint}>若感到不安，點擊此處讓我們幫您檢查</Text>
 
       {/* Family Section */}
-      <View style={styles.familyHeader}>
+      <View style={[styles.familyHeader, { marginTop: 32 }]}>
         <Text style={styles.familyTitle}>守護你的人</Text>
         <Text style={styles.familyAll}>全部 ({guardians.length})</Text>
       </View>
@@ -101,13 +107,9 @@ function GuardianHome() {
 
       {/* Bento Grid */}
       <View style={styles.bentoGrid}>
-        <TouchableOpacity style={styles.bentoItem} onPress={() => navigation.navigate('KnowledgeCard', {})} activeOpacity={0.8}>
+        <TouchableOpacity style={[styles.bentoItem, { flex: 0, paddingHorizontal: 32 }]} onPress={() => navigation.navigate('KnowledgeCard', {})} activeOpacity={0.8}>
           <Ionicons name="book" size={28} color={Colors.primaryDark} />
           <Text style={styles.bentoLabel}>防詐教室</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.bentoItem} onPress={() => (navigation as any).navigate('Main', { screen: 'Settings' })} activeOpacity={0.8}>
-          <Ionicons name="settings" size={28} color={Colors.primaryDark} />
-          <Text style={styles.bentoLabel}>帳號設定</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -160,13 +162,6 @@ function GatekeeperHome() {
       {/* Member Status Section */}
       <View style={styles.gkSectionHeader}>
         <Text style={styles.gkSectionTitle}>家庭成員狀態</Text>
-        <TouchableOpacity
-          style={styles.gkManageBtn}
-          onPress={() => navigation.navigate('FamilyManage')}
-        >
-          <Text style={styles.gkManageBtnText}>管理成員</Text>
-          <Ionicons name="settings-outline" size={13} color={Colors.primaryDark} />
-        </TouchableOpacity>
       </View>
 
       <View style={styles.gkMembersCard}>
@@ -424,32 +419,39 @@ const styles = StyleSheet.create({
   // Guardian
   gGreeting: { fontSize: 34, fontWeight: '800', color: Colors.text, marginBottom: 6, letterSpacing: -0.5 },
   gSubtitle: { fontSize: 16, color: Colors.textLight, marginBottom: 28 },
-  // Safety Card
-  safetyCard: {
-    backgroundColor: '#fcf2e3', borderRadius: 28, paddingVertical: 36, paddingHorizontal: 20,
-    alignItems: 'center', gap: 12, marginBottom: 24,
-    ...Shadow.card,
+  // Guardian CTA Square
+  gCtaSquare: {
+    width: '100%',
+    aspectRatio: 1,
+    borderRadius: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 24,
+    overflow: 'hidden',
+    shadowColor: '#E97A7A',
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.35,
+    shadowRadius: 32,
+    elevation: 10,
   },
-  safetyCircleWrap: { position: 'relative', alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
-  safetyPulse: {
-    position: 'absolute', width: 160, height: 160, borderRadius: 80,
-    borderWidth: 1, borderColor: '#6ee7b7', opacity: 0.4,
+  gCtaIconWrap: {
+    width: 140,
+    height: 140,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  safetyCircle: {
-    width: 140, height: 140, borderRadius: 70, borderWidth: 12,
-    backgroundColor: Colors.white, alignItems: 'center', justifyContent: 'center',
-    ...Shadow.card,
+  gCtaGlow: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.45)',
   },
-  safetyTitle: { fontSize: 28, fontWeight: '800', color: Colors.text },
-  safetySub: { fontSize: 16, color: Colors.textLight },
-  // Main CTA
-  gMainBtn: {
-    borderRadius: Radius.xl, paddingVertical: 24, paddingHorizontal: 20,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 10,
-    ...Shadow.strong,
-  },
-  gMainBtnText: { fontSize: 22, fontWeight: '800', color: Colors.white },
-  gMainBtnHint: { fontSize: 14, color: Colors.textLight, textAlign: 'center', marginBottom: 28 },
+  gCtaTextWrap: { alignItems: 'center', gap: 6, zIndex: 1 },
+  gCtaTitle: { fontSize: 28, fontWeight: '800', color: Colors.white, letterSpacing: -0.5 },
+  gCtaSub: { fontSize: 16, fontWeight: '600', color: 'rgba(255,255,255,0.9)' },
   // Family
   familyHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16 },
   familyTitle: { fontSize: 22, fontWeight: '800', color: Colors.text },
@@ -487,8 +489,6 @@ const styles = StyleSheet.create({
   gkAlertSub: { fontSize: 12, color: '#b91c1c', marginTop: 2 },
   gkSectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   gkSectionTitle: { fontSize: 20, fontWeight: '800', color: Colors.text },
-  gkManageBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  gkManageBtnText: { fontSize: 13, fontWeight: '700', color: Colors.primaryDark },
   gkMembersCard: {
     backgroundColor: '#fcf2e3', borderRadius: Radius.lg, marginBottom: 16,
     overflow: 'hidden', ...Shadow.card,
