@@ -9,6 +9,7 @@ import { useAppStore } from '../store';
 
 // Auth
 import SplashScreen from '../screens/SplashScreen';
+import RegisterScreen from '../screens/auth/RegisterScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RoleSelectScreen from '../screens/auth/RoleSelectScreen';
 import FamilyJoinScreen from '../screens/auth/FamilyJoinScreen';
@@ -51,6 +52,7 @@ import KnowledgeCardScreen from '../screens/KnowledgeCardScreen';
 
 export type RootStackParamList = {
   Splash: undefined;
+  Register: undefined;
   Login: undefined;
   RoleSelect: undefined;
   FamilyJoin: undefined;
@@ -161,6 +163,7 @@ export default function AppNavigator() {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false, cardStyle: { backgroundColor: Colors.bg } }}>
         <Stack.Screen name="Splash" component={SplashScreen} />
+        <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="RoleSelect" component={RoleSelectScreen} />
         <Stack.Screen name="FamilyJoin" component={FamilyJoinScreen} />

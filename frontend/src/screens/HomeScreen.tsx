@@ -105,7 +105,7 @@ function GuardianHome() {
           <Ionicons name="book" size={28} color={Colors.primaryDark} />
           <Text style={styles.bentoLabel}>防詐教室</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.bentoItem} onPress={() => navigation.navigate('Main', { screen: 'Settings' } as any)} activeOpacity={0.8}>
+        <TouchableOpacity style={styles.bentoItem} onPress={() => (navigation as any).navigate('Main', { screen: 'Settings' })} activeOpacity={0.8}>
           <Ionicons name="settings" size={28} color={Colors.primaryDark} />
           <Text style={styles.bentoLabel}>帳號設定</Text>
         </TouchableOpacity>

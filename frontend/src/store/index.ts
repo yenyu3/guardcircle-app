@@ -2,6 +2,16 @@ import { create } from 'zustand';
 import { Role, User, Family, DetectEvent, EventStatus } from '../types';
 import { mockUsers, mockFamily, mockEvents as initialEvents } from '../mock';
 
+interface RegisteredAccount {
+  email: string;
+  password: string;
+  nickname: string;
+  birthYear?: number;
+  gender?: 'male' | 'female' | 'other';
+  role: Role;
+  hasFamilyCircle: boolean;
+}
+
 interface AppState {
   currentUser: User;
   family: Family;
@@ -9,9 +19,11 @@ interface AppState {
   isLoggedIn: boolean;
   hasFamilyCircle: boolean;
   suggestedRole: Role | null;
+  registeredAccounts: RegisteredAccount[];
   setRole: (role: Role) => void;
   setUser: (user: Partial<User>) => void;
   login: (nickname: string, email: string, birthYear?: number, gender?: string) => void;
+  directLogin: (email: string, password: string) => boolean;
   logout: () => void;
   joinFamily: () => void;
   addEvent: (event: DetectEvent) => void;
@@ -20,6 +32,7 @@ interface AppState {
   setMemberStatus: (userId: string, status: 'safe' | 'pending' | 'high_risk') => void;
   generatePairingCode: () => string;
   bindGuardian: (pairingCode: string) => boolean;
+  saveAccount: (password: string) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -29,6 +42,7 @@ export const useAppStore = create<AppState>((set) => ({
   isLoggedIn: false,
   hasFamilyCircle: false,
   suggestedRole: null,
+  registeredAccounts: [],
 
   setRole: (role) =>
     set((s) => ({ currentUser: { ...s.currentUser, role } })),
@@ -48,6 +62,43 @@ export const useAppStore = create<AppState>((set) => ({
       suggestedRole,
       currentUser: { ...s.currentUser, nickname, email, birthYear, gender: genderMapped },
     }));
+  },
+
+  saveAccount: (password: string) =>
+    set((s) => {
+      const existing = s.registeredAccounts.findIndex((a) => a.email === s.currentUser.email);
+      const account: RegisteredAccount = {
+        email: s.currentUser.email,
+        password,
+        nickname: s.currentUser.nickname,
+        birthYear: s.currentUser.birthYear,
+        gender: s.currentUser.gender,
+        role: s.currentUser.role,
+        hasFamilyCircle: s.hasFamilyCircle,
+      };
+      const accounts = [...s.registeredAccounts];
+      if (existing >= 0) accounts[existing] = account;
+      else accounts.push(account);
+      return { registeredAccounts: accounts };
+    }),
+
+  directLogin: (email: string, password: string) => {
+    const accounts = useAppStore.getState().registeredAccounts;
+    const account = accounts.find((a) => a.email === email && a.password === password);
+    if (!account) return false;
+    set((s) => ({
+      isLoggedIn: true,
+      hasFamilyCircle: account.hasFamilyCircle,
+      currentUser: {
+        ...s.currentUser,
+        nickname: account.nickname,
+        email: account.email,
+        birthYear: account.birthYear,
+        gender: account.gender,
+        role: account.role,
+      },
+    }));
+    return true;
   },
 
   logout: () =>

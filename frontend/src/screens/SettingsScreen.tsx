@@ -85,7 +85,7 @@ export default function SettingsScreen() {
           onPress={() =>
             Alert.alert('登出', '確定要登出嗎？', [
               { text: '取消' },
-              { text: '登出', style: 'destructive', onPress: () => { logout(); navigation.replace('Login'); } },
+              { text: '登出', style: 'destructive', onPress: () => { logout(); navigation.replace('Register'); } },
             ])
           }
         >
