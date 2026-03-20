@@ -23,14 +23,8 @@ export default function KnowledgeCardScreen() {
       <Header
         title="知識卡"
         onBack={() => navigation.goBack()}
-        rightElement={
-          <Ionicons
-            name={saved ? 'bookmark' : 'bookmark-outline'}
-            size={22}
-            color={Colors.primaryDark}
-            onPress={() => { setSaved(!saved); Alert.alert(saved ? '已取消收藏' : '已收藏'); }}
-          />
-        }
+        rightIcon={saved ? 'bookmark' : 'bookmark-outline'}
+        onRightPress={() => { setSaved(!saved); Alert.alert(saved ? '已取消收藏' : '已收藏'); }}
       />
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.titleRow}>

@@ -256,31 +256,31 @@ function GatekeeperHome() {
         </TouchableOpacity>
       </View>
 
-      {/* Featured Insight Card */}
-      <TouchableOpacity
-        style={styles.gkInsightCard}
-        onPress={() => navigation.navigate('KnowledgeCard', { cardId: 'k1' })}
-        activeOpacity={0.9}
-      >
-        <View style={styles.gkInsightBadge}>
-          <Text style={styles.gkInsightBadgeText}>FEATURED INSIGHT</Text>
+      {/* Daily Scam Brief */}
+      <View style={styles.gkBriefCard}>
+        <View style={styles.gkBriefPill}>
+          <Text style={styles.gkBriefPillText}>今日詐騙快報</Text>
         </View>
-        <Text style={styles.gkInsightTitle}>如何教導長輩識別最新的 AI 詐騙技術？</Text>
-        <Text style={styles.gkInsightBody}>
-          我們偵測到近期針對家庭用戶的深偽語音詐騙有所增加。閱讀我們的三步驟家庭保護指南。
+        <Text style={styles.gkBriefTitle}>
+          AI 語音變聲詐騙急升：假冒子女求救，要求匯款至不明帳戶
+        </Text>
+        <Text style={styles.gkBriefBody}>
+          近期詐騙集團利用生成式 AI 技術，模擬親友音色。若接獲要求匯款的電話，請務必先與本人確認。
         </Text>
         <Pressable
-          onPress={() => navigation.navigate('KnowledgeCard', { cardId: 'k1' })}
+          onPress={() => navigation.navigate('ScamBrief')}
+          style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
         >
           <LinearGradient
             colors={['#89502e', '#ffb38a']}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            style={styles.gkInsightReadBtn}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+            style={styles.gkBriefBtn}
           >
-            <Text style={styles.gkInsightReadText}>立即閱讀</Text>
+            <Text style={styles.gkBriefBtnText}>立即閱讀</Text>
           </LinearGradient>
         </Pressable>
-      </TouchableOpacity>
+        <Text style={styles.gkBriefDate}>2026-03-20</Text>
+      </View>
 
     </ScrollView>
   );
@@ -539,22 +539,25 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md, alignItems: 'center',
   },
   gkViewAllText: { fontSize: 13, fontWeight: '700', color: Colors.textLight },
-  gkInsightCard: {
-    backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 24, marginBottom: 8,
-    borderWidth: 1, borderColor: '#f9dec1', ...Shadow.card,
+  gkBriefCard: {
+    backgroundColor: '#fcf2e3', borderRadius: Radius.lg, padding: 24, marginBottom: 8,
+    borderWidth: 1, borderColor: '#d7c2b9' + '26', gap: 16, ...Shadow.card,
   },
-  gkInsightBadge: {
-    alignSelf: 'flex-start', backgroundColor: '#ffdbca',
-    borderRadius: Radius.full, paddingHorizontal: 10, paddingVertical: 4, marginBottom: 12,
+  gkBriefPill: {
+    alignSelf: 'flex-start', backgroundColor: '#ffb38a4d',
+    borderRadius: Radius.full, paddingHorizontal: 14, paddingVertical: 6,
   },
-  gkInsightBadgeText: { fontSize: 10, fontWeight: '800', color: Colors.primaryDark, letterSpacing: 0.5 },
-  gkInsightTitle: { fontSize: 20, fontWeight: '800', color: Colors.text, lineHeight: 28, marginBottom: 10 },
-  gkInsightBody: { fontSize: 13, color: Colors.textLight, lineHeight: 20, marginBottom: 16 },
-  gkInsightReadBtn: {
-    alignSelf: 'flex-start', backgroundColor: Colors.primaryDark,
-    borderRadius: Radius.md, paddingHorizontal: 20, paddingVertical: 10,
+  gkBriefPillText: { fontSize: 11, fontWeight: '700', color: Colors.primaryDark, letterSpacing: 0.5 },
+  gkBriefTitle: { fontSize: 22, fontWeight: '800', color: '#4E3B31', lineHeight: 30 },
+  gkBriefBody: { fontSize: 15, fontWeight: '500', color: '#52443c', lineHeight: 24 },
+  gkBriefBtn: {
+    borderRadius: Radius.md, paddingVertical: 16,
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#89502e', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2, shadowRadius: 8, elevation: 4,
   },
-  gkInsightReadText: { fontSize: 14, fontWeight: '700', color: Colors.white },
+  gkBriefBtnText: { fontSize: 16, fontWeight: '700', color: Colors.white },
+  gkBriefDate: { fontSize: 11, fontWeight: '700', color: '#1f1b1266', letterSpacing: 1.5, textTransform: 'uppercase' },
   // Solver
   slDashLabel: { fontSize: 11, fontWeight: '700', color: Colors.primaryDark, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 },
   slGreeting: { fontSize: 42, fontWeight: '800', color: Colors.text, letterSpacing: -1, marginBottom: 20 },

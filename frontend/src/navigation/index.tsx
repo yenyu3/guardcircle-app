@@ -45,6 +45,8 @@ import SettingsPrivacyScreen from '../screens/settings/SettingsPrivacyScreen';
 import SettingsAndroidScreen from '../screens/settings/SettingsAndroidScreen';
 import SettingsAdvancedScreen from '../screens/settings/SettingsAdvancedScreen';
 
+import ScamBriefScreen from '../screens/ScamBriefScreen';
+
 // Other
 import WeeklyReportScreen from '../screens/WeeklyReportScreen';
 import KnowledgeCardScreen from '../screens/KnowledgeCardScreen';
@@ -71,6 +73,7 @@ export type RootStackParamList = {
   FamilyCreate: undefined;
   FamilyInvite: undefined;
   GuardianAlert: { eventId: string };
+  ScamBrief: undefined;
   WeeklyReport: undefined;
   KnowledgeCard: { cardId?: string };
   SettingsProfile: undefined;
@@ -184,6 +187,7 @@ export default function AppNavigator() {
         <Stack.Screen name="FamilyCreate" component={FamilyCreateScreen} />
         <Stack.Screen name="FamilyInvite" component={FamilyInviteScreen} />
         <Stack.Screen name="GuardianAlert" component={GuardianAlertScreen} />
+        <Stack.Screen name="ScamBrief" component={ScamBriefScreen} />
         <Stack.Screen name="WeeklyReport" component={WeeklyReportScreen} />
         <Stack.Screen name="KnowledgeCard" component={KnowledgeCardScreen} />
         <Stack.Screen name="SettingsProfile" component={SettingsProfileScreen} />
