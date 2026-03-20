@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { Colors } from "../theme";
+import { useAppStore } from "../store";
 
 // Auth
 import SplashScreen from "../screens/SplashScreen";
