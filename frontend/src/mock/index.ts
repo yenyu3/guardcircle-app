@@ -18,10 +18,10 @@ export const mockUsers: User[] = [
 export const mockFamily: Family = {
   id: 'f1',
   name: '林家守護圈',
-  code: '482951',
+  code: 'LN48A2',
   createdAt: '2024-11-01',
   members: [
-    { id: 'u1', nickname: '阿嬪', role: 'guardian', status: 'safe', lastActive: '10分鐘前', avatar: 'npc_w1' },
+    { id: 'u1', nickname: '阿嬤', role: 'guardian', status: 'safe', lastActive: '10分鐘前', avatar: 'npc_w1' },
     { id: 'u2', nickname: '小明', role: 'gatekeeper', status: 'safe', lastActive: '剛剛', avatar: 'npc_m1' },
     { id: 'u3', nickname: '阿志', role: 'solver', status: 'safe', lastActive: '1小時前', avatar: 'npc_m2' },
     { id: 'u4', nickname: '媽媽', role: 'guardian', status: 'pending', lastActive: '30分鐘前', avatar: 'npc_w2' },
@@ -37,6 +37,8 @@ export const mockEvents: DetectEvent[] = [
     summary: '偵測到假冒銀行客服詐騙，要求操作ATM解除分期，為典型詐騙話術。',
     riskFactors: ['要求操作ATM', '假冒官方機構', '製造緊迫感', '威脅凍結帳戶'],
     createdAt: '2025-01-15 14:32',
+    status: 'safe',
+    resolvedAt: '2025-01-15 14:35',
     gatekeeperResponse: '小明已確認：這是詐騙，請勿理會',
     gatekeeperResponseAt: '2025-01-15 14:35',
   },
@@ -47,6 +49,7 @@ export const mockEvents: DetectEvent[] = [
     summary: '此網址為仿冒銀行登入頁面，域名非官方，疑似釣魚網站。',
     riskFactors: ['非官方域名', '仿冒銀行介面', 'SSL憑證異常', 'Gogolook資料庫標記'],
     createdAt: '2025-01-14 09:15',
+    status: 'high_risk',
   },
   {
     id: 'e3', userId: 'u1', userNickname: '阿嬤', type: 'phone',
@@ -55,6 +58,7 @@ export const mockEvents: DetectEvent[] = [
     summary: '此號碼有多筆民眾回報為詐騙電話，建議謹慎。',
     riskFactors: ['多筆民眾回報', '非官方客服號碼'],
     createdAt: '2025-01-13 16:20',
+    status: 'pending',
   },
   {
     id: 'e4', userId: 'u2', userNickname: '小明', type: 'text',
@@ -63,6 +67,8 @@ export const mockEvents: DetectEvent[] = [
     summary: '偵測到假冒物流通知，要求點擊連結，為常見釣魚手法。',
     riskFactors: ['要求點擊連結', '假冒物流公司', '個資蒐集風險'],
     createdAt: '2025-01-12 11:05',
+    status: 'safe',
+    resolvedAt: '2025-01-12 11:08',
   },
   {
     id: 'e5', userId: 'u3', userNickname: '阿志', type: 'text',
@@ -71,6 +77,7 @@ export const mockEvents: DetectEvent[] = [
     summary: '此訊息無詐騙特徵，為一般日常訊息。',
     riskFactors: [],
     createdAt: '2025-01-11 08:30',
+    status: 'safe',
   },
 ];
 

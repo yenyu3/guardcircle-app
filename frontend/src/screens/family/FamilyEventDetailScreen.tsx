@@ -6,7 +6,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius } from '../../theme';
 import { RootStackParamList } from '../../navigation';
-import { mockEvents } from '../../mock';
 import { useAppStore } from '../../store';
 import Card from '../../components/Card';
 import RiskBadge from '../../components/RiskBadge';
@@ -17,7 +16,7 @@ export default function FamilyEventDetailScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'FamilyEventDetail'>>();
   const { currentUser } = useAppStore();
-  const event = mockEvents.find((e) => e.id === route.params.eventId) || mockEvents[0];
+  const event = useAppStore.getState().events.find((e) => e.id === route.params.eventId) || useAppStore.getState().events[0];
   const [blurred, setBlurred] = useState(true);
 
   const riskColor = event.riskLevel === 'high' ? Colors.danger : event.riskLevel === 'medium' ? Colors.warning : Colors.safe;

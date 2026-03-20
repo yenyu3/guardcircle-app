@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../../theme';
 import { RootStackParamList } from '../../navigation';
-import { mockEvents } from '../../mock';
+import { useAppStore } from '../../store';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
 import RiskBadge from '../../components/RiskBadge';
@@ -14,7 +14,18 @@ import RiskBadge from '../../components/RiskBadge';
 export default function GuardianAlertScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'GuardianAlert'>>();
-  const event = mockEvents.find((e) => e.id === route.params.eventId) || mockEvents[0];
+  const { events, resolveEvent, setMemberStatus } = useAppStore();
+  const event = events.find((e) => e.id === route.params.eventId) || events[0];
+
+  function handleResolved() {
+    resolveEvent(event.id, `${useAppStore.getState().currentUser.nickname} 已確認：這是詐騙，請勿理會`);
+    // 同步更新家庭圈成員狀態 → safe
+    setMemberStatus(event.userId, 'safe');
+    // TODO: 後端接口 — PATCH /api/events/:id { status: 'safe', gatekeeperResponse }
+    Alert.alert('已記錄', '感謝你的協助！事件已結案。', [
+      { text: '確定', onPress: () => navigation.goBack() },
+    ]);
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -46,7 +57,7 @@ export default function GuardianAlertScreen() {
           />
           <Button
             title="✅ 已協助阻止"
-            onPress={() => { Alert.alert('已記錄', '感謝你的協助！'); navigation.goBack(); }}
+            onPress={handleResolved}
             variant="secondary"
           />
           <Button

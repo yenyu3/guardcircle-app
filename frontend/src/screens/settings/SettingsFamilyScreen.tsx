@@ -13,7 +13,7 @@ import Avatar from '../../components/Avatar';
 
 export default function SettingsFamilyScreen() {
   const navigation = useNavigation();
-  const { currentUser } = useAppStore();
+  const { currentUser, family } = useAppStore();
   const isGatekeeper = currentUser.role === 'gatekeeper';
   const [threshold, setThreshold] = useState<'60' | '70' | '80'>('70');
 
@@ -24,12 +24,12 @@ export default function SettingsFamilyScreen() {
         <Card style={styles.section}>
           <View style={styles.familyHeader}>
             <View>
-              <Text style={styles.familyName}>{mockFamily.name}</Text>
-              <Text style={styles.familyId}>ID: GC-482951</Text>
+              <Text style={styles.familyName}>{family.name}</Text>
+              <Text style={styles.familyId}>ID: {family.code}</Text>
             </View>
             <Button title="邀請" onPress={() => Alert.alert('邀請家人')} variant="secondary" style={{ paddingHorizontal: 14 }} />
           </View>
-          {mockFamily.members.map((m) => (
+          {family.members.map((m) => (
             <View key={m.id} style={styles.memberRow}>
               <Avatar initials={m.nickname[0]} size={36} />
               <Text style={styles.memberName}>{m.nickname}</Text>

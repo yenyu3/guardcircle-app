@@ -8,7 +8,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../theme';
 import { useAppStore } from '../store';
 import { RootStackParamList } from '../navigation';
-import { mockEvents, mockFamily } from '../mock';
 import Card from '../components/Card';
 import RiskBadge from '../components/RiskBadge';
 import NpcAvatar from '../components/NpcAvatar';
@@ -24,9 +23,13 @@ function getGreeting() {
 // ── Guardian Home ──────────────────────────────────────────────
 function GuardianHome() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const { currentUser } = useAppStore();
-  const pendingEvents = mockEvents.filter((e) => e.userId === 'u1' && e.riskLevel !== 'safe');
-  const isSafe = pendingEvents.length === 0;
+  const { currentUser, events, family } = useAppStore();
+  // 屬於自己的未解除事件（high_risk 或 pending）
+  const activeEvents = events.filter(
+    (e) => e.userId === currentUser.id && (e.status === 'high_risk' || e.status === 'pending')
+  );
+  const isSafe = activeEvents.length === 0;
+  const guardians = family.members.filter((m) => m.role !== 'guardian').slice(0, 3);
 
   const pulse = useRef(new Animated.Value(1)).current;
   useEffect(() => {
@@ -37,8 +40,6 @@ function GuardianHome() {
       ])
     ).start();
   }, []);
-
-  const guardians = mockFamily.members.filter((m) => m.role !== 'guardian').slice(0, 3);
 
   return (
     <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
@@ -58,7 +59,7 @@ function GuardianHome() {
             />
           </View>
         </View>
-        <Text style={styles.safetyTitle}>{isSafe ? '今天安全' : `${pendingEvents.length} 件待確認`}</Text>
+        <Text style={styles.safetyTitle}>{isSafe ? '今天安全' : `${activeEvents.length} 件待確認`}</Text>
         <Text style={styles.safetySub}>{isSafe ? '系統已完成即時掃描' : '家人正在幫你確認，請稍候'}</Text>
       </View>
 
@@ -104,7 +105,7 @@ function GuardianHome() {
           <Ionicons name="book" size={28} color={Colors.primaryDark} />
           <Text style={styles.bentoLabel}>防詐教室</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.bentoItem} onPress={() => navigation.navigate('Settings')} activeOpacity={0.8}>
+        <TouchableOpacity style={styles.bentoItem} onPress={() => navigation.navigate('Main', { screen: 'Settings' } as any)} activeOpacity={0.8}>
           <Ionicons name="settings" size={28} color={Colors.primaryDark} />
           <Text style={styles.bentoLabel}>帳號設定</Text>
         </TouchableOpacity>
@@ -122,23 +123,22 @@ const STATUS_CONFIG = {
 
 function GatekeeperHome() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const highRisk = mockEvents.filter((e) => e.riskLevel === 'high');
-  const guardianMembers = mockFamily.members.filter((m) => m.role === 'guardian');
-
-  const timelineEvents = [
-    { color: '#ef4444', title: '未知號碼來電攔截', sub: `${mockEvents[0].userNickname} · 手機通訊`, time: '14:20' },
-    { color: Colors.warning, title: '異常登入嘗試', sub: `${mockEvents[1].userNickname} · 電子郵件`, time: '12:15' },
-    { color: '#60a5fa', title: '安全掃描完成', sub: `${mockEvents[2].userNickname} · 平板電腦`, time: '10:45' },
-  ];
+  const { events, family } = useAppStore();
+  const activeHighRisk = events.filter((e) => e.status === 'high_risk');
+  const guardianMembers = family.members.filter((m) => m.role === 'guardian');
+  // 近期事件：已結案（safe）且有 resolvedAt，取最新 3 筆
+  const recentResolved = events
+    .filter((e) => e.status === 'safe' && e.riskLevel !== 'safe')
+    .slice(0, 3);
 
   return (
     <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
 
       {/* High-Risk Alert Banner */}
-      {highRisk.length > 0 && (
+      {activeHighRisk.length > 0 ? (
         <TouchableOpacity
           style={styles.gkAlertBanner}
-          onPress={() => navigation.navigate('GuardianAlert', { eventId: highRisk[0].id })}
+          onPress={() => navigation.navigate('GuardianAlert', { eventId: activeHighRisk[0].id })}
           activeOpacity={0.85}
         >
           <View style={styles.gkAlertIcon}>
@@ -150,6 +150,11 @@ function GatekeeperHome() {
           </View>
           <Ionicons name="chevron-forward" size={20} color={Colors.danger} />
         </TouchableOpacity>
+      ) : (
+        <View style={styles.gkSafeBanner}>
+          <Ionicons name="checkmark-circle" size={20} color="#16a34a" />
+          <Text style={styles.gkSafeBannerText}>目前無高風險事件，家人安全中</Text>
+        </View>
       )}
 
       {/* Member Status Section */}
@@ -224,16 +229,28 @@ function GatekeeperHome() {
         <Text style={styles.gkSectionTitle}>近期事件</Text>
         <View style={styles.gkTimeline}>
           <View style={styles.gkTimelineLine} />
-          {timelineEvents.map((ev, i) => (
-            <View key={i} style={styles.gkTimelineItem}>
-              <View style={[styles.gkTimelineDot, { backgroundColor: ev.color }]} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.gkEventTitle}>{ev.title}</Text>
-                <Text style={styles.gkEventSub}>{ev.sub}</Text>
-              </View>
-              <Text style={styles.gkEventTime}>{ev.time}</Text>
-            </View>
-          ))}
+          {recentResolved.length === 0 ? (
+            <Text style={styles.gkNoEvents}>目前尚無已處理事件</Text>
+          ) : (
+            recentResolved.map((ev) => {
+              const dotColor = ev.riskLevel === 'high' ? '#ef4444' : Colors.warning;
+              return (
+                <TouchableOpacity
+                  key={ev.id}
+                  style={styles.gkTimelineItem}
+                  onPress={() => navigation.navigate('FamilyEventDetail', { eventId: ev.id })}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.gkTimelineDot, { backgroundColor: dotColor }]} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.gkEventTitle}>{ev.userNickname} · {ev.scamType}</Text>
+                    <Text style={styles.gkEventSub}>{ev.summary.slice(0, 30)}…</Text>
+                  </View>
+                  <Text style={styles.gkEventTime}>{ev.createdAt}</Text>
+                </TouchableOpacity>
+              );
+            })
+          )}
         </View>
         <TouchableOpacity
           style={styles.gkViewAllBtn}
@@ -392,7 +409,7 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <AppHeader />
       {!hasFamilyCircle && (
-        <Banner message="你還沒加入家庭圈，前往設定加入" variant="info" onPress={() => (navigation as any).navigate('Settings')} style={{ marginHorizontal: 20, marginTop: 12 }} />
+        <Banner message="你還沒加入家庭圈，前往設定加入" variant="info" onPress={() => (navigation as any).navigate('Main', { screen: 'Settings' })} style={{ marginHorizontal: 20, marginTop: 12 }} />
       )}
       {currentUser.role === 'guardian' && <GuardianHome />}
       {currentUser.role === 'gatekeeper' && <GatekeeperHome />}
@@ -457,6 +474,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 24,
     ...Shadow.card,
   },
+  gkSafeBanner: {
+    backgroundColor: '#dcfce7', borderRadius: Radius.lg, padding: 16,
+    flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 24,
+  },
+  gkSafeBannerText: { fontSize: 14, fontWeight: '600', color: '#16a34a' },
   gkAlertIcon: {
     width: 36, height: 36, borderRadius: 18,
     backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center',
@@ -511,6 +533,7 @@ const styles = StyleSheet.create({
   gkEventTitle: { fontSize: 13, fontWeight: '700', color: Colors.text },
   gkEventSub: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
   gkEventTime: { fontSize: 10, fontWeight: '700', color: Colors.textMuted },
+  gkNoEvents: { fontSize: 13, color: Colors.textMuted, textAlign: 'center', paddingVertical: 12 },
   gkViewAllBtn: {
     marginTop: 4, paddingVertical: 12, backgroundColor: '#fcf2e3',
     borderRadius: Radius.md, alignItems: 'center',

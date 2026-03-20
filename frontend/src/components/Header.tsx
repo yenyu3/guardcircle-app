@@ -64,7 +64,7 @@ export default function AppHeader({ title, onBack, rightIcon, onRightPress }: Pr
         <ShieldHeartIcon size={28} color={DS.primary} bgColor={DS.bg} />
         <Text style={styles.title}>GuardCircle</Text>
       </View>
-      <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={styles.avatarWrap}>
+      <TouchableOpacity onPress={() => navigation.navigate('Main', { screen: 'Settings' } as any)} style={styles.avatarWrap}>
         {avatarElement}
       </TouchableOpacity>
     </View>

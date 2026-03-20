@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius } from '../../theme';
 import { mockFamily } from '../../mock';
+import { useAppStore } from '../../store';
 import Header from '../../components/Header';
 import Card from '../../components/Card';
 import NpcAvatar from '../../components/NpcAvatar';
@@ -14,13 +15,14 @@ const roleColor = { guardian: Colors.danger, gatekeeper: Colors.primaryDark, sol
 
 export default function FamilyManageScreen() {
   const navigation = useNavigation();
+  const { family } = useAppStore();
 
   return (
     <SafeAreaView style={styles.safe}>
       <Header title="管理家庭圈" onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.sectionLabel}>成員列表</Text>
-        {mockFamily.members.map((m, i) => (
+        {family.members.map((m, i) => (
           <Card key={m.id} style={styles.memberCard}>
             <View style={styles.priority}>
               <Text style={styles.priorityNum}>{i + 1}</Text>
@@ -41,15 +43,15 @@ export default function FamilyManageScreen() {
         <Card>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>家庭圈名稱</Text>
-            <Text style={styles.infoValue}>{mockFamily.name}</Text>
+            <Text style={styles.infoValue}>{family.name}</Text>
           </View>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>家庭 ID</Text>
-            <Text style={styles.infoValue}>GC-482951</Text>
+            <Text style={styles.infoValue}>{family.code}</Text>
           </View>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>建立日期</Text>
-            <Text style={styles.infoValue}>{mockFamily.createdAt}</Text>
+            <Text style={styles.infoValue}>{family.createdAt}</Text>
           </View>
         </Card>
       </ScrollView>

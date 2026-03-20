@@ -57,7 +57,12 @@ export default function DetectScreen() {
           <Text style={styles.shareTitle}>從其他 App 分享過來</Text>
           <TouchableOpacity
             style={styles.shareBtn}
-            onPress={() => navigation.navigate('Analyzing', { type: 'text', input: '模擬從其他App分享的內容' })}
+            onPress={() => navigation.navigate('Analyzing', {
+              type: 'text',
+              // 固定包含高風險關鍵字，模擬從外部分享進來的詐騙訊息
+              input: '您好，我是台灣銀行客服，您的帳戶有異常交易，請立即操作ATM解除分期付款，否則將凍結帳戶。',
+              // TODO: 後端接口 — 接收 Share Extension 傳入的 input
+            })}
           >
             <Ionicons name="share-social" size={18} color={Colors.primaryDark} />
             <Text style={styles.shareBtnText}>模擬分享入口（Demo）</Text>

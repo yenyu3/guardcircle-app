@@ -5,7 +5,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Radius } from '../../theme';
 import { RootStackParamList } from '../../navigation';
-import { mockEvents } from '../../mock';
+import { useAppStore } from '../../store';
 import Card from '../../components/Card';
 import RiskBadge from '../../components/RiskBadge';
 import Header from '../../components/Header';
@@ -21,10 +21,11 @@ const FILTERS: { label: string; value: RiskLevel | 'all' }[] = [
 
 export default function FamilyRecordScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  const { events } = useAppStore();
   const [filter, setFilter] = useState<RiskLevel | 'all'>('all');
   const [search, setSearch] = useState('');
 
-  const filtered = mockEvents.filter((e) => {
+  const filtered = events.filter((e) => {
     const matchFilter = filter === 'all' || e.riskLevel === filter;
     const matchSearch = !search || e.scamType.includes(search) || e.userNickname.includes(search);
     return matchFilter && matchSearch;
