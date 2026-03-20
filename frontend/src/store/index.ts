@@ -1,6 +1,13 @@
-import { create } from 'zustand';
-import { Role, User, Family, DetectEvent, EventStatus } from '../types';
-import { mockUsers, mockFamily, mockEvents as initialEvents } from '../mock';
+import { create } from "zustand";
+import { mockEvents as initialEvents, mockFamily, mockUsers } from "../mock";
+import {
+  DailyChallengeResult,
+  DetectEvent,
+  EventStatus,
+  Family,
+  Role,
+  User,
+} from "../types";
 
 interface RegisteredAccount {
   email: string;
@@ -19,6 +26,7 @@ interface AppState {
   currentUser: User;
   family: Family;
   events: DetectEvent[];
+  dailyChallengeResults: DailyChallengeResult[];
   isLoggedIn: boolean;
   hasFamilyCircle: boolean;
   suggestedRole: Role | null;
@@ -30,25 +38,35 @@ interface AppState {
   logout: () => void;
   joinFamily: () => void;
   addEvent: (event: DetectEvent) => void;
-  setEventStatus: (eventId: string, status: EventStatus, extra?: Partial<DetectEvent>) => void;
+  setEventStatus: (
+    eventId: string,
+    status: EventStatus,
+    extra?: Partial<DetectEvent>,
+  ) => void;
   resolveEvent: (eventId: string, gatekeeperResponse: string) => void;
-  setMemberStatus: (userId: string, status: 'safe' | 'pending' | 'high_risk') => void;
+  setMemberStatus: (
+    userId: string,
+    status: "safe" | "pending" | "high_risk",
+  ) => void;
   generatePairingCode: () => string;
   bindGuardian: (pairingCode: string) => boolean;
   saveAccount: (password: string) => void;
+  submitDailyChallengeResult: (
+    payload: Omit<DailyChallengeResult, "userId">,
+  ) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
   currentUser: mockUsers[1], // default gatekeeper
   family: mockFamily,
   events: initialEvents,
+  dailyChallengeResults: [],
   isLoggedIn: false,
   hasFamilyCircle: false,
   suggestedRole: null,
   registeredAccounts: [],
 
-  setRole: (role) =>
-    set((s) => ({ currentUser: { ...s.currentUser, role } })),
+  setRole: (role) => set((s) => ({ currentUser: { ...s.currentUser, role } })),
 
   setUser: (user) =>
     set((s) => ({ currentUser: { ...s.currentUser, ...user } })),
@@ -57,9 +75,17 @@ export const useAppStore = create<AppState>((set) => ({
     let suggestedRole: Role | null = null;
     if (birthYear !== undefined) {
       const age = new Date().getFullYear() - birthYear;
-      suggestedRole = age <= 18 ? 'solver' : age <= 59 ? 'gatekeeper' : 'guardian';
+      suggestedRole =
+        age <= 18 ? "solver" : age <= 59 ? "gatekeeper" : "guardian";
     }
-    const genderMapped = gender === '男' ? 'male' : gender === '女' ? 'female' : gender === '其他' ? 'other' : undefined;
+    const genderMapped =
+      gender === "男"
+        ? "male"
+        : gender === "女"
+          ? "female"
+          : gender === "其他"
+            ? "other"
+            : undefined;
     set((s) => ({
       isLoggedIn: true,
       suggestedRole,
@@ -69,7 +95,9 @@ export const useAppStore = create<AppState>((set) => ({
 
   saveAccount: (password: string) =>
     set((s) => {
-      const existing = s.registeredAccounts.findIndex((a) => a.email === s.currentUser.email);
+      const existing = s.registeredAccounts.findIndex(
+        (a) => a.email === s.currentUser.email,
+      );
       const account: RegisteredAccount = {
         email: s.currentUser.email,
         password,
@@ -90,7 +118,9 @@ export const useAppStore = create<AppState>((set) => ({
 
   directLogin: (email: string, password: string) => {
     const accounts = useAppStore.getState().registeredAccounts;
-    const account = accounts.find((a) => a.email === email && a.password === password);
+    const account = accounts.find(
+      (a) => a.email === email && a.password === password,
+    );
     if (!account) return false;
     set((s) => ({
       isLoggedIn: true,
@@ -110,29 +140,34 @@ export const useAppStore = create<AppState>((set) => ({
     return true;
   },
 
-  logout: () =>
-    set({ isLoggedIn: false, hasFamilyCircle: false }),
+  logout: () => set({ isLoggedIn: false, hasFamilyCircle: false }),
 
-  joinFamily: () =>
-    set({ hasFamilyCircle: true }),
+  joinFamily: () => set({ hasFamilyCircle: true }),
 
-  addEvent: (event) =>
-    set((s) => ({ events: [event, ...s.events] })),
+  addEvent: (event) => set((s) => ({ events: [event, ...s.events] })),
 
   setEventStatus: (eventId, status, extra = {}) =>
     set((s) => ({
       events: s.events.map((e) =>
-        e.id === eventId ? { ...e, status, ...extra } : e
+        e.id === eventId ? { ...e, status, ...extra } : e,
       ),
     })),
 
   resolveEvent: (eventId, gatekeeperResponse) => {
-    const now = new Date().toLocaleString('zh-TW', { hour12: false }).slice(0, 16);
+    const now = new Date()
+      .toLocaleString("zh-TW", { hour12: false })
+      .slice(0, 16);
     set((s) => ({
       events: s.events.map((e) =>
         e.id === eventId
-          ? { ...e, status: 'safe', resolvedAt: now, gatekeeperResponse, gatekeeperResponseAt: now }
-          : e
+          ? {
+              ...e,
+              status: "safe",
+              resolvedAt: now,
+              gatekeeperResponse,
+              gatekeeperResponseAt: now,
+            }
+          : e,
       ),
     }));
   },
@@ -142,7 +177,7 @@ export const useAppStore = create<AppState>((set) => ({
       family: {
         ...s.family,
         members: s.family.members.map((m) =>
-          m.id === userId ? { ...m, status } : m
+          m.id === userId ? { ...m, status } : m,
         ),
       },
     })),
@@ -154,7 +189,9 @@ export const useAppStore = create<AppState>((set) => ({
       family: {
         ...s.family,
         members: s.family.members.map((m) =>
-          m.id === s.currentUser.id ? { ...m, pairingCode: code, pairingExpiry: expiry } : m
+          m.id === s.currentUser.id
+            ? { ...m, pairingCode: code, pairingExpiry: expiry }
+            : m,
         ),
       },
     }));
@@ -166,7 +203,11 @@ export const useAppStore = create<AppState>((set) => ({
     set((s) => {
       const now = Date.now();
       const members = s.family.members.map((m) => {
-        if (m.pairingCode === pairingCode && m.pairingExpiry && m.pairingExpiry > now) {
+        if (
+          m.pairingCode === pairingCode &&
+          m.pairingExpiry &&
+          m.pairingExpiry > now
+        ) {
           found = true;
           return { ...m, pairingCode: undefined, pairingExpiry: undefined };
         }
@@ -176,4 +217,21 @@ export const useAppStore = create<AppState>((set) => ({
     });
     return found;
   },
+
+  submitDailyChallengeResult: (payload) =>
+    set((s) => {
+      const record: DailyChallengeResult = {
+        userId: s.currentUser.id,
+        ...payload,
+      };
+      const index = s.dailyChallengeResults.findIndex(
+        (r) => r.userId === record.userId && r.dateKey === record.dateKey,
+      );
+      if (index >= 0) {
+        const next = [...s.dailyChallengeResults];
+        next[index] = record;
+        return { dailyChallengeResults: next };
+      }
+      return { dailyChallengeResults: [record, ...s.dailyChallengeResults] };
+    }),
 }));
