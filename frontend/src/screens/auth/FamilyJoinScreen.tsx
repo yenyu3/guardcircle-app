@@ -46,7 +46,8 @@ function genFamilyId() {
 
 export default function FamilyJoinScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const { joinFamily, currentUser, generatePairingCode } = useAppStore();
+  const { joinFamily, currentUser, saveAccount, registeredAccounts, generatePairingCode } = useAppStore();
+  const password = registeredAccounts.find(a => a.email === currentUser.email)?.password ?? '';
   const role = currentUser?.role;
 
   // 守護者：配對碼
@@ -86,6 +87,7 @@ export default function FamilyJoinScreen() {
       return;
     }
     joinFamily();
+    saveAccount(password);
     navigation.replace("Main");
   };
 
@@ -296,14 +298,21 @@ export default function FamilyJoinScreen() {
             </View>
           )}
 
-          <TouchableOpacity
-            style={styles.skipBtn}
-            onPress={handleSkip}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.skipText}>稍後再設定，先進入 App</Text>
-            <Ionicons name="chevron-forward" size={14} color={DS.outline} />
-          </TouchableOpacity>
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="time-outline" size={26} color={DS.primary} />
+              <Text style={styles.cardTitle}>稍後再說</Text>
+            </View>
+            <Text style={styles.cardDesc}>先自己使用，之後再加入家庭</Text>
+            <Pressable
+              onPress={handleSkip}
+              style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
+            >
+              <View style={styles.solidBtn}>
+                <Text style={styles.solidBtnText}>進入 App</Text>
+              </View>
+            </Pressable>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -492,4 +501,3 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   skipText: { fontSize: 14, color: DS.outline, fontWeight: "600" },
-});

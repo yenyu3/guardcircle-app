@@ -13,7 +13,7 @@ export default function SplashScreen() {
 
   useEffect(() => {
     const t = setTimeout(() => {
-      navigation.replace(isLoggedIn ? 'Main' : 'Login');
+      navigation.replace(isLoggedIn ? 'Main' : 'Register');
     }, 2200);
     return () => clearTimeout(t);
   }, []);
