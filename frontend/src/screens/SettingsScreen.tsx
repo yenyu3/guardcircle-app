@@ -93,7 +93,6 @@ export default function SettingsScreen() {
           <Text style={styles.logoutText}>登出帳號</Text>
         </TouchableOpacity>
 
-        <Text style={styles.version}>守護圈 GuardCircle v1.0.0 Demo</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -167,5 +166,4 @@ const styles = StyleSheet.create({
   },
   logoutText: { fontSize: 15, fontWeight: '700', color: Colors.danger },
 
-  version: { fontSize: 12, color: Colors.textMuted, textAlign: 'center' },
 });

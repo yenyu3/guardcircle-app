@@ -10,7 +10,10 @@ export interface User {
   email: string;
   role: Role;
   birthYear?: number;
+  birthMonth?: string;
+  birthDay?: string;
   gender?: 'male' | 'female' | 'other';
+  emergencyPhone?: string;
   avatar?: string;
   familyIds: string[];
   contributionPoints?: number;

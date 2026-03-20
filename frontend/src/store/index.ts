@@ -7,7 +7,10 @@ interface RegisteredAccount {
   password: string;
   nickname: string;
   birthYear?: number;
+  birthMonth?: string;
+  birthDay?: string;
   gender?: 'male' | 'female' | 'other';
+  emergencyPhone?: string;
   role: Role;
   hasFamilyCircle: boolean;
 }
@@ -22,7 +25,7 @@ interface AppState {
   registeredAccounts: RegisteredAccount[];
   setRole: (role: Role) => void;
   setUser: (user: Partial<User>) => void;
-  login: (nickname: string, email: string, birthYear?: number, gender?: string) => void;
+  login: (nickname: string, email: string, birthYear?: number, gender?: string, emergencyPhone?: string, birthMonth?: string, birthDay?: string) => void;
   directLogin: (email: string, password: string) => boolean;
   logout: () => void;
   joinFamily: () => void;
@@ -50,7 +53,7 @@ export const useAppStore = create<AppState>((set) => ({
   setUser: (user) =>
     set((s) => ({ currentUser: { ...s.currentUser, ...user } })),
 
-  login: (nickname, email, birthYear, gender) => {
+  login: (nickname, email, birthYear, gender, emergencyPhone, birthMonth, birthDay) => {
     let suggestedRole: Role | null = null;
     if (birthYear !== undefined) {
       const age = new Date().getFullYear() - birthYear;
@@ -60,7 +63,7 @@ export const useAppStore = create<AppState>((set) => ({
     set((s) => ({
       isLoggedIn: true,
       suggestedRole,
-      currentUser: { ...s.currentUser, nickname, email, birthYear, gender: genderMapped },
+      currentUser: { ...s.currentUser, nickname, email, birthYear, birthMonth, birthDay, gender: genderMapped, emergencyPhone },
     }));
   },
 
@@ -72,7 +75,10 @@ export const useAppStore = create<AppState>((set) => ({
         password,
         nickname: s.currentUser.nickname,
         birthYear: s.currentUser.birthYear,
+        birthMonth: s.currentUser.birthMonth,
+        birthDay: s.currentUser.birthDay,
         gender: s.currentUser.gender,
+        emergencyPhone: s.currentUser.emergencyPhone,
         role: s.currentUser.role,
         hasFamilyCircle: s.hasFamilyCircle,
       };
@@ -94,7 +100,10 @@ export const useAppStore = create<AppState>((set) => ({
         nickname: account.nickname,
         email: account.email,
         birthYear: account.birthYear,
+        birthMonth: account.birthMonth,
+        birthDay: account.birthDay,
         gender: account.gender,
+        emergencyPhone: account.emergencyPhone,
         role: account.role,
       },
     }));

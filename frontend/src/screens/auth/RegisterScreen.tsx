@@ -149,7 +149,7 @@ export default function RegisterScreen() {
     if (Object.keys(e).length > 0) { setErrors(e); return; }
     setErrors({});
     const yr = birthYear ? parseInt(birthYear, 10) : undefined;
-    login(nickname, email, yr, gender);
+    login(nickname, email, yr, gender, emergencyPhone, birthMonth, birthDay);
     saveAccount(password);
     navigation.replace("RoleSelect");
   };
