@@ -14,7 +14,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Banner from "../components/Banner";
-import Button from "../components/Button";
 import AppHeader from "../components/Header";
 import NpcAvatar from "../components/NpcAvatar";
 import { RootStackParamList } from "../navigation";
@@ -32,47 +31,93 @@ function getGreeting() {
 function GuardianHome() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { currentUser, family } = useAppStore();
-  const guardians = family.members.filter((m) => m.role !== 'guardian').slice(0, 3);
+  const guardians = family.members
+    .filter((m) => m.role !== "guardian")
+    .slice(0, 3);
 
   const glow = useRef(new Animated.Value(0)).current;
   const iconScale = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(glow, { toValue: 1, duration: 1500, useNativeDriver: true }),
-        Animated.timing(glow, { toValue: 0, duration: 1500, useNativeDriver: true }),
-      ])
+        Animated.timing(glow, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(glow, {
+          toValue: 0,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+      ]),
     ).start();
     Animated.loop(
       Animated.sequence([
-        Animated.timing(iconScale, { toValue: 1.08, duration: 1500, useNativeDriver: true }),
-        Animated.timing(iconScale, { toValue: 1, duration: 1500, useNativeDriver: true }),
-      ])
+        Animated.timing(iconScale, {
+          toValue: 1.08,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(iconScale, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+      ]),
     ).start();
   }, []);
 
-  const glowOpacity = glow.interpolate({ inputRange: [0, 1], outputRange: [0.25, 0.55] });
-  const glowScale = glow.interpolate({ inputRange: [0, 1], outputRange: [1, 1.45] });
+  const glowOpacity = glow.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.25, 0.55],
+  });
+  const glowScale = glow.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.45],
+  });
 
   return (
-    <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-      <Text style={styles.gGreeting}>{getGreeting()}，{currentUser.nickname}</Text>
+    <ScrollView
+      contentContainerStyle={styles.container}
+      showsVerticalScrollIndicator={false}
+    >
+      <Text style={styles.gGreeting}>
+        {getGreeting()}，{currentUser.nickname}
+      </Text>
       <Text style={styles.gSubtitle}>今天天氣晴朗，記得多喝水。</Text>
 
       {/* Large Square CTA */}
       <Pressable
-        onPress={() => (navigation as any).navigate('Detect')}
-        style={({ pressed }) => [{ opacity: pressed ? 0.92 : 1, transform: [{ scale: pressed ? 0.97 : 1 }] }]}
+        onPress={() => (navigation as any).navigate("Detect")}
+        style={({ pressed }) => [
+          {
+            opacity: pressed ? 0.92 : 1,
+            transform: [{ scale: pressed ? 0.97 : 1 }],
+          },
+        ]}
       >
         <LinearGradient
-          colors={['#E25858', '#FF9560']}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          colors={["#E25858", "#FF9560"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={styles.gCtaSquare}
         >
           <View style={styles.gCtaIconWrap}>
-            <Animated.View style={[styles.gCtaGlow, { opacity: glowOpacity, transform: [{ scale: glowScale }] }]} />
-            <Animated.View style={{ transform: [{ scale: iconScale }], zIndex: 1 }}>
-              <Ionicons name="warning" size={100} color="rgba(255,255,255,0.95)" />
+            <Animated.View
+              style={[
+                styles.gCtaGlow,
+                { opacity: glowOpacity, transform: [{ scale: glowScale }] },
+              ]}
+            />
+            <Animated.View
+              style={{ transform: [{ scale: iconScale }], zIndex: 1 }}
+            >
+              <Ionicons
+                name="warning"
+                size={100}
+                color="rgba(255,255,255,0.95)"
+              />
             </Animated.View>
           </View>
           <View style={styles.gCtaTextWrap}>
@@ -90,7 +135,14 @@ function GuardianHome() {
         {guardians.map((m) => (
           <View key={m.id} style={styles.familyMember}>
             <View style={styles.familyAvatarWrap}>
-              <NpcAvatar avatar={m.avatar} initials={m.nickname[0]} size={56} color={Colors.primaryDark} borderColor="#f9dec1" borderWidth={2} />
+              <NpcAvatar
+                avatar={m.avatar}
+                initials={m.nickname[0]}
+                size={56}
+                color={Colors.primaryDark}
+                borderColor="#f9dec1"
+                borderWidth={2}
+              />
             </View>
             <Text style={styles.familyName}>{m.nickname}</Text>
           </View>
@@ -278,11 +330,15 @@ function GatekeeperHome() {
           AI 語音變聲詐騙急升：假冒子女求救，要求匯款至不明帳戶
         </Text>
         <Text style={styles.gkBriefBody}>
-          近期詐騙集團利用生成式 AI 技術，模擬親友音色。若接獲要求匯款的電話，請務必先與本人確認。
+          近期詐騙集團利用生成式 AI
+          技術，模擬親友音色。若接獲要求匯款的電話，請務必先與本人確認。
         </Text>
         <Pressable
-          onPress={() => navigation.navigate('ScamBrief')}
-          style={({ pressed }) => [styles.gkBriefBtn, { opacity: pressed ? 0.7 : 1 }]}
+          onPress={() => navigation.navigate("ScamBrief")}
+          style={({ pressed }) => [
+            styles.gkBriefBtn,
+            { opacity: pressed ? 0.7 : 1 },
+          ]}
         >
           <Text style={styles.gkBriefBtnText}>立即閱讀</Text>
         </Pressable>
@@ -300,156 +356,176 @@ function SolverHome() {
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
 
-  const monthlySolvedChallenges = dailyChallengeResults.filter((record) => {
-    if (record.userId !== currentUser.id || !record.isCorrect) {
-      return false;
-    }
-    const recordDate = new Date(record.dateKey);
-    if (Number.isNaN(recordDate.getTime())) {
-      return false;
-    }
+  const monthlySolved = dailyChallengeResults.filter((r) => {
+    if (r.userId !== currentUser.id || !r.isCorrect) return false;
+    const d = new Date(r.dateKey);
     return (
-      recordDate.getMonth() === currentMonth &&
-      recordDate.getFullYear() === currentYear
+      !Number.isNaN(d.getTime()) &&
+      d.getMonth() === currentMonth &&
+      d.getFullYear() === currentYear
     );
   }).length;
 
-  const knowledgePoints = [
-    {
-      bold: "高收益零風險：",
-      text: "任何承諾超過市場常規（如月入20%）且無風險的項目均為詐騙。",
-    },
-    {
-      bold: "封閉式群組引導：",
-      text: "強迫加入 LINE 或 Telegram 私密群組，並有眾多「老師」與「暗樁」吹捧。",
-    },
-    {
-      bold: "不明轉帳管道：",
-      text: "要求將資金轉入個人銀行帳戶或使用不明加密貨幣錢包，而非合法交易所。",
-    },
-  ];
+  const monthlyTotal = 30;
+  const solvedPct = Math.min(monthlySolved / monthlyTotal, 1);
+
+  const points = currentUser.contributionPoints ?? 0;
+  const reports = currentUser.reportCount ?? 0;
+  const pointsPerLevel = 100;
+  const level = Math.floor(points / pointsPerLevel) + 1;
+  const levelPct = (points % pointsPerLevel) / pointsPerLevel;
 
   return (
     <ScrollView
       contentContainerStyle={styles.container}
       showsVerticalScrollIndicator={false}
     >
-      {/* Hero: Greeting + Quick Stat */}
-      <Text style={styles.slGreeting}>Hi {currentUser.nickname}</Text>
-      <Button
-        title="今日挑戰"
-        onPress={() => navigation.navigate("DailyChallenge")}
-        style={styles.slChallengeBtn}
-      />
+      {/* Greeting */}
+      <Text style={styles.slGreeting}>Hi {currentUser.nickname},</Text>
+      <Text style={styles.slGreetingSub}>準備好今天的挑戰了嗎？</Text>
 
-      <View style={styles.slStatCard}>
-        <View style={styles.slStatIcon}>
-          <Ionicons
-            name="shield-checkmark"
-            size={26}
-            color={Colors.primaryDark}
+      {/* 今日挑戰 Card */}
+      <View style={styles.slChallengeCard}>
+        <View style={styles.slChallengeCardTop}>
+          <Text style={styles.slChallengeCardTitle}>今日挑戰</Text>
+          <View style={styles.slDailyBadge}>
+            <Text style={styles.slDailyBadgeText}>DAILY</Text>
+          </View>
+        </View>
+        <Text style={styles.slChallengeStatusLabel}>Challenge Status</Text>
+        <Text style={styles.slChallengeStatusNum}>
+          本月識破 {monthlySolved} / {monthlyTotal} 題
+        </Text>
+        <View style={styles.slProgressBgWhite}>
+          <LinearGradient
+            colors={["#c47a4e", "#ffb38a"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={[
+              styles.slProgressFillWhite,
+              { width: `${solvedPct * 100}%` as any },
+            ]}
           />
         </View>
-        <View>
-          <Text style={styles.slStatLabel}>本月識破</Text>
-          <Text style={styles.slStatNum}>
-            {monthlySolvedChallenges} <Text style={styles.slStatUnit}>次</Text>
+        <Pressable
+          onPress={() => navigation.navigate("DailyChallenge")}
+          style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
+        >
+          <LinearGradient
+            colors={["#89502e", "#c47a4e"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.slStartBtn}
+          >
+            <Text style={styles.slStartBtnText}>開始挑戰</Text>
+            <Ionicons name="arrow-forward" size={18} color={Colors.white} />
+          </LinearGradient>
+        </Pressable>
+      </View>
+      <View style={styles.slLevelCard}>
+        <View style={styles.slLevelCardTop}>
+          <Text style={styles.slLevelCardTitle}>我獨自升級</Text>
+          <View style={styles.slLevelBadge}>
+            <Ionicons name="medal" size={13} color={"#89502e"} />
+            <Text style={styles.slLevelBadgeText}>LEVEL {level}</Text>
+          </View>
+        </View>
+        <Text style={styles.slMotivationText}>
+          多多偵測、協助家人確認，就能獲得更多守護積分！
+        </Text>
+        <View style={[styles.slStatsRow, { marginTop: 16 }]}>
+          <View style={styles.slStatBox}>
+            <Text style={styles.slStatBoxLabel}>累積積分</Text>
+            <Text style={styles.slStatBoxNum}>{points.toLocaleString()}</Text>
+          </View>
+          <View style={styles.slStatBox}>
+            <Text style={styles.slStatBoxLabel}>舉報次數</Text>
+            <Text style={styles.slStatBoxNum}>
+              {reports} <Text style={styles.slStatBoxUnit}>次</Text>
+            </Text>
+          </View>
+        </View>
+        <View style={styles.slLevelProgressRow}>
+          <Text style={styles.slLevelProgressLabel}>進階：防詐大師</Text>
+          <Text style={styles.slLevelProgressPct}>
+            {Math.round(levelPct * 100)}%
           </Text>
         </View>
-      </View>
-
-      {/* Scam Trend Card */}
-      <View style={styles.slTrendCard}>
-        <View style={styles.slTrendHeader}>
-          <View style={styles.slTrendDot} />
-          <Text style={styles.slTrendTitle}>本週詐騙趨勢</Text>
-        </View>
-        <View style={styles.slTrendBody}>
-          <View>
-            <Text style={styles.slTrendTypeLabel}>主要類型</Text>
-            <Text style={styles.slTrendType}>投資詐騙</Text>
-          </View>
-          <View style={styles.slTrendBadge}>
-            <Text style={styles.slTrendBadgeNum}>+180%</Text>
-            <Text style={styles.slTrendBadgeSub}>TREND SURGE</Text>
-          </View>
-        </View>
-        <TouchableOpacity
-          style={styles.slTrendLink}
-          onPress={() => navigation.navigate("WeeklyReport")}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.slTrendLinkText}>查看詳細分析報告</Text>
-          <Ionicons name="arrow-forward" size={16} color={Colors.primaryDark} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Contribution Card */}
-      <LinearGradient
-        colors={["#89502e", "#ffb38a"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.slContribCard}
-      >
-        <Text style={styles.slContribTitle}>My Contribution</Text>
-        <View style={styles.slContribRow}>
-          <View>
-            <Text style={styles.slContribItemLabel}>累積積分</Text>
-            <Text style={styles.slContribNum}>
-              {currentUser.contributionPoints}{" "}
-              <Text style={styles.slContribUnit}>分</Text>
-            </Text>
-          </View>
-        </View>
-        <View style={styles.slContribRow}>
-          <View>
-            <Text style={styles.slContribItemLabel}>舉報次數</Text>
-            <Text style={styles.slContribNum}>
-              12 <Text style={styles.slContribUnit}>次</Text>
-            </Text>
-          </View>
-        </View>
-        <View style={styles.slLevelRow}>
-          <Text style={styles.slLevelLabel}>LEVEL 4 EXPLORER</Text>
-          <Text style={styles.slLevelPct}>80%</Text>
-        </View>
-        <View style={styles.slProgressBg}>
-          <View style={[styles.slProgressFill, { width: "80%" }]} />
-        </View>
-      </LinearGradient>
-
-      {/* Knowledge Card */}
-      <TouchableOpacity
-        style={styles.slKnowledgeCard}
-        onPress={() => navigation.navigate("KnowledgeCard", { cardId: "k2" })}
-        activeOpacity={0.9}
-      >
-        <View style={styles.slKnowledgeImgPlaceholder}>
-          <Ionicons
-            name="bar-chart"
-            size={48}
-            color={Colors.primaryDark + "44"}
+        <View style={styles.slProgressBgBrown}>
+          <LinearGradient
+            colors={["#c47a4e", "#ffb38a"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={[
+              styles.slProgressFillBrown,
+              { width: `${levelPct * 100}%` as any },
+            ]}
           />
         </View>
-        <View style={styles.slInsightBadge}>
-          <Text style={styles.slInsightBadgeText}>TODAY'S INSIGHT</Text>
-        </View>
-        <Text style={styles.slKnowledgeTitle}>今日知識卡：如何辨識假投資</Text>
-        {knowledgePoints.map((p) => (
-          <View key={p.bold} style={styles.slKnowledgePoint}>
-            <Ionicons
-              name="checkmark-circle"
-              size={20}
-              color={Colors.primaryDark}
-              style={{ marginTop: 1 }}
-            />
-            <Text style={styles.slKnowledgeText}>
-              <Text style={styles.slKnowledgeBold}>{p.bold}</Text>
-              {p.text}
-            </Text>
+      </View>
+
+      {/* 今日知識卡 */}
+      <View style={styles.slKnowledgeCard}>
+        {/* 標題列 */}
+        <View style={styles.slKnHeader}>
+          <Text style={styles.slKnowledgeCardTitle}>今日知識卡</Text>
+          <View style={styles.slDailyBadge}>
+            <Text style={styles.slDailyBadgeText}>TODAY</Text>
           </View>
-        ))}
-      </TouchableOpacity>
+        </View>
+
+        {/* 詐騙主題 */}
+        <View style={styles.slKnTopicRow}>
+          <View style={styles.slKnIconBox}>
+            <Ionicons name="ticket-outline" size={22} color="#89502e" />
+          </View>
+          <Text style={styles.slKnTitle}>網購票券詐騙</Text>
+        </View>
+
+        {/* 故事摘要 */}
+        <Text style={styles.slKnSubtitle}>
+          網購票券沒保障，不是黃牛就是騙！
+        </Text>
+        <Text style={styles.slKnStory}>
+          一位 TWICE 粉絲在 Threads 上找到「轉售票券」的賣家，對方引導加 LINE
+          好友，並提供下單連結要求透過7-11賣貨便完成。再透過假客服要求網路銀行轉帳「驗證」。最終轉出
+          29,123 元，票沒拿到，對方也消失了。
+        </Text>
+
+        <View style={styles.slKnDivider} />
+
+        {/* 警訊 + 提醒 並排 */}
+        <View style={styles.slKnTwoCol}>
+          <View style={styles.slKnCol}>
+            <Text style={styles.slKnColTitle}>詐騙警訊</Text>
+            {["加LINE私下交易", "提供不明連結", "假客服轉帳驗證"].map((t) => (
+              <View key={t} style={styles.slKnBulletRow}>
+                <Ionicons
+                  name="alert-circle-outline"
+                  size={13}
+                  color="#89502e"
+                />
+                <Text style={styles.slKnBulletText}>{t}</Text>
+              </View>
+            ))}
+          </View>
+          <View style={styles.slKnColDivider} />
+          <View style={styles.slKnCol}>
+            <Text style={styles.slKnColTitle}>防詐提醒</Text>
+            {["勿私訊購票", "勿點不明連結", "有疑問先詢家人"].map((t) => (
+              <View key={t} style={styles.slKnBulletRow}>
+                <Ionicons
+                  name="checkmark-circle-outline"
+                  size={13}
+                  color="#89502e"
+                />
+                <Text style={styles.slKnBulletText}>{t}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+      </View>
     </ScrollView>
   );
 }
@@ -493,20 +569,42 @@ const styles = StyleSheet.create({
   gSubtitle: { fontSize: 16, color: Colors.textLight, marginBottom: 28 },
   // Guardian CTA Square
   gCtaSquare: {
-    width: '100%', aspectRatio: 1, borderRadius: 48,
-    alignItems: 'center', justifyContent: 'center', gap: 24, overflow: 'hidden',
-    shadowColor: '#E97A7A', shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.35, shadowRadius: 32, elevation: 10,
+    width: "100%",
+    aspectRatio: 1,
+    borderRadius: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 24,
+    overflow: "hidden",
+    shadowColor: "#E97A7A",
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.35,
+    shadowRadius: 32,
+    elevation: 10,
   },
-  gCtaIconWrap: { width: 140, height: 140, alignItems: 'center', justifyContent: 'center' },
+  gCtaIconWrap: {
+    width: 140,
+    height: 140,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   gCtaGlow: {
-    position: 'absolute', top: 10, left: 10,
-    width: 120, height: 120, borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.45)',
+    position: "absolute",
+    top: 10,
+    left: 10,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "rgba(255,255,255,0.45)",
   },
-  gCtaTextWrap: { alignItems: 'center', gap: 6, zIndex: 1 },
-  gCtaTitle: { fontSize: 28, fontWeight: '800', color: Colors.white, letterSpacing: -0.5 },
-  gCtaSub: { fontSize: 16, fontWeight: '600', color: 'rgba(255,255,255,0.9)' },
+  gCtaTextWrap: { alignItems: "center", gap: 6, zIndex: 1 },
+  gCtaTitle: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: Colors.white,
+    letterSpacing: -0.5,
+  },
+  gCtaSub: { fontSize: 16, fontWeight: "600", color: "rgba(255,255,255,0.9)" },
   // Family
   familyHeader: {
     flexDirection: "row",
@@ -571,8 +669,13 @@ const styles = StyleSheet.create({
   },
   gkAlertTitle: { fontSize: 15, fontWeight: "700", color: "#7f1d1d" },
   gkAlertSub: { fontSize: 12, color: "#b91c1c", marginTop: 2 },
-  gkSectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  gkSectionTitle: { fontSize: 20, fontWeight: '800', color: Colors.text },
+  gkSectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  gkSectionTitle: { fontSize: 20, fontWeight: "800", color: Colors.text },
   gkMembersCard: {
     backgroundColor: "#fcf2e3",
     borderRadius: Radius.lg,
@@ -687,200 +790,296 @@ const styles = StyleSheet.create({
   },
   gkViewAllText: { fontSize: 13, fontWeight: "700", color: Colors.textLight },
   gkBriefCard: {
-    backgroundColor: '#fcf2e3', borderRadius: Radius.lg, padding: 24, marginBottom: 8,
-    borderWidth: 1, borderColor: '#d7c2b926', gap: 16, ...Shadow.card,
+    backgroundColor: "#fcf2e3",
+    borderRadius: Radius.lg,
+    padding: 24,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#d7c2b926",
+    gap: 16,
+    ...Shadow.card,
   },
   gkBriefPill: {
-    alignSelf: 'flex-start', backgroundColor: '#ffb38a4d',
-    borderRadius: Radius.full, paddingHorizontal: 14, paddingVertical: 6,
+    alignSelf: "flex-start",
+    backgroundColor: "#ffb38a4d",
+    borderRadius: Radius.full,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
   },
-  gkBriefPillText: { fontSize: 11, fontWeight: '700', color: Colors.primaryDark, letterSpacing: 0.5 },
-  gkBriefTitle: { fontSize: 22, fontWeight: '800', color: '#4E3B31', lineHeight: 30 },
-  gkBriefBody: { fontSize: 15, fontWeight: '500', color: '#52443c', lineHeight: 24 },
+  gkBriefPillText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: Colors.primaryDark,
+    letterSpacing: 0.5,
+  },
+  gkBriefTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#4E3B31",
+    lineHeight: 30,
+  },
+  gkBriefBody: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: "#52443c",
+    lineHeight: 24,
+  },
   gkBriefBtn: {
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     borderRadius: Radius.full,
     paddingVertical: 10,
     paddingHorizontal: 24,
     borderWidth: 1.5,
     borderColor: Colors.primaryDark,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
-  gkBriefBtnText: { fontSize: 14, fontWeight: '600', color: Colors.primaryDark },
-  gkBriefDate: { fontSize: 11, fontWeight: '700', color: '#1f1b1266', letterSpacing: 1.5, textTransform: 'uppercase' },
-  // Solver
-  slGreeting: {
-    fontSize: 42,
-    fontWeight: "800",
-    color: Colors.text,
-    letterSpacing: -1,
-    marginBottom: 12,
-  },
-  slChallengeBtn: { alignSelf: "flex-start", marginBottom: 16 },
-  slStatCard: {
-    backgroundColor: "#ebe1d3",
-    borderRadius: Radius.lg,
-    padding: 18,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    marginBottom: 16,
-    ...Shadow.card,
-  },
-  slStatIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.primaryDark + "18",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  slStatLabel: { fontSize: 13, color: Colors.textLight, fontWeight: "500" },
-  slStatNum: { fontSize: 30, fontWeight: "900", color: Colors.text },
-  slStatUnit: { fontSize: 16, fontWeight: "600" },
-  slTrendCard: {
-    backgroundColor: Colors.white,
-    borderRadius: Radius.lg,
-    padding: 22,
-    marginBottom: 16,
-    ...Shadow.card,
-  },
-  slTrendHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 16,
-  },
-  slTrendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.danger,
-  },
-  slTrendTitle: { fontSize: 17, fontWeight: "800", color: Colors.text },
-  slTrendBody: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    marginBottom: 20,
-  },
-  slTrendTypeLabel: { fontSize: 12, color: Colors.textLight, marginBottom: 4 },
-  slTrendType: { fontSize: 28, fontWeight: "800", color: Colors.text },
-  slTrendBadge: {
-    backgroundColor: "#ffdad6",
-    borderRadius: Radius.md,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    alignItems: "center",
-  },
-  slTrendBadgeNum: { fontSize: 22, fontWeight: "900", color: Colors.danger },
-  slTrendBadgeSub: {
-    fontSize: 9,
-    fontWeight: "800",
-    color: Colors.danger,
-    letterSpacing: 1,
-    textTransform: "uppercase",
-  },
-  slTrendLink: { flexDirection: "row", alignItems: "center", gap: 6 },
-  slTrendLinkText: {
+  gkBriefBtnText: {
     fontSize: 14,
-    fontWeight: "700",
+    fontWeight: "600",
     color: Colors.primaryDark,
   },
-  slContribCard: {
-    borderRadius: Radius.lg,
-    padding: 24,
-    marginBottom: 16,
-    ...Shadow.strong,
-  },
-  slContribTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: Colors.white,
-    marginBottom: 20,
-  },
-  slContribRow: { marginBottom: 16 },
-  slContribItemLabel: {
-    fontSize: 12,
-    color: Colors.white + "AA",
-    marginBottom: 4,
-  },
-  slContribNum: { fontSize: 36, fontWeight: "900", color: Colors.white },
-  slContribUnit: { fontSize: 18, fontWeight: "400" },
-  slLevelRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 8,
-    marginBottom: 6,
-  },
-  slLevelLabel: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: Colors.white + "BB",
-    letterSpacing: 0.5,
+  gkBriefDate: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#1f1b1266",
+    letterSpacing: 1.5,
     textTransform: "uppercase",
   },
-  slLevelPct: { fontSize: 10, fontWeight: "800", color: Colors.white + "BB" },
-  slProgressBg: {
+  // Solver
+  slGreeting: {
+    fontSize: 34,
+    fontWeight: "800",
+    color: Colors.text,
+    letterSpacing: -0.5,
+    marginBottom: 4,
+  },
+  slGreetingSub: {
+    color: "#89502e",
+    fontSize: 22,
+    fontWeight: "700",
+    marginBottom: 24,
+  },
+  // 今日挑戰
+  slChallengeCard: {
+    backgroundColor: "#f6edde",
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 16,
+    ...Shadow.card,
+  },
+  slChallengeCardTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  slChallengeCardTitle: { fontSize: 22, fontWeight: "800", color: Colors.text },
+  slDailyBadge: {
+    backgroundColor: "rgba(137,80,46,0.15)",
+    borderRadius: Radius.full,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: "rgba(137,80,46,0.25)",
+  },
+  slDailyBadgeText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#89502e",
+    letterSpacing: 1,
+  },
+  slChallengeStatusLabel: {
+    fontSize: 13,
+    color: Colors.textLight,
+    fontWeight: "500",
+    marginBottom: 4,
+  },
+  slChallengeStatusNum: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: Colors.text,
+    marginBottom: 12,
+  },
+  slProgressBgWhite: {
     height: 10,
-    backgroundColor: Colors.white + "33",
+    backgroundColor: "#d7c2b940",
     borderRadius: 5,
     overflow: "hidden",
+    marginBottom: 20,
   },
-  slProgressFill: {
-    height: "100%",
-    backgroundColor: Colors.white,
-    borderRadius: 5,
+  slProgressFillWhite: { height: "100%", borderRadius: 5 },
+  slStartBtn: {
+    borderRadius: Radius.full,
+    paddingVertical: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    overflow: "hidden",
+    ...Shadow.card,
   },
-  slKnowledgeCard: {
+  slStartBtnText: { fontSize: 16, fontWeight: "800", color: Colors.white },
+  // 我獨自升級
+  slLevelCard: {
+    backgroundColor: "#f6edde",
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 16,
+    ...Shadow.card,
+  },
+  slLevelCardTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  slLevelCardTitle: { fontSize: 22, fontWeight: "800", color: Colors.text },
+  slLevelBadge: {
+    backgroundColor: "rgba(137,80,46,0.15)",
+    borderRadius: Radius.full,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderWidth: 1,
+    borderColor: "rgba(137,80,46,0.25)",
+  },
+  slLevelBadgeText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#89502e",
+    letterSpacing: 0.5,
+  },
+  slStatsRow: { flexDirection: "row", gap: 12, marginBottom: 20 },
+  slStatBox: {
+    flex: 1,
     backgroundColor: "#fcf2e3",
-    borderRadius: Radius.lg,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#d7c2b930",
+  },
+  slStatBoxLabel: {
+    fontSize: 11,
+    color: Colors.textLight,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  slStatBoxNum: { fontSize: 30, fontWeight: "900", color: "#89502e" },
+  slStatBoxUnit: { fontSize: 14, fontWeight: "400", color: Colors.textLight },
+  slLevelProgressRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    marginBottom: 8,
+  },
+  slLevelProgressLabel: { fontSize: 14, fontWeight: "700", color: Colors.text },
+  slLevelProgressPct: { fontSize: 13, fontWeight: "700", color: "#89502e" },
+  slProgressBgBrown: {
+    height: 8,
+    backgroundColor: "#d7c2b940",
+    borderRadius: 4,
     overflow: "hidden",
+    marginBottom: 8,
+  },
+  slProgressFillBrown: { height: "100%", borderRadius: 4 },
+  slLevelHint: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    textAlign: "center",
+    fontStyle: "italic",
+    marginBottom: 16,
+  },
+  slMotivationBox: {
+    backgroundColor: "rgba(137,80,46,0.08)",
+    borderRadius: 12,
+    padding: 14,
+    borderLeftWidth: 4,
+    borderLeftColor: "#89502e",
+  },
+  slMotivationText: {
+    fontSize: 13,
+    color: Colors.textLight,
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  // 今日知識卡
+  slKnowledgeCard: {
+    backgroundColor: "#f6edde",
+    borderRadius: 24,
+    padding: 24,
     marginBottom: 8,
     ...Shadow.card,
   },
-  slKnowledgeImgPlaceholder: {
-    height: 180,
-    backgroundColor: "#e2d9ca",
+  slKnHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    justifyContent: "center",
-  },
-  slInsightBadge: {
-    alignSelf: "flex-start",
-    backgroundColor: "#88d0d833",
-    borderRadius: Radius.full,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    margin: 20,
-    marginBottom: 8,
-  },
-  slInsightBadgeText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#005a61",
-    letterSpacing: 1,
-    textTransform: "uppercase",
-  },
-  slKnowledgeTitle: {
-    fontSize: 26,
-    fontWeight: "800",
-    color: Colors.text,
-    lineHeight: 34,
-    marginHorizontal: 20,
     marginBottom: 16,
   },
-  slKnowledgePoint: {
+  slKnowledgeCardTitle: { fontSize: 22, fontWeight: "800", color: Colors.text },
+  slKnTopicRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 10,
-    marginHorizontal: 20,
+    alignItems: "center",
+    gap: 12,
     marginBottom: 14,
   },
-  slKnowledgeText: {
-    flex: 1,
+  slKnIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#fcf2e3",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#d7c2b930",
+  },
+  slKnTitle: { fontSize: 20, fontWeight: "800", color: Colors.text, flex: 1 },
+  slKnSubtitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#89502e",
+    lineHeight: 24,
+    marginBottom: 10,
+  },
+  slKnStory: {
     fontSize: 14,
     color: Colors.textLight,
     lineHeight: 22,
+    marginBottom: 4,
   },
-  slKnowledgeBold: { fontWeight: "700", color: Colors.text },
+  slKnDivider: { height: 1, backgroundColor: "#d7c2b940", marginVertical: 16 },
+  slKnTwoCol: { flexDirection: "row", gap: 0 },
+  slKnCol: { flex: 1 },
+  slKnColDivider: {
+    width: 1,
+    backgroundColor: "#d7c2b940",
+    marginHorizontal: 14,
+  },
+  slKnColTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: Colors.text,
+    marginBottom: 10,
+  },
+  slKnBulletRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    marginBottom: 8,
+  },
+  slKnBulletDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#89502e",
+  },
+  slKnBulletText: {
+    flex: 1,
+    fontSize: 13,
+    color: Colors.textLight,
+    lineHeight: 18,
+  },
+  slKnSource: { fontSize: 11, color: Colors.textMuted, marginTop: 8 },
 });

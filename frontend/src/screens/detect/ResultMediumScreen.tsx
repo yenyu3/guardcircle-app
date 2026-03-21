@@ -23,7 +23,7 @@ export default function ResultMediumScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "ResultMedium">>();
   const { scamType, riskScore, riskFactors, summary } = route.params;
-  const { currentUser, addEvent } = useAppStore();
+  const { currentUser, addEvent, addReport } = useAppStore();
   const eventIdRef = useRef(`e_${Date.now()}`);
 
   function buildEvent(status: "pending" | "safe"): DetectEvent {
@@ -58,6 +58,7 @@ export default function ResultMediumScreen() {
   // 選項 B：撥打 165 → 狀態直接 safe，立即寫入紀錄
   function handleCall165() {
     addEvent(buildEvent("safe"));
+    if (currentUser.role === "solver") addReport();
     // TODO: 後端接口 — POST /api/events（status: safe，resolvedBy: 'self_call165'）
     Linking.openURL("tel:165");
     navigation.navigate("Main");

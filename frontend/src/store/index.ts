@@ -20,6 +20,8 @@ interface RegisteredAccount {
   emergencyPhone?: string;
   role: Role;
   hasFamilyCircle: boolean;
+  contributionPoints?: number;
+  reportCount?: number;
 }
 
 interface AppState {
@@ -51,6 +53,8 @@ interface AppState {
   generatePairingCode: () => string;
   bindGuardian: (pairingCode: string) => boolean;
   saveAccount: (password: string) => void;
+  addContributionPoints: (points: number) => void;
+  addReport: () => void;
   submitDailyChallengeResult: (
     payload: Omit<DailyChallengeResult, "userId">,
   ) => void;
@@ -89,7 +93,7 @@ export const useAppStore = create<AppState>((set) => ({
     set((s) => ({
       isLoggedIn: true,
       suggestedRole,
-      currentUser: { ...s.currentUser, nickname, email, birthYear, birthMonth, birthDay, gender: genderMapped, emergencyPhone },
+      currentUser: { ...s.currentUser, nickname, email, birthYear, birthMonth, birthDay, gender: genderMapped, emergencyPhone, contributionPoints: 0, reportCount: 0 },
     }));
   },
 
@@ -109,6 +113,8 @@ export const useAppStore = create<AppState>((set) => ({
         emergencyPhone: s.currentUser.emergencyPhone,
         role: s.currentUser.role,
         hasFamilyCircle: s.hasFamilyCircle,
+        contributionPoints: s.currentUser.contributionPoints ?? 0,
+        reportCount: s.currentUser.reportCount ?? 0,
       };
       const accounts = [...s.registeredAccounts];
       if (existing >= 0) accounts[existing] = account;
@@ -135,6 +141,8 @@ export const useAppStore = create<AppState>((set) => ({
         gender: account.gender,
         emergencyPhone: account.emergencyPhone,
         role: account.role,
+        contributionPoints: account.contributionPoints ?? 0,
+        reportCount: account.reportCount ?? 0,
       },
     }));
     return true;
@@ -234,4 +242,20 @@ export const useAppStore = create<AppState>((set) => ({
       }
       return { dailyChallengeResults: [record, ...s.dailyChallengeResults] };
     }),
+
+  addContributionPoints: (points) =>
+    set((s) => ({
+      currentUser: {
+        ...s.currentUser,
+        contributionPoints: (s.currentUser.contributionPoints ?? 0) + points,
+      },
+    })),
+
+  addReport: () =>
+    set((s) => ({
+      currentUser: {
+        ...s.currentUser,
+        reportCount: (s.currentUser.reportCount ?? 0) + 1,
+      },
+    })),
 }));

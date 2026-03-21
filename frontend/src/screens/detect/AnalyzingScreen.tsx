@@ -85,7 +85,7 @@ export default function AnalyzingScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'Analyzing'>>();
   const { type, input } = route.params;
-  const { currentUser, addEvent } = useAppStore();
+  const { currentUser, addEvent, addContributionPoints } = useAppStore();
   const [step, setStep] = useState(0);
   const spin = useRef(new Animated.Value(0)).current;
 
@@ -113,13 +113,16 @@ export default function AnalyzingScreen() {
             status: 'safe',
           };
           addEvent(event);
+          if (currentUser.role === 'solver') addContributionPoints(10);
           navigation.replace('ResultSafe');
         } else if (result.riskLevel === 'high') {
+          if (currentUser.role === 'solver') addContributionPoints(10);
           navigation.replace('ResultHigh', {
             scamType: result.scamType, riskScore: result.riskScore,
             riskFactors: result.riskFactors, summary: result.summary,
           });
         } else {
+          if (currentUser.role === 'solver') addContributionPoints(10);
           navigation.replace('ResultMedium', {
             scamType: result.scamType, riskScore: result.riskScore,
             riskFactors: result.riskFactors, summary: result.summary,

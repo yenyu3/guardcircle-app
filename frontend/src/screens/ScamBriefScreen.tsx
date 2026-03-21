@@ -3,9 +3,9 @@ import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
-  Alert,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -38,6 +38,13 @@ const BRIEF = {
 export default function ScamBriefScreen() {
   const navigation = useNavigation();
 
+  const handleShare = async () => {
+    await Share.share({
+      title: BRIEF.title,
+      message: `【今日詐騙快報】${BRIEF.date}\n\n${BRIEF.title}\n\n${BRIEF.source}\n\n${BRIEF.summary}\n\n⚠️ 三大注意關鍵字：\n${BRIEF.keywords.map((kw, i) => `${i + 1}. ${kw}`).join('\n')}`,
+    });
+  };
+
   return (
     <SafeAreaView style={styles.safe}>
       {/* Header */}
@@ -52,7 +59,7 @@ export default function ScamBriefScreen() {
         <Text style={styles.headerTitle}>今日詐騙快報</Text>
         <TouchableOpacity
           style={styles.iconBtn}
-          onPress={() => Alert.alert("分享給家人")}
+          onPress={handleShare}
           activeOpacity={0.7}
         >
           <Ionicons name="share-outline" size={22} color={DS.primary} />
@@ -102,7 +109,7 @@ export default function ScamBriefScreen() {
 
         {/* Actions */}
         <Pressable
-          onPress={() => Alert.alert("分享給家人")}
+          onPress={handleShare}
           style={({ pressed }) => [
             { opacity: pressed ? 0.85 : 1, marginTop: 32 },
           ]}

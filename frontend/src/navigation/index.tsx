@@ -54,7 +54,6 @@ import ScamBriefScreen from '../screens/ScamBriefScreen';
 
 // Other
 import DailyChallengeScreen from "../screens/DailyChallengeScreen";
-import KnowledgeCardScreen from "../screens/KnowledgeCardScreen";
 import WeeklyReportScreen from "../screens/WeeklyReportScreen";
 
 export type RootStackParamList = {
@@ -98,7 +97,6 @@ export type RootStackParamList = {
   GuardianAlert: { eventId: string };
   ScamBrief: undefined;
   WeeklyReport: undefined;
-  KnowledgeCard: { cardId?: string };
   DailyChallenge: undefined;
   SettingsProfile: undefined;
   SettingsFamily: undefined;
@@ -238,7 +236,6 @@ export default function AppNavigator() {
         <Stack.Screen name="GuardianAlert" component={GuardianAlertScreen} />
         <Stack.Screen name="ScamBrief" component={ScamBriefScreen} />
         <Stack.Screen name="WeeklyReport" component={WeeklyReportScreen} />
-        <Stack.Screen name="KnowledgeCard" component={KnowledgeCardScreen} />
         <Stack.Screen name="DailyChallenge" component={DailyChallengeScreen} />
         <Stack.Screen
           name="SettingsProfile"

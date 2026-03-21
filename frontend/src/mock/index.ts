@@ -29,7 +29,7 @@ export const mockUsers: User[] = [
     role: "gatekeeper",
     birthYear: 1985,
     familyIds: ["f1"],
-    contributionPoints: 120,
+    contributionPoints: 0,
   },
   {
     id: "u3",
@@ -38,7 +38,8 @@ export const mockUsers: User[] = [
     role: "solver",
     birthYear: 1995,
     familyIds: ["f1"],
-    contributionPoints: 380,
+    contributionPoints: 0,
+    reportCount: 0,
   },
 ];
 

@@ -17,6 +17,7 @@ export interface User {
   avatar?: string;
   familyIds: string[];
   contributionPoints?: number;
+  reportCount?: number;
 }
 
 export interface FamilyMember {
