@@ -27,7 +27,7 @@ const DS = {
 
 const BRIEF = {
   tag: "緊急快報",
-  date: "2026-03-20",
+  date: new Date().toLocaleDateString('sv'),
   source: "新聞來源：內政部警政署 165 全民防詐騙網",
   title: "AI 語音變聲詐騙急升：假冒子女求救，要求匯款至不明帳戶",
   summary:
@@ -160,12 +160,14 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
   tagPill: {
-    backgroundColor: DS.primaryContainer + "4D",
+    backgroundColor: "rgba(137,80,46,0.15)",
     borderRadius: Radius.full,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: "rgba(137,80,46,0.25)",
   },
-  tagText: { fontSize: 12, fontWeight: "600", color: DS.primary },
+  tagText: { fontSize: 11, fontWeight: "800", color: DS.primary, letterSpacing: 1 },
   metaDate: { fontSize: 13, fontWeight: "500", color: DS.onSurfaceVariant },
   metaDot: {
     width: 4,

@@ -148,6 +148,34 @@ function GuardianHome() {
           </View>
         ))}
       </View>
+
+      {/* 今日詐騙快報 */}
+      <View style={styles.gkBriefCard}>
+        <View style={styles.gkBriefPill}>
+          <Text style={styles.gkBriefPillText}>今日詐騙快報</Text>
+        </View>
+        <Text style={styles.gkBriefDate}>{new Date().toLocaleDateString('sv')}</Text>
+        <Text style={styles.gkBriefTitle}>
+          AI 語音變聲詐騙急升：假冒子女求救，要求匯款至不明帳戶
+        </Text>
+        <Text style={styles.gkBriefBody}>
+          近期詐騙集團利用生成式 AI
+          技術，模擬親友音色。若接獲要求匯款的電話，請務必先與本人確認。
+        </Text>
+        <Pressable
+          onPress={() => navigation.navigate("ScamBrief")}
+          style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
+        >
+          <LinearGradient
+            colors={["#89502e", "#ffb38a"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.gkBriefBtn}
+          >
+            <Text style={styles.gkBriefBtnText}>立即閱讀</Text>
+          </LinearGradient>
+        </Pressable>
+      </View>
     </ScrollView>
   );
 }
@@ -325,7 +353,7 @@ function GatekeeperHome() {
         <View style={styles.gkBriefPill}>
           <Text style={styles.gkBriefPillText}>今日詐騙快報</Text>
         </View>
-        <Text style={styles.gkBriefDate}>2026-03-20</Text>
+        <Text style={styles.gkBriefDate}>{new Date().toLocaleDateString('sv')}</Text>
         <Text style={styles.gkBriefTitle}>
           AI 語音變聲詐騙急升：假冒子女求救，要求匯款至不明帳戶
         </Text>
@@ -335,12 +363,16 @@ function GatekeeperHome() {
         </Text>
         <Pressable
           onPress={() => navigation.navigate("ScamBrief")}
-          style={({ pressed }) => [
-            styles.gkBriefBtn,
-            { opacity: pressed ? 0.7 : 1 },
-          ]}
+          style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
         >
-          <Text style={styles.gkBriefBtnText}>立即閱讀</Text>
+          <LinearGradient
+            colors={["#89502e", "#ffb38a"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.gkBriefBtn}
+          >
+            <Text style={styles.gkBriefBtnText}>立即閱讀</Text>
+          </LinearGradient>
         </Pressable>
       </View>
     </ScrollView>
@@ -412,9 +444,9 @@ function SolverHome() {
           style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
         >
           <LinearGradient
-            colors={["#89502e", "#c47a4e"]}
+            colors={["#89502e", "#ffb38a"]}
             start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
+            end={{ x: 1, y: 1 }}
             style={styles.slStartBtn}
           >
             <Text style={styles.slStartBtnText}>開始挑戰</Text>
@@ -526,6 +558,7 @@ function SolverHome() {
         </View>
 
       </View>
+
     </ScrollView>
   );
 }
@@ -790,7 +823,7 @@ const styles = StyleSheet.create({
   },
   gkViewAllText: { fontSize: 13, fontWeight: "700", color: Colors.textLight },
   gkBriefCard: {
-    backgroundColor: "#fcf2e3",
+    backgroundColor: "#f6edde",
     borderRadius: Radius.lg,
     padding: 24,
     marginBottom: 8,
@@ -801,16 +834,18 @@ const styles = StyleSheet.create({
   },
   gkBriefPill: {
     alignSelf: "flex-start",
-    backgroundColor: "#ffb38a4d",
+    backgroundColor: "rgba(137,80,46,0.15)",
     borderRadius: Radius.full,
     paddingHorizontal: 14,
     paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: "rgba(137,80,46,0.25)",
   },
   gkBriefPillText: {
     fontSize: 11,
-    fontWeight: "700",
-    color: Colors.primaryDark,
-    letterSpacing: 0.5,
+    fontWeight: "800",
+    color: "#89502e",
+    letterSpacing: 1,
   },
   gkBriefTitle: {
     fontSize: 22,
@@ -821,22 +856,25 @@ const styles = StyleSheet.create({
   gkBriefBody: {
     fontSize: 15,
     fontWeight: "500",
-    color: "#52443c",
+    color: Colors.textMuted,
     lineHeight: 24,
   },
   gkBriefBtn: {
     alignSelf: "flex-start",
     borderRadius: Radius.full,
-    paddingVertical: 10,
+    paddingVertical: 14,
     paddingHorizontal: 24,
-    borderWidth: 1.5,
-    borderColor: Colors.primaryDark,
-    backgroundColor: "transparent",
+    overflow: "hidden",
+    shadowColor: "#89502e",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 4,
   },
   gkBriefBtnText: {
     fontSize: 14,
-    fontWeight: "600",
-    color: Colors.primaryDark,
+    fontWeight: "700",
+    color: Colors.white,
   },
   gkBriefDate: {
     fontSize: 11,
@@ -862,9 +900,11 @@ const styles = StyleSheet.create({
   // 今日挑戰
   slChallengeCard: {
     backgroundColor: "#f6edde",
-    borderRadius: 24,
+    borderRadius: Radius.lg,
     padding: 24,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#d7c2b926",
     ...Shadow.card,
   },
   slChallengeCardTop: {
@@ -910,21 +950,27 @@ const styles = StyleSheet.create({
   slProgressFillWhite: { height: "100%", borderRadius: 5 },
   slStartBtn: {
     borderRadius: Radius.full,
-    paddingVertical: 16,
+    paddingVertical: 14,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
     overflow: "hidden",
-    ...Shadow.card,
+    shadowColor: "#89502e",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 4,
   },
-  slStartBtnText: { fontSize: 16, fontWeight: "800", color: Colors.white },
+  slStartBtnText: { fontSize: 16, fontWeight: "700", color: Colors.white },
   // 我獨自升級
   slLevelCard: {
     backgroundColor: "#f6edde",
-    borderRadius: 24,
+    borderRadius: Radius.lg,
     padding: 24,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#d7c2b926",
     ...Shadow.card,
   },
   slLevelCardTop: {
@@ -1007,9 +1053,11 @@ const styles = StyleSheet.create({
   // 今日知識卡
   slKnowledgeCard: {
     backgroundColor: "#f6edde",
-    borderRadius: 24,
+    borderRadius: Radius.lg,
     padding: 24,
-    marginBottom: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#d7c2b926",
     ...Shadow.card,
   },
   slKnHeader: {

@@ -38,13 +38,13 @@ export default function FamilyRecordScreen() {
         <Ionicons name="search" size={16} color={Colors.textMuted} style={{ marginLeft: 12 }} />
         <TextInput style={styles.search} placeholder="搜尋詐騙類型或成員" value={search} onChangeText={setSearch} placeholderTextColor={Colors.textMuted} />
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={styles.filters}>
+      <View style={styles.filters}>
         {FILTERS.map((f) => (
           <TouchableOpacity key={f.value} onPress={() => setFilter(f.value)} style={[styles.filterBtn, filter === f.value && styles.filterActive]}>
             <Text style={[styles.filterText, filter === f.value && styles.filterTextActive]}>{f.label}</Text>
           </TouchableOpacity>
         ))}
-      </ScrollView>
+      </View>
       <ScrollView contentContainerStyle={styles.container}>
         {filtered.map((e) => (
           <TouchableOpacity key={e.id} onPress={() => navigation.navigate('FamilyEventDetail', { eventId: e.id })}>
@@ -75,8 +75,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
   searchRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.white, borderRadius: Radius.md, marginHorizontal: 16, marginBottom: 8, borderWidth: 1.5, borderColor: Colors.border },
   search: { flex: 1, padding: 12, fontSize: 14, color: Colors.text },
-  filterScroll: { maxHeight: 48 },
-  filters: { paddingHorizontal: 16, gap: 8, alignItems: 'center' },
+  filters: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 8, gap: 8 },
   filterBtn: { borderRadius: Radius.full, paddingHorizontal: 14, paddingVertical: 6, backgroundColor: Colors.card },
   filterActive: { backgroundColor: Colors.primaryDark },
   filterText: { fontSize: 13, fontWeight: '600', color: Colors.textLight },
