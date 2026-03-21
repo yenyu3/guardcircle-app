@@ -273,6 +273,7 @@ function GatekeeperHome() {
         <View style={styles.gkBriefPill}>
           <Text style={styles.gkBriefPillText}>今日詐騙快報</Text>
         </View>
+        <Text style={styles.gkBriefDate}>2026-03-20</Text>
         <Text style={styles.gkBriefTitle}>
           AI 語音變聲詐騙急升：假冒子女求救，要求匯款至不明帳戶
         </Text>
@@ -281,17 +282,10 @@ function GatekeeperHome() {
         </Text>
         <Pressable
           onPress={() => navigation.navigate('ScamBrief')}
-          style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
+          style={({ pressed }) => [styles.gkBriefBtn, { opacity: pressed ? 0.7 : 1 }]}
         >
-          <LinearGradient
-            colors={['#89502e', '#ffb38a']}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-            style={styles.gkBriefBtn}
-          >
-            <Text style={styles.gkBriefBtnText}>立即閱讀</Text>
-          </LinearGradient>
+          <Text style={styles.gkBriefBtnText}>立即閱讀</Text>
         </Pressable>
-        <Text style={styles.gkBriefDate}>2026-03-20</Text>
       </View>
     </ScrollView>
   );
@@ -704,12 +698,15 @@ const styles = StyleSheet.create({
   gkBriefTitle: { fontSize: 22, fontWeight: '800', color: '#4E3B31', lineHeight: 30 },
   gkBriefBody: { fontSize: 15, fontWeight: '500', color: '#52443c', lineHeight: 24 },
   gkBriefBtn: {
-    borderRadius: Radius.md, paddingVertical: 16,
-    alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#89502e', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2, shadowRadius: 8, elevation: 4,
+    alignSelf: 'flex-start',
+    borderRadius: Radius.full,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderWidth: 1.5,
+    borderColor: Colors.primaryDark,
+    backgroundColor: 'transparent',
   },
-  gkBriefBtnText: { fontSize: 16, fontWeight: '700', color: Colors.white },
+  gkBriefBtnText: { fontSize: 14, fontWeight: '600', color: Colors.primaryDark },
   gkBriefDate: { fontSize: 11, fontWeight: '700', color: '#1f1b1266', letterSpacing: 1.5, textTransform: 'uppercase' },
   // Solver
   slGreeting: {
