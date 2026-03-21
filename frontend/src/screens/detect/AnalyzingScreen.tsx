@@ -11,6 +11,25 @@ import { DetectEvent, RiskLevel } from '../../types';
 
 const STEPS = ['Gogolook 資料庫查詢', 'AI 語意分析中', '產生風險報告'];
 
+// 附件類型 → mock 分析結果
+function analyzeAttachment(type: string): ReturnType<typeof analyze> {
+  if (type === 'image') return {
+    riskLevel: 'medium', riskScore: 62, scamType: '可疑截圖',
+    summary: '圖片中偵測到可疑文字特徵，建議謹慎確認來源。',
+    riskFactors: ['圖片含可疑文字', '來源不明'],
+  };
+  if (type === 'video') return {
+    riskLevel: 'medium', riskScore: 55, scamType: '可疑影音',
+    summary: '影音檔案需進一步後端分析，目前顯示初步結果。',
+    riskFactors: ['影音內容待審查'],
+  };
+  return {
+    riskLevel: 'safe', riskScore: 8, scamType: '無',
+    summary: '檔案無明顯詐騙特徵，仍建議確認來源。',
+    riskFactors: [],
+  };
+}
+
 // ── 關鍵字規則 ──────────────────────────────────────────────────
 const HIGH_KEYWORDS = [
   'ATM', '解除分期', '匯款', '轉帳', '提款機', '保管費', '操作ATM',
@@ -97,7 +116,9 @@ export default function AnalyzingScreen() {
       setTimeout(() => setStep(2), 2200),
       setTimeout(() => setStep(3), 3200),
       setTimeout(() => {
-        const result = analyze(type, input);
+        const result = ['image', 'video', 'file'].includes(type)
+          ? analyzeAttachment(type)
+          : analyze(type, input);
         const now = new Date().toLocaleString('zh-TW', { hour12: false }).slice(0, 16);
 
         // safe 結果直接寫入 store（高/中風險由各 Result 畫面自行寫入）
