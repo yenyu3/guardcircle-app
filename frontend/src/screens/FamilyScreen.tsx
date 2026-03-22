@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Pressable } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,6 +10,7 @@ import { useAppStore } from '../store';
 import { LinearGradient } from 'expo-linear-gradient';
 import NpcAvatar from '../components/NpcAvatar';
 import AppHeader from '../components/Header';
+import { useScrollRef } from '../navigation/ScrollRefContext';
 
 const STATUS_COLOR: Record<string, string> = {
   safe: Colors.safe,
@@ -31,8 +32,16 @@ export default function FamilyScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { events, family } = useAppStore();
   const members = family.members;
+  const scrollRef = useRef<ScrollView>(null);
+  const { register } = useScrollRef();
 
-  // 已結案的高/中風險事件作為最近動態
+  useFocusEffect(
+    React.useCallback(() => {
+      register('Family', scrollRef);
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
+    }, [])
+  );
+
   const timelineEvents = events
     .filter((e) => e.status === 'safe' && e.riskLevel !== 'safe')
     .slice(0, 5);
@@ -41,7 +50,7 @@ export default function FamilyScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <AppHeader />
 
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         {/* Members */}
         <View style={styles.sectionRow}>
           <Text style={styles.sectionTitle}>{family.name}</Text>

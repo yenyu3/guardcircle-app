@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import React from "react";
+import React, { useRef } from "react";
 import {
   Platform,
   StyleSheet,
@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { Colors } from "../theme";
 import { useAppStore } from "../store";
+import { ScrollRefProvider, useScrollRef } from "./ScrollRefContext";
 
 // Auth
 import SplashScreen from "../screens/SplashScreen";
@@ -82,12 +83,14 @@ export type RootStackParamList = {
     riskScore: number;
     riskFactors: string[];
     summary: string;
+    readonly?: boolean;
   };
   ResultMedium: {
     scamType: string;
     riskScore: number;
     riskFactors: string[];
     summary: string;
+    readonly?: boolean;
   };
   ResultSafe: undefined;
   FamilyRecord: undefined;
@@ -116,6 +119,9 @@ const TAB_ITEMS: Record<string, { label: string; icon: string; iconActive: strin
 } as const;
 
 function CustomTabBar({ state, navigation }: any) {
+  const { scrollToTop } = useScrollRef();
+  const lastPressTime = useRef<Record<string, number>>({});
+
   return (
     <View style={tabStyles.bar}>
       {state.routes.map((route: any, index: number) => {
@@ -126,7 +132,16 @@ function CustomTabBar({ state, navigation }: any) {
           <TouchableOpacity
             key={route.key}
             style={tabStyles.item}
-            onPress={() => navigation.navigate(route.name)}
+            onPress={() => {
+              const now = Date.now();
+              const last = lastPressTime.current[route.name] ?? 0;
+              if (focused && now - last < 400) {
+                scrollToTop(route.name);
+              } else {
+                navigation.navigate(route.name);
+              }
+              lastPressTime.current[route.name] = now;
+            }}
             activeOpacity={0.7}
           >
             <View style={[tabStyles.pill, focused && tabStyles.pillActive]}>
@@ -181,15 +196,17 @@ function MainTabs() {
   const isGuardian = currentUser.role === 'guardian';
 
   return (
-    <Tab.Navigator
-      tabBar={(props) => <CustomTabBar {...props} />}
-      screenOptions={{ headerShown: false }}
-    >
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Detect" component={DetectScreen} />
-      {!isGuardian && <Tab.Screen name="Family" component={FamilyScreen} />}
-      <Tab.Screen name="Settings" component={SettingsScreen} />
-    </Tab.Navigator>
+    <ScrollRefProvider>
+      <Tab.Navigator
+        tabBar={(props) => <CustomTabBar {...props} />}
+        screenOptions={{ headerShown: false }}
+      >
+        <Tab.Screen name="Home" component={HomeScreen} />
+        <Tab.Screen name="Detect" component={DetectScreen} />
+        {!isGuardian && <Tab.Screen name="Family" component={FamilyScreen} />}
+        <Tab.Screen name="Settings" component={SettingsScreen} />
+      </Tab.Navigator>
+    </ScrollRefProvider>
   );
 }
 

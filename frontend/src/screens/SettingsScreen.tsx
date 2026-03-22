@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../theme';
 import { useAppStore } from '../store';
 import { RootStackParamList } from '../navigation';
+import { useScrollRef } from '../navigation/ScrollRefContext';
 
 const roleLabel = { guardian: '守護者', gatekeeper: '守門人', solver: '識破者' };
 
@@ -29,6 +30,15 @@ const menuItems = [
 export default function SettingsScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { currentUser, logout } = useAppStore();
+  const scrollRef = useRef<ScrollView>(null);
+  const { register } = useScrollRef();
+
+  useFocusEffect(
+    React.useCallback(() => {
+      register('Settings', scrollRef);
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
+    }, [])
+  );
 
   const gender = currentUser.gender === 'female' ? 'female' : currentUser.gender === 'male' ? 'male' : null;
   const avatarKey = gender ? `${currentUser.role}_${gender}` : null;
@@ -41,7 +51,7 @@ export default function SettingsScreen() {
         <Text style={styles.headerTitle}>設定</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         {/* Profile */}
         <View style={styles.profileSection}>
           {avatarSrc ? (

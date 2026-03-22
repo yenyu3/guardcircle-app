@@ -110,6 +110,7 @@ export const mockEvents: DetectEvent[] = [
     resolvedAt: "2025-01-15 14:35",
     gatekeeperResponse: "小明已確認：這是詐騙，請勿理會",
     gatekeeperResponseAt: "2025-01-15 14:35",
+    isMock: true,
   },
   {
     id: "e2",
@@ -129,6 +130,7 @@ export const mockEvents: DetectEvent[] = [
     ],
     createdAt: "2025-01-14 09:15",
     status: "high_risk",
+    isMock: true,
   },
   {
     id: "e3",
@@ -143,6 +145,7 @@ export const mockEvents: DetectEvent[] = [
     riskFactors: ["多筆民眾回報", "非官方客服號碼"],
     createdAt: "2025-01-13 16:20",
     status: "pending",
+    isMock: true,
   },
   {
     id: "e4",
@@ -158,6 +161,7 @@ export const mockEvents: DetectEvent[] = [
     createdAt: "2025-01-12 11:05",
     status: "safe",
     resolvedAt: "2025-01-12 11:08",
+    isMock: true,
   },
   {
     id: "e5",
@@ -172,6 +176,7 @@ export const mockEvents: DetectEvent[] = [
     riskFactors: [],
     createdAt: "2025-01-11 08:30",
     status: "safe",
+    isMock: true,
   },
 ];
 

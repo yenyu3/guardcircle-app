@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef } from "react";
@@ -17,6 +17,7 @@ import Banner from "../components/Banner";
 import AppHeader from "../components/Header";
 import NpcAvatar from "../components/NpcAvatar";
 import { RootStackParamList } from "../navigation";
+import { useScrollRef } from "../navigation/ScrollRefContext";
 import { useAppStore } from "../store";
 import { Colors, Radius, Shadow } from "../theme";
 
@@ -28,7 +29,11 @@ function getGreeting() {
 }
 
 // ── Guardian Home ──────────────────────────────────────────────
-function GuardianHome() {
+function GuardianHome({
+  scrollRef,
+}: {
+  scrollRef: React.RefObject<ScrollView | null>;
+}) {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { currentUser, family } = useAppStore();
   const guardians = family.members
@@ -79,6 +84,7 @@ function GuardianHome() {
 
   return (
     <ScrollView
+      ref={scrollRef}
       contentContainerStyle={styles.container}
       showsVerticalScrollIndicator={false}
     >
@@ -154,7 +160,9 @@ function GuardianHome() {
         <View style={styles.gkBriefPill}>
           <Text style={styles.gkBriefPillText}>今日詐騙快報</Text>
         </View>
-        <Text style={styles.gkBriefDate}>{new Date().toLocaleDateString('sv')}</Text>
+        <Text style={styles.gkBriefDate}>
+          {new Date().toLocaleDateString("sv")}
+        </Text>
         <Text style={styles.gkBriefTitle}>
           AI 語音變聲詐騙急升：假冒子女求救，要求匯款至不明帳戶
         </Text>
@@ -187,7 +195,11 @@ const STATUS_CONFIG = {
   high_risk: { color: "#ef4444", bg: "#fee2e2", label: "HIGH RISK 高風險" },
 } as const;
 
-function GatekeeperHome() {
+function GatekeeperHome({
+  scrollRef,
+}: {
+  scrollRef: React.RefObject<ScrollView | null>;
+}) {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { events, family } = useAppStore();
   const activeHighRisk = events.filter((e) => e.status === "high_risk");
@@ -199,6 +211,7 @@ function GatekeeperHome() {
 
   return (
     <ScrollView
+      ref={scrollRef}
       contentContainerStyle={styles.container}
       showsVerticalScrollIndicator={false}
     >
@@ -353,7 +366,9 @@ function GatekeeperHome() {
         <View style={styles.gkBriefPill}>
           <Text style={styles.gkBriefPillText}>今日詐騙快報</Text>
         </View>
-        <Text style={styles.gkBriefDate}>{new Date().toLocaleDateString('sv')}</Text>
+        <Text style={styles.gkBriefDate}>
+          {new Date().toLocaleDateString("sv")}
+        </Text>
         <Text style={styles.gkBriefTitle}>
           AI 語音變聲詐騙急升：假冒子女求救，要求匯款至不明帳戶
         </Text>
@@ -380,7 +395,7 @@ function GatekeeperHome() {
 }
 
 // ── Solver Home ────────────────────────────────────────────────
-function SolverHome() {
+function SolverHome({ scrollRef }: { scrollRef: React.RefObject<ScrollView | null> }) {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { currentUser, dailyChallengeResults } = useAppStore();
 
@@ -409,6 +424,7 @@ function SolverHome() {
 
   return (
     <ScrollView
+      ref={scrollRef}
       contentContainerStyle={styles.container}
       showsVerticalScrollIndicator={false}
     >
@@ -463,7 +479,7 @@ function SolverHome() {
           </View>
         </View>
         <Text style={styles.slMotivationText}>
-          多多偵測、協助家人確認，就能獲得更多守護積分！
+          多多偵測、協助家人確認，獲得更多守護積分！
         </Text>
         <View style={[styles.slStatsRow, { marginTop: 16 }]}>
           <View style={styles.slStatBox}>
@@ -556,9 +572,7 @@ function SolverHome() {
             ))}
           </View>
         </View>
-
       </View>
-
     </ScrollView>
   );
 }
@@ -567,6 +581,15 @@ function SolverHome() {
 export default function HomeScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { currentUser, hasFamilyCircle } = useAppStore();
+  const scrollRef = useRef<ScrollView>(null);
+  const { register } = useScrollRef();
+
+  useFocusEffect(
+    React.useCallback(() => {
+      register("Home", scrollRef);
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
+    }, []),
+  );
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
@@ -581,16 +604,20 @@ export default function HomeScreen() {
           style={{ marginHorizontal: 20, marginTop: 12 }}
         />
       )}
-      {currentUser.role === "guardian" && <GuardianHome />}
-      {currentUser.role === "gatekeeper" && <GatekeeperHome />}
-      {currentUser.role === "solver" && <SolverHome />}
+      {currentUser.role === "guardian" && (
+        <GuardianHome scrollRef={scrollRef} />
+      )}
+      {currentUser.role === "gatekeeper" && (
+        <GatekeeperHome scrollRef={scrollRef} />
+      )}
+      {currentUser.role === "solver" && <SolverHome scrollRef={scrollRef} />}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
-  container: { padding: 20, paddingBottom: 32 },
+  container: { padding: 20, paddingTop: 8, paddingBottom: 32 },
   // Guardian
   gGreeting: {
     fontSize: 34,

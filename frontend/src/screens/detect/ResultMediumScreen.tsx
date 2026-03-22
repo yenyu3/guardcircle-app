@@ -22,7 +22,7 @@ const THEME = {
 export default function ResultMediumScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "ResultMedium">>();
-  const { scamType, riskScore, riskFactors, summary } = route.params;
+  const { scamType, riskScore, riskFactors, summary, readonly } = route.params;
   const { currentUser, addEvent, addReport } = useAppStore();
   const eventIdRef = useRef(`e_${Date.now()}`);
 
@@ -46,19 +46,16 @@ export default function ResultMediumScreen() {
     };
   }
 
-  // 選項 A：傳送通知 → 狀態 pending，等待守門人介入
   function handleSendNotification() {
-    addEvent(buildEvent("pending"));
-    // TODO: 後端接口 — POST /api/events + 推播系統內通知給守門人
+    if (!readonly) addEvent(buildEvent("pending"));
     Alert.alert("已傳送通知", "守門人收到通知後會盡快回覆你", [
       { text: "確定", onPress: () => navigation.navigate("Main") },
     ]);
   }
 
-  // 選項 B：撥打 165 → 狀態直接 safe，立即寫入紀錄
   function handleCall165() {
-    addEvent(buildEvent("safe"));
-    if (currentUser.role === "solver") addReport();
+    if (!readonly) addEvent(buildEvent("safe"));
+    if (!readonly && currentUser.role === "solver") addReport();
     // TODO: 後端接口 — POST /api/events（status: safe，resolvedBy: 'self_call165'）
     Linking.openURL("tel:165");
     navigation.navigate("Main");

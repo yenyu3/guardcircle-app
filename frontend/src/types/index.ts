@@ -51,10 +51,11 @@ export interface DetectEvent {
   summary: string;
   riskFactors: string[];
   createdAt: string;
-  status: EventStatus; // 事件處理狀態
-  resolvedAt?: string; // 結案時間
+  status: EventStatus;
+  resolvedAt?: string;
   gatekeeperResponse?: string;
   gatekeeperResponseAt?: string;
+  isMock?: boolean;
 }
 
 export interface Notification {

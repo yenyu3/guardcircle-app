@@ -152,7 +152,10 @@ export const useAppStore = create<AppState>((set) => ({
 
   joinFamily: () => set({ hasFamilyCircle: true }),
 
-  addEvent: (event) => set((s) => ({ events: [event, ...s.events] })),
+  addEvent: (event) => set((s) => {
+    if (s.events.some((e) => e.id === event.id)) return s;
+    return { events: [event, ...s.events] };
+  }),
 
   setEventStatus: (eventId, status, extra = {}) =>
     set((s) => ({

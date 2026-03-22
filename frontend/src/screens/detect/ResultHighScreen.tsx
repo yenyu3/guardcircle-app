@@ -22,11 +22,12 @@ const THEME = {
 export default function ResultHighScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "ResultHigh">>();
-  const { scamType, riskScore, riskFactors, summary } = route.params;
+  const { scamType, riskScore, riskFactors, summary, readonly } = route.params;
   const { currentUser, addEvent, setMemberStatus } = useAppStore();
   const eventIdRef = useRef(`e_${Date.now()}`);
 
   useEffect(() => {
+    if (readonly) return;
     const newEvent: DetectEvent = {
       id: eventIdRef.current,
       userId: currentUser.id,
