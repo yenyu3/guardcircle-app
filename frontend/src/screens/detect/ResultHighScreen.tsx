@@ -9,10 +9,10 @@ import { useAppStore } from "../../store";
 import { DetectEvent } from "../../types";
 
 const THEME = {
-  bg: "#C0756A",
+  bg: "#D4806E",
   iconBg: "rgba(255,255,255,0.15)",
   primaryBtn: "#fff",
-  primaryBtnText: "#C0756A",
+  primaryBtnText: "#D4806E",
   outlineBtnBorder: "rgba(255,255,255,0.5)",
   outlineBtnText: "#fff",
   text: "#fff",

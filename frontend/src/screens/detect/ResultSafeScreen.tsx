@@ -7,11 +7,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { RootStackParamList } from "../../navigation";
 
 const THEME = {
-  bg: "#5F8A72",
+  bg: "#6FA882",
   iconBg: "rgba(255,255,255,0.15)",
   iconColor: "#fff",
   primaryBtn: "#fff",
-  primaryBtnText: "#5F8A72",
+  primaryBtnText: "#6FA882",
   outlineBtnBorder: "rgba(255,255,255,0.5)",
   outlineBtnText: "#fff",
   text: "#fff",

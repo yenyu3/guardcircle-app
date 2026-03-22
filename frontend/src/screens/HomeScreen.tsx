@@ -190,9 +190,9 @@ function GuardianHome({
 
 // ── Gatekeeper Home ────────────────────────────────────────────
 const STATUS_CONFIG = {
-  safe: { color: "#22c55e", bg: "#dcfce7", label: "SAFE 安全" },
-  pending: { color: Colors.warning, bg: "#fef3c7", label: "PENDING 待確認" },
-  high_risk: { color: "#ef4444", bg: "#fee2e2", label: "HIGH RISK 高風險" },
+  safe:      { color: Colors.safe,    bg: Colors.safeBg,    label: 'SAFE 安全' },
+  pending:   { color: Colors.warning, bg: Colors.warningBg, label: 'PENDING 待確認' },
+  high_risk: { color: Colors.danger,  bg: Colors.dangerBg,  label: 'HIGH RISK 高風險' },
 } as const;
 
 function GatekeeperHome({
@@ -321,8 +321,7 @@ function GatekeeperHome({
             <Text style={styles.gkNoEvents}>目前尚無已處理事件</Text>
           ) : (
             recentResolved.map((ev) => {
-              const dotColor =
-                ev.riskLevel === "high" ? "#ef4444" : Colors.warning;
+              const dotColor = ev.riskLevel === 'high' ? Colors.danger : Colors.warning;
               return (
                 <TouchableOpacity
                   key={ev.id}
@@ -700,35 +699,33 @@ const styles = StyleSheet.create({
   bentoLabel: { fontSize: 15, fontWeight: "700", color: Colors.text },
   // Gatekeeper
   gkAlertBanner: {
-    backgroundColor: "#ffdad6",
+    backgroundColor: Colors.dangerBg,
     borderRadius: Radius.lg,
     padding: 16,
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
     marginBottom: 24,
     ...Shadow.card,
   },
   gkSafeBanner: {
-    backgroundColor: "#dcfce7",
+    backgroundColor: Colors.safeBg,
     borderRadius: Radius.lg,
     padding: 16,
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 10,
     marginBottom: 24,
   },
-  gkSafeBannerText: { fontSize: 14, fontWeight: "600", color: "#16a34a" },
+  gkSafeBannerText: { fontSize: 14, fontWeight: '700', color: Colors.safe },
   gkAlertIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#ef4444",
-    alignItems: "center",
-    justifyContent: "center",
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: Colors.danger,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  gkAlertTitle: { fontSize: 15, fontWeight: "700", color: "#7f1d1d" },
-  gkAlertSub: { fontSize: 12, color: "#b91c1c", marginTop: 2 },
+  gkAlertTitle: { fontSize: 15, fontWeight: '700', color: Colors.dangerDark },
+  gkAlertSub: { fontSize: 12, color: Colors.dangerDark, marginTop: 2 },
   gkSectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
