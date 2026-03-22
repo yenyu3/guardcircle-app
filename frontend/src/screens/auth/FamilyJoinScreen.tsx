@@ -111,10 +111,15 @@ export default function FamilyJoinScreen() {
                 onPress={() => Alert.alert("已複製邀請連結", "請貼給家人")}
                 style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
               >
-                <View style={styles.guardianBtn}>
+                <LinearGradient
+                  colors={[DS.primary, DS.primaryContainer]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.gradientBtn}
+                >
                   <Ionicons name="share-outline" size={26} color="#fff" />
                   <Text style={styles.guardianBtnText}>傳送給家人</Text>
-                </View>
+                </LinearGradient>
               </Pressable>
             </View>
           </LinearGradient>
@@ -122,39 +127,32 @@ export default function FamilyJoinScreen() {
 
         {/* Card 1: Let family help — Solver (standard) */}
         {role === "solver" && (
-          <LinearGradient
-            colors={[DS.primary, DS.primaryContainer]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.highlightBorder}
-          >
-            <View style={styles.highlightCard}>
-              <View style={styles.cardHeader}>
-                <Ionicons name="heart-outline" size={26} color={DS.primary} />
-                <Text style={styles.cardTitle}>讓家人幫我設定</Text>
-                <LinearGradient
-                  colors={[DS.primary, DS.primaryContainer]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.recommendBadge}
-                >
-                  <Text style={styles.recommendText}>最推薦</Text>
-                </LinearGradient>
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="heart-outline" size={26} color={DS.primary} />
+              <Text style={styles.cardTitle}>讓家人幫我設定</Text>
+              <View style={styles.recommendBadge}>
+                <Text style={styles.recommendText}>最推薦</Text>
               </View>
-              <Text style={styles.cardDesc}>
-                把這個邀請傳給你的家人，他們會幫你完成設定
-              </Text>
-              <Pressable
-                onPress={() => Alert.alert("已複製邀請連結", "請貼給家人")}
-                style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
-              >
-                <View style={styles.solidBtn}>
-                  <Ionicons name="share-outline" size={18} color="#fff" />
-                  <Text style={styles.solidBtnText}>傳送給家人</Text>
-                </View>
-              </Pressable>
             </View>
-          </LinearGradient>
+            <Text style={styles.cardDesc}>
+              把這個邀請傳給你的家人，他們會幫你完成設定
+            </Text>
+            <Pressable
+              onPress={() => Alert.alert("已複製邀請連結", "請貼給家人")}
+              style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
+            >
+              <LinearGradient
+                colors={[DS.primary, DS.primaryContainer]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.gradientBtn}
+              >
+                <Ionicons name="share-outline" size={18} color="#fff" />
+                <Text style={styles.solidBtnText}>傳送給家人</Text>
+              </LinearGradient>
+            </Pressable>
+          </View>
         )}
 
         {/* Card 2: Join with code */}
@@ -184,16 +182,16 @@ export default function FamilyJoinScreen() {
             </View>
             <Pressable
               onPress={handleJoin}
-              style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
+              style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }, !codeComplete && styles.solidBtnDisabled]}
             >
-              <View
-                style={[
-                  styles.solidBtn,
-                  !codeComplete && styles.solidBtnDisabled,
-                ]}
+              <LinearGradient
+                colors={[DS.primary, DS.primaryContainer]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.gradientBtn}
               >
                 <Text style={styles.solidBtnText}>送出加入申請</Text>
-              </View>
+              </LinearGradient>
             </Pressable>
           </View>
         )}
@@ -234,16 +232,16 @@ export default function FamilyJoinScreen() {
 
             <Pressable
               onPress={handleCreate}
-              style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
+              style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }, !familyName && styles.solidBtnDisabled]}
             >
-              <View
-                style={[
-                  styles.solidBtn,
-                  !familyName && styles.solidBtnDisabled,
-                ]}
+              <LinearGradient
+                colors={[DS.primary, DS.primaryContainer]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.gradientBtn}
               >
                 <Text style={styles.solidBtnText}>分享給家人</Text>
-              </View>
+              </LinearGradient>
             </Pressable>
           </View>
         )}
@@ -258,9 +256,14 @@ export default function FamilyJoinScreen() {
             onPress={() => navigation.replace("Main")}
             style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
           >
-            <View style={styles.solidBtn}>
+            <LinearGradient
+              colors={[DS.primary, DS.primaryContainer]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.gradientBtn}
+            >
               <Text style={styles.solidBtnText}>進入 App</Text>
-            </View>
+            </LinearGradient>
           </Pressable>
         </View>
       </ScrollView>
@@ -316,7 +319,6 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   guardianBtn: {
-    backgroundColor: DS.primary,
     borderRadius: Radius.full,
     paddingVertical: 20,
     flexDirection: "row",
@@ -330,9 +332,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 3,
     borderRadius: Radius.full,
+    backgroundColor: "#e8d5c0",
   },
   recommendText: {
-    color: "#fff",
+    color: DS.primary,
     fontSize: 10,
     fontWeight: "700",
     letterSpacing: 0.8,
@@ -375,15 +378,19 @@ const styles = StyleSheet.create({
   },
   digitBoxFilled: { borderColor: DS.primary },
 
-  // Solid button
-  solidBtn: {
-    backgroundColor: DS.primary,
+  // Gradient button (matches RegisterScreen)
+  gradientBtn: {
     borderRadius: Radius.full,
     paddingVertical: 16,
     alignItems: "center",
     flexDirection: "row",
     justifyContent: "center",
     gap: 8,
+    shadowColor: DS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 4,
   },
   solidBtnDisabled: { opacity: 0.45 },
   solidBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },

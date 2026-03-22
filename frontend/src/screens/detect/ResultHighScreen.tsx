@@ -51,6 +51,11 @@ export default function ResultHighScreen() {
   return (
     <View style={styles.root}>
       <SafeAreaView style={styles.safe}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
+            <Ionicons name="arrow-back" size={22} color="#fff" />
+          </TouchableOpacity>
+        </View>
         <View style={styles.content}>
           <View style={styles.iconCircle}>
             <Ionicons name="warning" size={52} color="#fff" />
@@ -88,6 +93,8 @@ export default function ResultHighScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: THEME.bg },
   safe: { flex: 1 },
+  header: { paddingHorizontal: 16, paddingVertical: 12 },
+  backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
   content: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 },
   iconCircle: {
     width: 120, height: 120, borderRadius: 60,

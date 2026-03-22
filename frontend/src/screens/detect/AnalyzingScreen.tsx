@@ -4,12 +4,17 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+
 import { Colors, Radius } from '../../theme';
 import { RootStackParamList } from '../../navigation';
 import { useAppStore } from '../../store';
 import { DetectEvent, RiskLevel } from '../../types';
 
-const STEPS = ['Gogolook 資料庫查詢', 'AI 語意分析中', '產生風險報告'];
+const STEPS = [
+  { label: 'Gogolook 資料庫查詢' },
+  { label: 'AI 語意分析' },
+  { label: '產生風險報告' },
+];
 
 // 附件類型 → mock 分析結果
 function analyzeAttachment(type: string): ReturnType<typeof analyze> {
@@ -107,9 +112,19 @@ export default function AnalyzingScreen() {
   const { currentUser, addEvent, addContributionPoints } = useAppStore();
   const [step, setStep] = useState(0);
   const spin = useRef(new Animated.Value(0)).current;
+  const pulse = useRef(new Animated.Value(1)).current;
+  const glowOpacity = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
     Animated.loop(Animated.timing(spin, { toValue: 1, duration: 1200, useNativeDriver: true })).start();
+    Animated.loop(Animated.sequence([
+      Animated.timing(pulse, { toValue: 1.18, duration: 900, useNativeDriver: true }),
+      Animated.timing(pulse, { toValue: 1, duration: 900, useNativeDriver: true }),
+    ])).start();
+    Animated.loop(Animated.sequence([
+      Animated.timing(glowOpacity, { toValue: 0.6, duration: 900, useNativeDriver: true }),
+      Animated.timing(glowOpacity, { toValue: 0.2, duration: 900, useNativeDriver: true }),
+    ])).start();
 
     const timers = [
       setTimeout(() => setStep(1), 1000),
@@ -158,43 +173,104 @@ export default function AnalyzingScreen() {
   const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <TouchableOpacity style={styles.cancel} onPress={() => navigation.goBack()}>
-        <Ionicons name="close" size={24} color={Colors.textLight} />
-      </TouchableOpacity>
+    <View style={styles.root}>
+      <SafeAreaView style={styles.safe}>
+        <TouchableOpacity style={styles.cancel} onPress={() => navigation.goBack()}>
+          <Ionicons name="close" size={22} color={Colors.textMuted} />
+        </TouchableOpacity>
 
-      <View style={styles.center}>
-        <Animated.View style={[styles.spinner, { transform: [{ rotate }] }]}>
-          <Ionicons name="shield-checkmark" size={48} color={Colors.primaryDark} />
-        </Animated.View>
-        <Text style={styles.title}>分析中…</Text>
-
-        <View style={styles.steps}>
-          {STEPS.map((s, i) => (
-            <View key={i} style={styles.stepRow}>
-              <View style={[styles.stepDot, step > i && styles.stepDotDone, step === i && styles.stepDotActive]}>
-                {step > i && <Ionicons name="checkmark" size={12} color={Colors.white} />}
-              </View>
-              <Text style={[styles.stepText, step > i && styles.stepTextDone]}>{s}</Text>
+        <View style={styles.center}>
+          {/* 光暈動畫 */}
+          <View style={styles.iconWrap}>
+            <Animated.View style={[styles.glow, { opacity: glowOpacity, transform: [{ scale: pulse }] }]} />
+            <Animated.View style={[styles.spinnerRing, { transform: [{ rotate }] }]} />
+            <View style={styles.iconCircle}>
+              <Ionicons name="shield-checkmark" size={44} color="#ffb38a" />
             </View>
-          ))}
+          </View>
+
+          <Text style={styles.title}>AI 分析中</Text>
+          <Text style={styles.subtitle}>正在檢查內容是否包含詐騙特徵…</Text>
+
+          {/* 步驟卡片 */}
+          <View style={styles.steps}>
+            {STEPS.map((s, i) => {
+              const done = step > i;
+              const active = step === i;
+              return (
+                <View key={i} style={[styles.stepCard, done && styles.stepCardDone, active && styles.stepCardActive]}>
+                  <View style={[styles.stepDot, done && styles.stepDotDone, active && styles.stepDotActive]}>
+                    {done
+                      ? <Ionicons name="checkmark" size={13} color="#fff" />
+                      : <Text style={styles.stepNum}>{i + 1}</Text>
+                    }
+                  </View>
+                  <Text style={[styles.stepLabel, (done || active) && styles.stepLabelActive]}>{s.label}</Text>
+                  {active && (
+                    <Animated.View style={[styles.activeDot, { opacity: glowOpacity }]} />
+                  )}
+                </View>
+              );
+            })}
+          </View>
         </View>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.bg },
+  root: { flex: 1, backgroundColor: Colors.bg },
+  safe: { flex: 1 },
   cancel: { position: 'absolute', top: 56, right: 20, padding: 8, zIndex: 10 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 24, padding: 32 },
-  spinner: { width: 96, height: 96, borderRadius: 48, backgroundColor: Colors.card, alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: 22, fontWeight: '700', color: Colors.text },
-  steps: { gap: 16, width: '100%' },
-  stepRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  stepDot: { width: 24, height: 24, borderRadius: 12, backgroundColor: Colors.border, alignItems: 'center', justifyContent: 'center' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 20, paddingHorizontal: 28 },
+
+  iconWrap: { width: 160, height: 160, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  glow: {
+    position: 'absolute', width: 160, height: 160, borderRadius: 80,
+    backgroundColor: Colors.primary, opacity: 0.15,
+  },
+  spinnerRing: {
+    position: 'absolute', width: 120, height: 120, borderRadius: 60,
+    borderWidth: 3, borderColor: 'transparent',
+    borderTopColor: Colors.primary, borderRightColor: 'rgba(255,179,138,0.4)',
+  },
+  iconCircle: {
+    width: 88, height: 88, borderRadius: 44,
+    backgroundColor: Colors.cardLight,
+    borderWidth: 1.5, borderColor: Colors.border,
+    alignItems: 'center', justifyContent: 'center',
+  },
+
+  title: { fontSize: 26, fontWeight: '800', color: Colors.text, letterSpacing: -0.5 },
+  subtitle: { fontSize: 14, color: Colors.textLight, marginTop: -8 },
+
+  steps: { gap: 10, width: '100%', marginTop: 8 },
+  stepCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    backgroundColor: Colors.white,
+    borderRadius: Radius.lg, paddingVertical: 14, paddingHorizontal: 16,
+    borderWidth: 1, borderColor: Colors.border,
+  },
+  stepCardActive: {
+    backgroundColor: '#fff3e8',
+    borderColor: Colors.primary,
+  },
+  stepCardDone: {
+    backgroundColor: Colors.safeBg,
+    borderColor: 'rgba(123,191,142,0.4)',
+  },
+  stepDot: {
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: Colors.border,
+    alignItems: 'center', justifyContent: 'center',
+  },
   stepDotActive: { backgroundColor: Colors.primary },
   stepDotDone: { backgroundColor: Colors.safe },
-  stepText: { fontSize: 15, color: Colors.textMuted },
-  stepTextDone: { color: Colors.text, fontWeight: '600' },
+  stepNum: { fontSize: 13, fontWeight: '700', color: Colors.textMuted },
+  stepLabel: { flex: 1, fontSize: 14, fontWeight: '600', color: Colors.textMuted },
+  stepLabelActive: { color: Colors.text },
+  activeDot: {
+    width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.primary,
+  },
 });
