@@ -23,7 +23,7 @@ cd guardcircle-app\frontend
 npm install --legacy-peer-deps
 
 # 3. 啟動開發伺服器
-npx expo start --clear
+npm start
 ```
 
 啟動後終端機會顯示 QR Code，用手機 Expo Go 掃描即可預覽。
