@@ -69,6 +69,7 @@ export type RootStackParamList = {
     riskScore: number;
     riskFactors: string[];
     summary: string;
+    reason?: string;
     hasFinancialKeyword?: boolean;
   };
   ResultHigh: {
@@ -76,6 +77,7 @@ export type RootStackParamList = {
     riskScore: number;
     riskFactors: string[];
     summary: string;
+    reason?: string;
     readonly?: boolean;
     originalInput?: string;
     imageUri?: string;
@@ -85,11 +87,12 @@ export type RootStackParamList = {
     riskScore: number;
     riskFactors: string[];
     summary: string;
+    reason?: string;
     readonly?: boolean;
     originalInput?: string;
     imageUri?: string;
   };
-  ResultSafe: undefined;
+  ResultSafe: { reason?: string } | undefined;
   FamilyRecord: undefined;
   FamilyEventDetail: { eventId: string };
   FamilyCreate: undefined;

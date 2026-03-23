@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,6 +20,8 @@ const THEME = {
 
 export default function ResultSafeScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  const route = useRoute<RouteProp<RootStackParamList, "ResultSafe">>();
+  const reason = route.params?.reason;
 
   return (
     <View style={styles.root}>
@@ -40,7 +42,7 @@ export default function ResultSafeScreen() {
 
           <Text style={styles.title}>安全</Text>
 
-          <Text style={styles.desc}>目前看起來安全，但仍建議保持警覺</Text>
+          <Text style={styles.desc}>{reason ?? '目前看起來安全，但仍建議保持警覺'}</Text>
 
           <TouchableOpacity
             style={styles.primaryBtn}

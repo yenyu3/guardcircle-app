@@ -22,16 +22,19 @@ function analyzeAttachment(type: string): ReturnType<typeof analyze> {
     riskLevel: 'medium', riskScore: 62, scamType: '可疑截圖',
     summary: '圖片中偵測到可疑文字特徵，建議謹慎確認來源。',
     riskFactors: ['圖片含可疑文字', '來源不明'],
+    reason: '圖片中偵測到可疑文字特徵，建議謹慎確認來源。',
   };
   if (type === 'video') return {
     riskLevel: 'medium', riskScore: 55, scamType: '可疑影音',
     summary: '影音檔案需進一步後端分析，目前顯示初步結果。',
     riskFactors: ['影音內容待審查'],
+    reason: '影音檔案需進一步後端分析，目前顯示初步結果。',
   };
   return {
     riskLevel: 'safe', riskScore: 8, scamType: '無',
     summary: '檔案無明顯詐騙特徵，仍建議確認來源。',
     riskFactors: [],
+    reason: '檔案無明顯詐騙特徵，仍建議確認來源。',
   };
 }
 
@@ -49,7 +52,7 @@ const MEDIUM_KEYWORDS = [
 const HIGH_URL_PATTERNS = ['secure-login', 'bank-verify', 'tw-bank', 'verify-account', '.xyz', '.top', '.cc'];
 const MEDIUM_URL_PATTERNS = ['free', 'prize', 'lucky', 'win', 'click'];
 
-function analyze(type: string, input: string): { riskLevel: RiskLevel; riskScore: number; scamType: string; summary: string; riskFactors: string[] } {
+function analyze(type: string, input: string): { riskLevel: RiskLevel; riskScore: number; scamType: string; summary: string; riskFactors: string[]; reason: string } {
   const lower = input.toLowerCase();
 
   if (type === 'url') {
@@ -58,6 +61,7 @@ function analyze(type: string, input: string): { riskLevel: RiskLevel; riskScore
         riskLevel: 'high', riskScore: 88, scamType: '釣魚網站',
         summary: '此網址疑似仿冒官方網站，域名異常，請勿點擊或輸入任何資料。',
         riskFactors: ['非官方域名', '仿冒官方介面', 'SSL 憑證異常'],
+        reason: '網址包含仿冒官方網站的域名特徵，並偵測到 SSL 憑證異常。',
       };
     }
     if (MEDIUM_URL_PATTERNS.some((p) => lower.includes(p))) {
@@ -65,6 +69,7 @@ function analyze(type: string, input: string): { riskLevel: RiskLevel; riskScore
         riskLevel: 'medium', riskScore: 58, scamType: '可疑連結',
         summary: '此連結含有可疑特徵，建議謹慎確認來源後再點擊。',
         riskFactors: ['可疑關鍵字', '來源不明'],
+        reason: '連結中包含常見詐騙關鍵字，來源無法確認。',
       };
     }
   }
@@ -76,6 +81,7 @@ function analyze(type: string, input: string): { riskLevel: RiskLevel; riskScore
         riskLevel: 'medium', riskScore: 55, scamType: '可疑電話',
         summary: '此號碼類型常見於詐騙來電，有多筆民眾回報紀錄，建議謹慎。',
         riskFactors: ['多筆民眾回報', '非官方客服號碼'],
+        reason: '此號碼已有多筆民眾回報為詐騙來電，非官方客服號碼。',
       };
     }
   }
@@ -86,6 +92,7 @@ function analyze(type: string, input: string): { riskLevel: RiskLevel; riskScore
       riskLevel: 'high', riskScore: Math.min(70 + hitHigh.length * 8, 98), scamType: '假冒官方詐騙',
       summary: '偵測到多項高風險詐騙特徵，請勿依照指示操作，立即停止。',
       riskFactors: hitHigh.map((k) => `包含關鍵字「${k}」`),
+      reason: `訊息中出現 ${hitHigh.join('、')} 等高風險詐騙關鍵字。`,
     };
   }
 
@@ -95,6 +102,7 @@ function analyze(type: string, input: string): { riskLevel: RiskLevel; riskScore
       riskLevel: 'medium', riskScore: Math.min(40 + hitMedium.length * 7, 75), scamType: '可疑訊息',
       summary: '偵測到可疑特徵，建議謹慎確認後再行動，勿輕易提供個人資料。',
       riskFactors: hitMedium.map((k) => `包含關鍵字「${k}」`),
+      reason: `訊息中出現 ${hitMedium.join('、')} 等可疑特徵。`,
     };
   }
 
@@ -102,6 +110,7 @@ function analyze(type: string, input: string): { riskLevel: RiskLevel; riskScore
     riskLevel: 'safe', riskScore: Math.floor(Math.random() * 15) + 3, scamType: '無',
     summary: '此內容無明顯詐騙特徵，看起來是一般訊息，仍建議保持警覺。',
     riskFactors: [],
+    reason: '未偵測到明顯詐騙特徵，內容看起來是一般訊息。',
   };
 }
 
@@ -151,20 +160,20 @@ export default function AnalyzingScreen() {
           };
           addEvent(event);
           if (currentUser.role === 'solver') addContributionPoints(10);
-          navigation.replace('ResultSafe');
+          navigation.replace('ResultSafe', { reason: result.reason });
         } else if (result.riskLevel === 'high') {
           if (currentUser.role === 'solver') addContributionPoints(10);
           navigation.replace('ResultHigh', {
             scamType: result.scamType, riskScore: result.riskScore,
             riskFactors: result.riskFactors, summary: result.summary,
-            originalInput: input, imageUri,
+            reason: result.reason, originalInput: input, imageUri,
           });
         } else {
           if (currentUser.role === 'solver') addContributionPoints(10);
           navigation.replace('ResultMedium', {
             scamType: result.scamType, riskScore: result.riskScore,
             riskFactors: result.riskFactors, summary: result.summary,
-            originalInput: input, imageUri,
+            reason: result.reason, originalInput: input, imageUri,
           });
         }
       }, 4000),

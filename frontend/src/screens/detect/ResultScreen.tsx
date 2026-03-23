@@ -6,15 +6,15 @@ import { RootStackParamList } from '../../navigation';
 export default function ResultScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'Result'>>();
-  const { riskLevel, riskFactors, summary, scamType, riskScore, hasFinancialKeyword } = route.params;
+  const { riskLevel, riskFactors, summary, scamType, riskScore, reason, hasFinancialKeyword } = route.params;
 
   useEffect(() => {
     if (riskLevel === 'high') {
-      navigation.replace('ResultHigh', { scamType, riskScore, riskFactors, summary });
+      navigation.replace('ResultHigh', { scamType, riskScore, riskFactors, summary, reason });
     } else if (riskLevel === 'medium') {
-      navigation.replace('ResultMedium', { riskFactors, summary, scamType, riskScore });
+      navigation.replace('ResultMedium', { riskFactors, summary, scamType, riskScore, reason });
     } else {
-      navigation.replace('ResultSafe');
+      navigation.replace('ResultSafe', { reason });
     }
   }, []);
 

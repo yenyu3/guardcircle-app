@@ -22,7 +22,7 @@ const THEME = {
 export default function ResultMediumScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "ResultMedium">>();
-  const { scamType, riskScore, riskFactors, summary, readonly, originalInput, imageUri } = route.params;
+  const { scamType, riskScore, riskFactors, summary, reason, readonly, originalInput, imageUri } = route.params;
   const { currentUser, addEvent, addReport } = useAppStore();
   const eventIdRef = useRef(`e_${Date.now()}`);
 
@@ -76,7 +76,7 @@ export default function ResultMediumScreen() {
           </View>
 
           <Text style={styles.title}>注意</Text>
-          <Text style={styles.desc}>這個內容有可疑特徵，請選擇處理方式</Text>
+          <Text style={styles.desc}>{reason ?? '這個內容有可疑特徵，請選擇處理方式'}</Text>
 
           {/* 選項 A */}
           <TouchableOpacity style={styles.primaryBtn} onPress={handleSendNotification} activeOpacity={0.85}>

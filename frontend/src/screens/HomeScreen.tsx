@@ -19,7 +19,9 @@ import NpcAvatar from "../components/NpcAvatar";
 import { RootStackParamList } from "../navigation";
 import { useScrollRef } from "../navigation/ScrollRefContext";
 import { useAppStore } from "../store";
+import MaskedView from "@react-native-masked-view/masked-view";
 import { Colors, Radius, Shadow } from "../theme";
+import Svg, { Path, Defs, LinearGradient as SvgLinearGradient, Stop } from "react-native-svg";
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -188,6 +190,56 @@ function GuardianHome({
   );
 }
 
+// ── Gauge Chart ───────────────────────────────────────────────
+function GaugeChart({ pct }: { pct: number }) {
+  const size = 96;
+  const cx = size / 2;
+  const cy = size / 2;
+  const r = 36;
+  const stroke = 5;
+
+  function polarToXY(deg: number) {
+    const rad = (deg * Math.PI) / 180;
+    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+  }
+
+  function arcPath(from: number, to: number) {
+    const start = polarToXY(from);
+    const end = polarToXY(to);
+    return `M ${start.x} ${start.y} A ${r} ${r} 0 0 1 ${end.x} ${end.y}`;
+  }
+
+  const endDeg = 180 + Math.max(pct / 100, 0.01) * 180;
+
+  return (
+    <View style={{ width: size, height: size / 2 + stroke, alignItems: "center", justifyContent: "flex-end" }}>
+      <Svg width={size} height={size / 2 + stroke} style={{ position: "absolute", top: 0 }}>
+        <Defs>
+          <SvgLinearGradient id="gaugeGrad" x1="0" y1="0" x2="1" y2="0">
+            <Stop offset="0" stopColor="#89502e" />
+            <Stop offset="1" stopColor="#ffb38a" />
+          </SvgLinearGradient>
+        </Defs>
+        <Path d={arcPath(180, 360)} stroke="#d7c2b960" strokeWidth={stroke} fill="none" strokeLinecap="round" />
+        <Path d={arcPath(180, endDeg)} stroke="url(#gaugeGrad)" strokeWidth={stroke} fill="none" strokeLinecap="round" />
+      </Svg>
+      <MaskedView
+        maskElement={
+          <Text style={styles.gkGaugeNum}>
+            {pct}<Text style={styles.gkGaugeUnit}>%</Text>
+          </Text>
+        }
+      >
+        <LinearGradient colors={["#89502e", "#ffb38a"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+          <Text style={[styles.gkGaugeNum, { opacity: 0 }]}>
+            {pct}<Text style={styles.gkGaugeUnit}>%</Text>
+          </Text>
+        </LinearGradient>
+      </MaskedView>
+    </View>
+  );
+}
+
 // ── Gatekeeper Home ────────────────────────────────────────────
 const STATUS_CONFIG = {
   safe: { color: Colors.safe, bg: Colors.safeBg, label: "SAFE 安全" },
@@ -242,7 +294,7 @@ function GatekeeperHome({
               在 15 分鐘前偵測到異常活動，請立即查看。
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={20} color={Colors.danger} />
+          <Ionicons name="chevron-forward" size={20} color="#E25858" />
         </TouchableOpacity>
       ) : (
         <View style={styles.gkSafeBanner}>
@@ -254,11 +306,30 @@ function GatekeeperHome({
       )}
 
       {/* Member Status Section */}
-      <View style={styles.gkSectionHeader}>
-        <Text style={styles.gkSectionTitle}>家庭成員狀態</Text>
-      </View>
-
       <View style={styles.gkMembersCard}>
+        <View style={styles.gkMembersCardHeader}>
+          <Text style={styles.gkSectionTitle}>家庭成員狀態</Text>
+        </View>
+
+        {/* Stats 內嵌 */}
+        <View style={styles.gkStatsInline}>
+          <View style={styles.gkStatItem}>
+            <View style={styles.gkStatNumRow}>
+              <MaskedView maskElement={<Text style={styles.gkStatNum}>{totalScans}</Text>}>
+                <LinearGradient colors={["#89502e", "#ffb38a"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                  <Text style={[styles.gkStatNum, { opacity: 0 }]}>{totalScans}</Text>
+                </LinearGradient>
+              </MaskedView>
+              <Ionicons name="search" size={14} color={Colors.primaryDark} style={{ marginBottom: 6 }} />
+            </View>
+            <Text style={styles.gkStatLabel}>總查詢數</Text>
+          </View>
+          <View style={styles.gkStatDivider} />
+          <View style={styles.gkStatItem}>
+            <GaugeChart pct={threatBlockPct} />
+            <Text style={styles.gkStatLabel}>威脅阻斷</Text>
+          </View>
+        </View>
         {guardianMembers.map((m, i) => {
           const cfg = STATUS_CONFIG[m.status] ?? STATUS_CONFIG.pending;
           const isLast = i === guardianMembers.length - 1;
@@ -299,24 +370,6 @@ function GatekeeperHome({
             </View>
           );
         })}
-      </View>
-
-      {/* Stats Row */}
-      <View style={styles.gkStatsRow}>
-        <View style={styles.gkStatCard}>
-          <Text style={styles.gkStatLabel}>總查詢數</Text>
-          <Text style={styles.gkStatNum}>{totalScans}</Text>
-          <View style={styles.gkStatBar}>
-            <View style={[styles.gkStatBarFill, { width: "100%" }]} />
-          </View>
-        </View>
-        <View style={styles.gkStatCard}>
-          <Text style={styles.gkStatLabel}>威脅阻斷</Text>
-          <Text style={styles.gkStatNum}>{threatBlockPct}%</Text>
-          <View style={styles.gkStatBar}>
-            <View style={[styles.gkStatBarFill, { width: `${threatBlockPct}%` as any }]} />
-          </View>
-        </View>
       </View>
 
       {/* Recent Events Timeline */}
@@ -734,12 +787,12 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.danger,
+    backgroundColor: "#E25858",
     alignItems: "center",
     justifyContent: "center",
   },
-  gkAlertTitle: { fontSize: 15, fontWeight: "700", color: Colors.dangerDark },
-  gkAlertSub: { fontSize: 12, color: Colors.dangerDark, marginTop: 2 },
+  gkAlertTitle: { fontSize: 15, fontWeight: "700", color: "#C03030" },
+  gkAlertSub: { fontSize: 12, color: "#C03030", marginTop: 2 },
   gkSectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -748,11 +801,16 @@ const styles = StyleSheet.create({
   },
   gkSectionTitle: { fontSize: 20, fontWeight: "800", color: Colors.text },
   gkMembersCard: {
-    backgroundColor: "#fcf2e3",
+    backgroundColor: Colors.white,
     borderRadius: Radius.lg,
     marginBottom: 16,
     overflow: "hidden",
     ...Shadow.card,
+  },
+  gkMembersCardHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 0,
   },
   gkMemberRow: {
     flexDirection: "row",
@@ -783,36 +841,41 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   gkStatusPillText: { fontSize: 11, fontWeight: "800", letterSpacing: 0.3 },
-  gkStatsRow: { flexDirection: "row", gap: 12, marginBottom: 16 },
-  gkStatCard: {
+  gkStatsInline: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    marginTop: 12,
+    marginBottom: 0,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  gkStatItem: {
     flex: 1,
-    backgroundColor: "#ebe1d3",
-    borderRadius: Radius.lg,
-    padding: 18,
     alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 6,
+  },
+  gkStatNumRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
     gap: 4,
   },
+  gkStatDivider: {
+    width: 1,
+    alignSelf: "stretch",
+    backgroundColor: "#d7c2b960",
+    marginHorizontal: 8,
+  },
   gkStatLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "700",
     color: Colors.textMuted,
     textTransform: "uppercase",
     letterSpacing: 1,
   },
-  gkStatNum: { fontSize: 30, fontWeight: "900", color: Colors.text },
-  gkStatBar: {
-    width: "100%",
-    height: 4,
-    backgroundColor: "#d7c2b9",
-    borderRadius: 2,
-    overflow: "hidden",
-    marginTop: 4,
-  },
-  gkStatBarFill: {
-    height: "100%",
-    backgroundColor: Colors.primaryDark,
-    borderRadius: 2,
-  },
+  gkStatNum: { fontSize: 38, fontWeight: "900", color: Colors.text },
+  gkGaugeNum: { fontSize: 26, fontWeight: "900", color: Colors.text },
+  gkGaugeUnit: { fontSize: 16, fontWeight: "700", color: Colors.text },
   gkEventsCard: {
     backgroundColor: Colors.white,
     borderRadius: Radius.lg,

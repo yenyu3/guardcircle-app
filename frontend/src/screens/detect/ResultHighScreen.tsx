@@ -22,7 +22,7 @@ const THEME = {
 export default function ResultHighScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "ResultHigh">>();
-  const { scamType, riskScore, riskFactors, summary, readonly, originalInput, imageUri } = route.params;
+  const { scamType, riskScore, riskFactors, summary, reason, readonly, originalInput, imageUri } = route.params;
   const { currentUser, addEvent, setMemberStatus } = useAppStore();
   const eventIdRef = useRef(`e_${Date.now()}`);
 
@@ -63,7 +63,7 @@ export default function ResultHighScreen() {
           </View>
 
           <Text style={styles.title}>危險</Text>
-          <Text style={styles.desc}>已自動通知守門人，請等待家人協助確認</Text>
+          <Text style={styles.desc}>{reason ?? '已自動通知守門人，請等待家人協助確認'}</Text>
 
           <View style={styles.statusBadge}>
             <Ionicons name="notifications" size={14} color={THEME.bg} />
