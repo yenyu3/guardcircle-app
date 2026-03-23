@@ -92,11 +92,27 @@ export default function FamilyEventDetailScreen() {
     const riskLabel = risk.label;
     const factorsHtml = event.riskFactors.map((f, i) => `
       <div class="factor-row">
-        <div class="factor-inner">
-          <div class="factor-num-wrap"><span class="factor-num">${i + 1}</span></div>
-          <div class="factor-text">${f}</div>
-        </div>
+        <div class="factor-num">${i + 1}</div>
+        <div class="factor-text">${f}</div>
       </div>`).join('');
+
+    let inputContentHtml = `<div class="input-box">${event.input}</div>`;
+    if (event.imageUri) {
+      try {
+        const base64 = await FileSystem.readAsStringAsync(event.imageUri, { encoding: FileSystem.EncodingType.Base64 });
+        const ext = event.imageUri.split('.').pop()?.toLowerCase() ?? 'jpeg';
+        const mime = ext === 'png' ? 'image/png' : ext === 'gif' ? 'image/gif' : 'image/jpeg';
+        inputContentHtml = `<img src="data:${mime};base64,${base64}" style="max-width:100%;border-radius:8px;" />`;
+      } catch {
+        // 讀取失敗時 fallback 顯示檔名
+      }
+    }
+
+    // SVG gauge: r=54, circumference≈339.3
+    const R = 54, SW = 9;
+    const CIRC = 2 * Math.PI * R;
+    const dashOffset = CIRC - (score / 100) * CIRC;
+    const svgSize = (R + SW) * 2 + 4;
 
     const html = `
       <!DOCTYPE html>
@@ -105,75 +121,172 @@ export default function FamilyEventDetailScreen() {
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <style>
-          @page { margin: 20mm 16mm; size: A4; }
+          @page { margin: 18mm 14mm; size: A4; }
           * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; background: #fff8f1; color: #1f1b12; max-width: 600px; margin: 0 auto; }
-          .header { background: #89502e; border-radius: 12px; padding: 28px 32px; margin-bottom: 24px; color: #fff; }
-          .header-badge { font-size: 10px; font-weight: 800; letter-spacing: 2px; color: #ffcfaa; margin-bottom: 8px; }
-          .header-title { font-size: 24px; font-weight: 900; margin-bottom: 6px; }
-          .header-sub { font-size: 13px; color: #ffcfaa; }
-          .risk-section { margin-bottom: 20px; padding: 20px 24px; background: #fcf2e3; border-radius: 12px; border-left: 4px solid ${risk.color}; }
-          .risk-pill { display: inline-block; padding: 4px 14px; border-radius: 6px; font-size: 12px; font-weight: 800; margin-bottom: 12px; background: #fff; color: ${risk.color}; border: 1.5px solid ${risk.color}; }
-          .score-num { font-size: 44px; font-weight: 900; color: ${risk.color}; line-height: 1; }
-          .score-label { font-size: 11px; font-weight: 700; color: #52443c; letter-spacing: 1.5px; display: block; margin-top: 2px; margin-bottom: 12px; }
-          .meta-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
-          .meta-table td { padding-right: 24px; vertical-align: top; }
-          .meta-label { font-size: 9px; font-weight: 700; color: #89502e; letter-spacing: 1px; text-transform: uppercase; display: block; margin-bottom: 2px; }
-          .meta-value { font-size: 13px; font-weight: 700; color: #1f1b12; }
-          .card { background: #f6edde; border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; border: 1px solid #d7c2b9; }
-          .card-title { font-size: 15px; font-weight: 700; color: #1f1b12; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #d7c2b9; }
-          .card-body { font-size: 13px; color: #52443c; line-height: 1.8; }
-          .input-box { background: #fffdf9; border-radius: 8px; padding: 14px 16px; border: 1px dashed #89502e55; font-style: italic; color: #52443c; font-size: 13px; line-height: 1.7; margin-top: 8px; word-break: break-all; }
-          .factor-table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
-          .factor-table td { vertical-align: middle; padding: 10px 0; }
-          .factor-num-cell { width: 32px; }
-          .factor-num { display: inline-block; width: 24px; height: 24px; background: ${risk.color}; color: #fff; font-size: 11px; font-weight: 800; text-align: center; line-height: 24px; border-radius: 12px; }
-          .factor-row { background: #ebe1d3; border-radius: 8px; padding: 10px 14px; margin-bottom: 6px; }
-          .factor-inner { display: table; width: 100%; }
-          .factor-num-wrap { display: table-cell; width: 36px; vertical-align: middle; }
-          .factor-text { display: table-cell; font-size: 13px; color: #1f1b12; vertical-align: middle; }
-          .tag-row { margin-top: 12px; }
-          .tag { display: inline-block; padding: 4px 10px; background: #ebe1d3; border-radius: 4px; font-size: 11px; font-weight: 700; color: #52443c; margin: 3px 4px 3px 0; }
-          .footer { text-align: center; font-size: 11px; color: #89502e; margin-top: 28px; padding-top: 16px; border-top: 1px solid #d7c2b9; }
+          body {
+            font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+            background: #fff8f1; color: #1f1b12;
+            max-width: 560px; margin: 0 auto; padding: 0 4px;
+          }
+
+          /* ── top bar ── */
+          .top-bar {
+            background: #89502e; border-radius: 14px;
+            padding: 18px 24px 14px; margin-bottom: 18px;
+            display: flex; align-items: center; justify-content: space-between;
+          }
+          .top-bar-left .badge {
+            font-size: 9px; font-weight: 800; letter-spacing: 2px;
+            color: #ffcfaa; margin-bottom: 4px;
+          }
+          .top-bar-left .title { font-size: 20px; font-weight: 900; color: #fff; }
+          .top-bar-left .sub   { font-size: 11px; color: #ffcfaa; margin-top: 3px; }
+          .top-bar-right svg   { display: block; }
+
+          /* ── hero section ── */
+          .hero {
+            background: #fcf2e3; border-radius: 14px;
+            padding: 24px 20px 20px; margin-bottom: 14px;
+            text-align: center; border: 1px solid #d7c2b9;
+          }
+          .hero svg { display: block; margin: 0 auto 14px; }
+          .risk-pill {
+            display: inline-block; padding: 5px 18px;
+            border-radius: 999px; font-size: 13px; font-weight: 800;
+            color: ${risk.color};
+            background: ${risk.color}22;
+            border: 1.5px solid ${risk.color}44;
+            margin-bottom: 10px;
+          }
+          .scam-type { font-size: 22px; font-weight: 800; color: #1f1b12; margin-bottom: 10px; }
+          .meta-row {
+            display: flex; justify-content: center; gap: 16px;
+            font-size: 12px; color: #52443c; font-weight: 500;
+          }
+          .meta-row span { display: flex; align-items: center; gap: 4px; }
+          .meta-dot { width: 3px; height: 3px; border-radius: 50%; background: #d7c2b9; display: inline-block; }
+
+          /* ── cards ── */
+          .card {
+            background: #f6edde; border-radius: 14px;
+            padding: 18px 20px; margin-bottom: 14px;
+            border: 1px solid #d7c2b944;
+          }
+          .card-title {
+            font-size: 14px; font-weight: 700; color: #1f1b12;
+            padding-bottom: 10px; margin-bottom: 12px;
+            border-bottom: 1px solid #d7c2b9;
+            display: flex; align-items: center; gap: 7px;
+          }
+          .card-body { font-size: 13px; color: #52443c; line-height: 1.85; }
+
+          /* input box */
+          .input-box {
+            background: #fffdf9; border-radius: 12px;
+            padding: 14px 16px;
+            border: 2px dashed #89502e33;
+            font-size: 13px; color: #52443c;
+            line-height: 1.75; font-style: italic;
+            word-break: break-all;
+          }
+          .input-box img { max-width: 100%; border-radius: 8px; display: block; }
+
+          /* tags */
+          .tag-row { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+          .tag {
+            padding: 4px 12px; background: #ebe1d3;
+            border-radius: 999px; font-size: 11px;
+            font-weight: 700; color: #52443c;
+            border: 1px solid #89502e1a;
+          }
+
+          /* factor rows */
+          .factor-row {
+            display: flex; align-items: center; gap: 10px;
+            background: #ebe1d3; border-radius: 8px;
+            padding: 9px 12px; margin-bottom: 6px;
+          }
+          .factor-num {
+            min-width: 24px; height: 24px; border-radius: 12px;
+            background: ${risk.color}; color: #fff;
+            font-size: 11px; font-weight: 800;
+            display: flex; align-items: center; justify-content: center;
+          }
+          .factor-text { font-size: 13px; color: #1f1b12; }
+
+          /* footer */
+          .footer {
+            text-align: center; font-size: 11px; color: #89502e;
+            margin-top: 20px; padding-top: 14px;
+            border-top: 1px solid #d7c2b9;
+          }
         </style>
       </head>
       <body>
-        <div class="header">
-          <div class="header-badge">GUARDCIRCLE • 事件證據包</div>
-          <div class="header-title">${event.scamType}</div>
-          <div class="header-sub">生成時間：${new Date().toLocaleString('zh-TW', { hour12: false })}</div>
+
+        <!-- top bar -->
+        <div class="top-bar">
+          <div class="top-bar-left">
+            <div class="badge">GUARDCIRCLE &bull; 事件證據包</div>
+            <div class="title">${event.scamType}</div>
+            <div class="sub">生成時間：${new Date().toLocaleString('zh-TW', { hour12: false })}</div>
+          </div>
         </div>
 
-        <div class="risk-section">
+        <!-- hero: gauge + risk pill + scam type + meta -->
+        <div class="hero">
+          <svg width="${svgSize}" height="${svgSize}" viewBox="0 0 ${svgSize} ${svgSize}">
+            <circle cx="${svgSize/2}" cy="${svgSize/2}" r="${R}"
+              stroke="#d7c2b9" stroke-width="${SW}" fill="none"
+              stroke-linecap="round"
+              transform="rotate(-90 ${svgSize/2} ${svgSize/2})" />
+            <circle cx="${svgSize/2}" cy="${svgSize/2}" r="${R}"
+              stroke="${risk.color}" stroke-width="${SW}" fill="none"
+              stroke-linecap="round"
+              stroke-dasharray="${CIRC.toFixed(2)}"
+              stroke-dashoffset="${dashOffset.toFixed(2)}"
+              transform="rotate(-90 ${svgSize/2} ${svgSize/2})" />
+            <text x="${svgSize/2}" y="${svgSize/2 - 4}"
+              text-anchor="middle" dominant-baseline="middle"
+              font-size="36" font-weight="900" fill="${risk.color}">${score}</text>
+            <text x="${svgSize/2}" y="${svgSize/2 + 22}"
+              text-anchor="middle"
+              font-size="9" font-weight="700" fill="#52443c" letter-spacing="1.5">RISK SCORE</text>
+          </svg>
+
           <div class="risk-pill">${riskLabel}</div>
-          <div class="score-num">${score}</div>
-          <span class="score-label">RISK SCORE</span>
-          <table class="meta-table"><tr>
-            <td><span class="meta-label">發起成員</span><span class="meta-value">${event.userNickname}</span></td>
-            <td><span class="meta-label">偵測時間</span><span class="meta-value">${event.createdAt}</span></td>
-          </tr></table>
+          <div class="scam-type">${event.scamType}</div>
+          <div class="meta-row">
+            <span>👤 ${event.userNickname}</span>
+            <span class="meta-dot"></span>
+            <span>🕐 ${event.createdAt}</span>
+          </div>
         </div>
 
+        <!-- 原始通訊內容 -->
         <div class="card">
           <div class="card-title">💬 原始通訊內容</div>
-          <div class="input-box">${event.input}</div>
+          <div class="input-box">${inputContentHtml}</div>
         </div>
 
+        <!-- AI 分析結論 -->
         <div class="card">
           <div class="card-title">✨ AI 分析結論</div>
           <div class="card-body">${event.summary}</div>
-          <div class="tag-row">${event.riskFactors.map(f => `<span class="tag">#${f}</span>`).join('')}</div>
+          ${event.riskFactors.length > 0 ? `
+          <div class="tag-row">
+            ${event.riskFactors.map(f => `<span class="tag">#${f}</span>`).join('')}
+          </div>` : ''}
         </div>
 
+        <!-- 風險因子 -->
         ${event.riskFactors.length > 0 ? `
         <div class="card">
           <div class="card-title">🚨 風險因子</div>
           ${factorsHtml}
         </div>` : ''}
 
-        <div class="footer">
-          如有疑慮請撥打 165 反詐騙專線 &nbsp;•&nbsp; GuardCircle 守護圈
-        </div>
+        <div class="footer">如有疑慮請撥打 165 反詐騙專線 &nbsp;&bull;&nbsp; GuardCircle 守護圈</div>
       </body>
       </html>`;
 

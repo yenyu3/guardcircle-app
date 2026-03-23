@@ -1,9 +1,10 @@
 import React, { useEffect, useRef } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Linking, Alert, Animated, Easing } from "react-native";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { RootStackParamList } from "../../navigation";
 import { useAppStore } from "../../store";
 import { DetectEvent } from "../../types";
@@ -19,14 +20,40 @@ const THEME = {
   textSub: "rgba(255,255,255,0.75)",
 };
 
+function callPhone(phone: string) {
+  Linking.openURL(`tel:${phone}`).catch(() =>
+    Alert.alert("無法撥打電話", "請確認裝置支援撥話功能")
+  );
+}
+
 export default function ResultHighScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "ResultHigh">>();
   const { scamType, riskScore, riskFactors, summary, reason, readonly, originalInput, imageUri } = route.params;
   const { currentUser, addEvent, setMemberStatus } = useAppStore();
   const eventIdRef = useRef(`e_${Date.now()}`);
+  const pulse1 = useRef(new Animated.Value(1)).current;
+  const pulse2 = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
+    const anim = (val: Animated.Value, delay: number) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(val, { toValue: 1.55, duration: 700, easing: Easing.out(Easing.ease), useNativeDriver: true }),
+          Animated.timing(val, { toValue: 1, duration: 700, easing: Easing.in(Easing.ease), useNativeDriver: true }),
+        ])
+      );
+    anim(pulse1, 0).start();
+    anim(pulse2, 350).start();
+  }, []);
+
+  useEffect(() => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    setTimeout(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error), 400);
+    setTimeout(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error), 800);
+    setTimeout(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error), 1200);
+    setTimeout(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error), 1600);
     if (readonly) return;
     const newEvent: DetectEvent = {
       id: eventIdRef.current,
@@ -58,33 +85,42 @@ export default function ResultHighScreen() {
           </TouchableOpacity>
         </View>
         <View style={styles.content}>
-          <View style={styles.iconCircle}>
-            <Ionicons name="warning" size={52} color="#fff" />
+          <View style={styles.iconWrapper}>
+            <Animated.View style={[styles.halo, { transform: [{ scale: pulse2 }], opacity: pulse2.interpolate({ inputRange: [1, 1.55], outputRange: [0.15, 0] }) }]} />
+            <Animated.View style={[styles.halo, { transform: [{ scale: pulse1 }], opacity: pulse1.interpolate({ inputRange: [1, 1.55], outputRange: [0.25, 0] }) }]} />
+            <View style={styles.iconCircle}>
+              <Ionicons name="warning" size={52} color="#fff" />
+            </View>
           </View>
 
           <Text style={styles.title}>危險</Text>
           <Text style={styles.desc}>{reason ?? '已自動通知守門人，請等待家人協助確認'}</Text>
 
-          <View style={styles.statusBadge}>
-            <Ionicons name="notifications" size={14} color={THEME.bg} />
-            <Text style={styles.statusText}>守門人已收到通知</Text>
-          </View>
-
           <TouchableOpacity
-            style={styles.primaryBtn}
-            onPress={() => navigation.navigate("Main")}
+            style={styles.callBtn}
+            onPress={() => callPhone("165")}
             activeOpacity={0.85}
           >
-            <Text style={styles.primaryBtnText}>請勿依指示操作，返回首頁</Text>
+            <Ionicons name="call" size={18} color="#D4806E" style={{ marginRight: 6 }} />
+            <Text style={styles.callBtnText}>打165報案</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.outlineBtn}
-            onPress={() => navigation.navigate("GuardianAlert", { eventId: eventIdRef.current })}
+            onPress={() => {
+              const phone = currentUser.emergencyPhone;
+              if (!phone) {
+                Alert.alert("尚未設定緊急聯絡人", "請至設定頁面填寫緊急聯絡人電話");
+                return;
+              }
+              callPhone(phone);
+            }}
             activeOpacity={0.85}
           >
-            <Text style={styles.outlineBtnText}>查看守門人通知（Demo）</Text>
+            <Ionicons name="people" size={18} color="#fff" style={{ marginRight: 6 }} />
+            <Text style={styles.outlineBtnText}>通報家人</Text>
           </TouchableOpacity>
+          <View style={{ height: 64 }} />
         </View>
       </SafeAreaView>
     </View>
@@ -96,28 +132,25 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   header: { paddingHorizontal: 16, paddingVertical: 12 },
   backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
-  content: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 },
+  content: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32, marginTop: -40 },
+  iconWrapper: { width: 120, height: 120, alignItems: "center", justifyContent: "center", marginBottom: 28 },
+  halo: { position: "absolute", width: 120, height: 120, borderRadius: 60, backgroundColor: "#fff" },
   iconCircle: {
     width: 120, height: 120, borderRadius: 60,
     backgroundColor: THEME.iconBg, alignItems: "center", justifyContent: "center",
-    borderWidth: 2, borderColor: "rgba(255,255,255,0.2)", marginBottom: 28,
+    borderWidth: 2, borderColor: "rgba(255,255,255,0.2)",
   },
   title: { fontSize: 40, fontWeight: "900", color: THEME.text, letterSpacing: -0.5, textAlign: "center", marginBottom: 10 },
-  desc: { fontSize: 16, fontWeight: "500", color: THEME.textSub, textAlign: "center", lineHeight: 24, marginBottom: 20 },
-  statusBadge: {
-    flexDirection: "row", alignItems: "center", gap: 6,
-    backgroundColor: "#fff", borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8, marginBottom: 32,
-  },
-  statusText: { fontSize: 13, fontWeight: "700", color: THEME.bg },
-  primaryBtn: {
+  desc: { fontSize: 16, fontWeight: "500", color: THEME.textSub, textAlign: "center", lineHeight: 24, marginBottom: 32 },
+  callBtn: {
     backgroundColor: THEME.primaryBtn, borderRadius: 999, paddingVertical: 18,
-    alignItems: "center", alignSelf: "stretch", marginBottom: 12,
+    flexDirection: "row", alignItems: "center", justifyContent: "center", alignSelf: "stretch", marginBottom: 12,
     shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 12, elevation: 4,
   },
-  primaryBtnText: { fontSize: 17, fontWeight: "800", color: THEME.primaryBtnText },
+  callBtnText: { fontSize: 17, fontWeight: "800", color: THEME.primaryBtnText },
   outlineBtn: {
     borderWidth: 2, borderColor: THEME.outlineBtnBorder, borderRadius: 999,
-    paddingVertical: 18, alignItems: "center", alignSelf: "stretch",
+    paddingVertical: 18, flexDirection: "row", alignItems: "center", justifyContent: "center", alignSelf: "stretch",
   },
-  outlineBtnText: { fontSize: 17, fontWeight: "700", color: THEME.outlineBtnText },
+  outlineBtnText: { fontSize: 17, fontWeight: "800", color: THEME.outlineBtnText },
 });

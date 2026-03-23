@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../theme';
 import { RootStackParamList } from '../navigation';
 import { useAppStore } from '../store';
+import { DetectEvent } from '../types';
 import { LinearGradient } from 'expo-linear-gradient';
 import NpcAvatar from '../components/NpcAvatar';
 import AppHeader from '../components/Header';
@@ -42,9 +43,21 @@ export default function FamilyScreen() {
     }, [])
   );
 
-  const timelineEvents = events
-    .filter((e) => e.status === 'safe' && e.riskLevel !== 'safe')
-    .slice(0, 5);
+  type ActivityItem =
+    | { kind: 'detect'; event: DetectEvent; time: string }
+    | { kind: 'resolve'; event: DetectEvent; resolverNickname: string; time: string };
+
+  const activities: ActivityItem[] = [];
+  events.forEach((e) => {
+    activities.push({ kind: 'detect', event: e, time: e.createdAt });
+    if (e.gatekeeperResponseAt && e.gatekeeperResponse) {
+      const resolverNickname = e.gatekeeperResponse.split('已')[0] ?? '守門人';
+      activities.push({ kind: 'resolve', event: e, resolverNickname, time: e.gatekeeperResponseAt });
+    }
+  });
+  const timelineActivities = activities
+    .sort((a, b) => b.time.localeCompare(a.time))
+    .slice(0, 8);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -97,37 +110,64 @@ export default function FamilyScreen() {
         </Pressable>
 
         {/* Timeline */}
-        <Text style={[styles.sectionTitle, { marginBottom: 16 }]}>最近動態</Text>
+        <Text style={[styles.sectionTitle, { marginBottom: 16 }]}>最新動態</Text>
         <View style={styles.timeline}>
           <View style={styles.timelineLine} />
-          {timelineEvents.length === 0 ? (
+          {timelineActivities.length === 0 ? (
             <View style={styles.emptyTimeline}>
               <Ionicons name="checkmark-circle" size={24} color="#16a34a" />
-              <Text style={styles.emptyTimelineText}>目前尚無已處理事件</Text>
+              <Text style={styles.emptyTimelineText}>目前尚無動態</Text>
             </View>
           ) : (
-            timelineEvents.map((item) => {
-              const isHigh = item.riskLevel === 'high';
-              const iconColor = isHigh ? Colors.danger : Colors.warning;
-              return (
-                <TouchableOpacity
-                  key={item.id}
-                  style={styles.timelineRow}
-                  onPress={() => navigation.navigate('FamilyEventDetail', { eventId: item.id })}
-                  activeOpacity={0.7}
-                >
-                  <View style={[styles.timelineIcon, { backgroundColor: iconColor }]}>
-                    <Ionicons name={isHigh ? 'warning' : 'alert-circle'} size={18} color="#fff" />
-                  </View>
-                  <View style={styles.timelineCard}>
-                    <View style={styles.timelineCardHeader}>
-                      <Text style={styles.timelineTitle}>{item.userNickname} · {item.scamType}</Text>
-                      <Text style={styles.timelineTime}>{item.createdAt}</Text>
+            timelineActivities.map((item, idx) => {
+              if (item.kind === 'detect') {
+                const e = item.event;
+                const isHigh = e.riskLevel === 'high';
+                const isSafe = e.riskLevel === 'safe';
+                const iconColor = isSafe ? Colors.safe : isHigh ? Colors.danger : Colors.warning;
+                const iconName = isSafe ? 'shield-checkmark' : isHigh ? 'warning' : 'alert-circle';
+                const label = isSafe ? '偵測安全訊息' : `偵測到${e.scamType}`;
+                return (
+                  <TouchableOpacity
+                    key={`detect-${e.id}`}
+                    style={styles.timelineRow}
+                    onPress={() => navigation.navigate('FamilyEventDetail', { eventId: e.id })}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.timelineIcon, { backgroundColor: iconColor }]}>
+                      <Ionicons name={iconName} size={18} color="#fff" />
                     </View>
-                    <Text style={styles.timelineDesc}>{item.summary.slice(0, 40)}…</Text>
-                  </View>
-                </TouchableOpacity>
-              );
+                    <View style={styles.timelineCard}>
+                      <View style={styles.timelineCardHeader}>
+                        <Text style={styles.timelineTitle}>{e.userNickname} · {label}</Text>
+                        <Text style={styles.timelineTime}>{e.createdAt}</Text>
+                      </View>
+                      <Text style={styles.timelineDesc}>{e.summary.slice(0, 40)}…</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              } else {
+                const e = item.event;
+                return (
+                  <TouchableOpacity
+                    key={`resolve-${e.id}`}
+                    style={styles.timelineRow}
+                    onPress={() => navigation.navigate('FamilyEventDetail', { eventId: e.id })}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.timelineIcon, { backgroundColor: Colors.safe }]}>
+                      <Ionicons name="checkmark-circle" size={18} color="#fff" />
+                    </View>
+                    <View style={styles.timelineCard}>
+                      <View style={styles.timelineCardHeader}>
+                        <Text style={styles.timelineTitle}>{item.resolverNickname} · 協助處理事件</Text>
+                        <Text style={styles.timelineTime}>{e.gatekeeperResponseAt}</Text>
+                      </View>
+                      <Text style={styles.timelineDesc}>{e.gatekeeperResponse?.slice(0, 40)}…</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              }
             })
           )}
         </View>
@@ -166,6 +206,6 @@ const styles = StyleSheet.create({
   timelineTitle: { fontSize: 13, fontWeight: '700', color: Colors.text, flex: 1, marginRight: 8 },
   timelineTime: { fontSize: 11, color: Colors.textMuted },
   emptyTimeline: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 16, paddingLeft: 8 },
-  emptyTimelineText: { fontSize: 14, color: '#16a34a', fontWeight: '600' },
+  emptyTimelineText: { fontSize: 14, color: Colors.safe, fontWeight: '600' },
   timelineDesc: { fontSize: 12, color: Colors.textLight, lineHeight: 18 },
 });
