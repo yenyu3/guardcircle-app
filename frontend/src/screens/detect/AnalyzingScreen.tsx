@@ -9,6 +9,7 @@ import { Colors, Radius } from '../../theme';
 import { RootStackParamList } from '../../navigation';
 import { useAppStore } from '../../store';
 import { DetectEvent, RiskLevel } from '../../types';
+import { useElderStyle } from '../../hooks/useElderStyle';
 
 const STEPS = [
   { label: 'Gogolook 資料庫查詢' },
@@ -119,6 +120,7 @@ export default function AnalyzingScreen() {
   const route = useRoute<RouteProp<RootStackParamList, 'Analyzing'>>();
   const { type, input, imageUri } = route.params;
   const { currentUser, addEvent, addContributionPoints } = useAppStore();
+  const elder = useElderStyle();
   const [step, setStep] = useState(0);
   const spin = useRef(new Animated.Value(0)).current;
   const pulse = useRef(new Animated.Value(1)).current;
@@ -201,8 +203,8 @@ export default function AnalyzingScreen() {
             </View>
           </View>
 
-          <Text style={styles.title}>AI 分析中</Text>
-          <Text style={styles.subtitle}>正在檢查內容是否包含詐騙特徵…</Text>
+          <Text style={[styles.title, elder.active && { fontSize: 30 * elder.f }]}>AI 分析中</Text>
+          <Text style={[styles.subtitle, elder.active && { fontSize: 17 * elder.f }]}>正在檢查內容是否包含詐騙特徵…</Text>
 
           {/* 步驟卡片 */}
           <View style={styles.steps}>
@@ -213,11 +215,11 @@ export default function AnalyzingScreen() {
                 <View key={i} style={[styles.stepCard, done && styles.stepCardDone, active && styles.stepCardActive]}>
                   <View style={[styles.stepDot, done && styles.stepDotDone, active && styles.stepDotActive]}>
                     {done
-                      ? <Ionicons name="checkmark" size={13} color="#fff" />
-                      : <Text style={styles.stepNum}>{i + 1}</Text>
+                      ? <Ionicons name="checkmark" size={elder.active ? 17 : 13} color="#fff" />
+                      : <Text style={[styles.stepNum, elder.active && { fontSize: 16 * elder.f }]}>{i + 1}</Text>
                     }
                   </View>
-                  <Text style={[styles.stepLabel, (done || active) && styles.stepLabelActive]}>{s.label}</Text>
+                  <Text style={[styles.stepLabel, (done || active) && styles.stepLabelActive, elder.active && { fontSize: 17 * elder.f }]}>{s.label}</Text>
                   {active && (
                     <Animated.View style={[styles.activeDot, { opacity: glowOpacity }]} />
                   )}

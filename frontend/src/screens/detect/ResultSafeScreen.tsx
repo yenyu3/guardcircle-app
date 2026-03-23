@@ -5,6 +5,7 @@ import { StackNavigationProp } from "@react-navigation/stack";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { RootStackParamList } from "../../navigation";
+import { useElderStyle } from "../../hooks/useElderStyle";
 
 const THEME = {
   bg: "#6FA882",
@@ -21,6 +22,7 @@ export default function ResultSafeScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "ResultSafe">>();
   const reason = route.params?.reason;
+  const s = useElderStyle();
 
   return (
     <View style={styles.root}>
@@ -35,25 +37,25 @@ export default function ResultSafeScreen() {
             <Ionicons name="checkmark-circle" size={52} color="#fff" />
           </View>
 
-          <Text style={styles.title}>安全</Text>
-          <Text style={styles.desc}>{reason ?? '目前看起來安全，但仍建議保持警覺'}</Text>
+          <Text style={[styles.title, s.active && { fontSize: 50 * s.f }]}>安全</Text>
+          <Text style={[styles.desc, s.active && { fontSize: 19 * s.f, lineHeight: 28 * s.f }]}>{reason ?? '目前看起來安全，但仍建議保持警覺'}</Text>
 
           <TouchableOpacity
-            style={styles.primaryBtn}
+            style={[styles.primaryBtn, s.active && { paddingVertical: 22 }]}
             onPress={() => navigation.reset({ index: 0, routes: [{ name: "Main" }] })}
             activeOpacity={0.85}
           >
-            <Ionicons name="home" size={18} color={THEME.primaryBtnText} style={{ marginRight: 6 }} />
-            <Text style={styles.primaryBtnText}>返回首頁</Text>
+            <Ionicons name="home" size={s.active ? 22 : 18} color={THEME.primaryBtnText} style={{ marginRight: 6 }} />
+            <Text style={[styles.primaryBtnText, s.active && { fontSize: 20 * s.f }]}>返回首頁</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.outlineBtn}
+            style={[styles.outlineBtn, s.active && { paddingVertical: 22 }]}
             onPress={() => Alert.alert("已詢問家人確認", "家人會盡快回覆你")}
             activeOpacity={0.85}
           >
-            <Ionicons name="people" size={18} color="#fff" style={{ marginRight: 6 }} />
-            <Text style={styles.outlineBtnText}>詢問家人</Text>
+            <Ionicons name="people" size={s.active ? 22 : 18} color="#fff" style={{ marginRight: 6 }} />
+            <Text style={[styles.outlineBtnText, s.active && { fontSize: 20 * s.f }]}>詢問家人</Text>
           </TouchableOpacity>
 
           <View style={{ height: 64 }} />

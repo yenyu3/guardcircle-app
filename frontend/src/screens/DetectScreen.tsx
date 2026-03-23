@@ -30,6 +30,7 @@ import { RootStackParamList } from "../navigation";
 import AppHeader from "../components/Header";
 import { RiskLevel } from "../types";
 import { useScrollRef } from "../navigation/ScrollRefContext";
+import { useElderStyle } from "../hooks/useElderStyle";
 
 type AttachmentType = "image" | "file" | "video";
 interface Attachment {
@@ -71,6 +72,7 @@ export default function DetectScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { currentUser, events } = useAppStore();
   const isGuardian = currentUser.role === "guardian";
+  const s = useElderStyle();
   const myEvents = events.filter((e) => e.userId === currentUser.id && !e.isMock);
 
   const [text, setText] = useState("");
@@ -314,7 +316,7 @@ export default function DetectScreen() {
           {/* Hero */}
           <View style={styles.hero}>
             <View style={styles.titleRow}>
-              <Text style={styles.title}>偵測可疑內容</Text>
+              <Text style={[styles.title, s.active && { fontSize: 32 * s.f }]}>偵測可疑內容</Text>
               <TouchableOpacity
                 onPress={() => setInfoModal(true)}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -326,7 +328,7 @@ export default function DetectScreen() {
                 />
               </TouchableOpacity>
             </View>
-            <Text style={styles.sub}>
+            <Text style={[styles.sub, s.active && { fontSize: 15 * s.f }]}>
               貼上訊息、網址、電話，或上傳圖片 / 檔案
             </Text>
           </View>
@@ -393,7 +395,7 @@ export default function DetectScreen() {
 
             <TextInput
               ref={inputRef}
-              style={[styles.textInput, isGuardian && styles.textInputLarge]}
+              style={[styles.textInput, isGuardian && styles.textInputLarge, s.active && { fontSize: 22, minHeight: 240 }]}
               placeholder="貼上可疑訊息、網址或電話號碼…"
               placeholderTextColor={Colors.textMuted}
               multiline
@@ -460,11 +462,11 @@ export default function DetectScreen() {
 
           {/* History */}
           <View style={styles.historySection}>
-            <Text style={styles.historyTitle}>偵測紀錄</Text>
+            <Text style={[styles.historyTitle, s.active && { fontSize: 22 * s.f }]}>偵測紀錄</Text>
             {myEvents.length === 0 ? (
               <View style={styles.historyEmpty}>
-                <Ionicons name="time-outline" size={20} color={Colors.textMuted} />
-                <Text style={styles.historyEmptyText}>暫無紀錄</Text>
+                <Ionicons name="time-outline" size={s.active ? 26 : 20} color={Colors.textMuted} />
+                <Text style={[styles.historyEmptyText, s.active && { fontSize: 17 * s.f }]}>暫無紀錄</Text>
               </View>
             ) : (
               myEvents.slice(0, 5).map((e) => {
@@ -472,7 +474,7 @@ export default function DetectScreen() {
                 return (
                   <TouchableOpacity
                     key={e.id}
-                    style={styles.historyItem}
+                    style={[styles.historyItem, s.active && { paddingVertical: 16, paddingHorizontal: 18 }]}
                     activeOpacity={0.75}
                     onPress={() => {
                       if (e.riskLevel === "high")
@@ -494,78 +496,18 @@ export default function DetectScreen() {
                       else navigation.navigate("ResultSafe");
                     }}
                   >
-                    <View style={[styles.historyDot, { backgroundColor: risk.color }]} />
+                    <View style={[styles.historyDot, { backgroundColor: risk.color }, s.active && { width: 14, height: 14, borderRadius: 7 }]} />
                     <View style={styles.historyContent}>
-                      <Text style={styles.historyInput} numberOfLines={1}>{e.input || e.type}</Text>
-                      <Text style={styles.historyMeta}>{risk.label} · {e.createdAt}</Text>
+                      <Text style={[styles.historyInput, s.active && { fontSize: 17 * s.f }]} numberOfLines={1}>{e.input || e.type}</Text>
+                      <Text style={[styles.historyMeta, s.active && { fontSize: 14 * s.f, marginTop: 4 }]}>{risk.label} · {e.createdAt}</Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+                    <Ionicons name="chevron-forward" size={s.active ? 22 : 16} color={Colors.textMuted} />
                   </TouchableOpacity>
                 );
               })
             )}
           </View>
 
-          {/* Share entry */}
-          <View style={styles.shareSection}>
-            <Text style={styles.shareTitle}>從其他 App 分享過來</Text>
-            <TouchableOpacity
-              style={styles.shareBtn}
-              onPress={() =>
-                navigation.navigate("Analyzing", {
-                  type: "text",
-                  input:
-                    "您好，我是台灣銀行客服，您的帳戶有異常交易，請立即操作ATM解除分期付款，否則將凍結帳戶。",
-                })
-              }
-            >
-              <Ionicons
-                name="share-social"
-                size={18}
-                color={Colors.primaryDark}
-              />
-              <Text style={styles.shareBtnText}>模擬分享入口（Demo）</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Result preview (test) */}
-          <View style={styles.previewSection}>
-            <Text style={styles.previewLabel}>結果頁面預覽（測試用）</Text>
-            <View style={styles.previewRow}>
-              <TouchableOpacity
-                style={[styles.previewBtn, { backgroundColor: "#E97A7A" }]}
-                onPress={() =>
-                  navigation.navigate("ResultHigh", {
-                    scamType: "假冒銀行",
-                    riskScore: 92,
-                    riskFactors: ["要求轉帳", "偽造官方身份"],
-                    summary: "這個訊息要求你轉帳，很可能是詐騙",
-                  })
-                }
-              >
-                <Text style={styles.previewBtnText}>🔴 高風險</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.previewBtn, { backgroundColor: "#F5C842" }]}
-                onPress={() =>
-                  navigation.navigate("ResultMedium", {
-                    scamType: "可疑訊息",
-                    riskScore: 55,
-                    riskFactors: ["要求提供個人資料"],
-                    summary: "此訊息含有可疑特徵",
-                  })
-                }
-              >
-                <Text style={styles.previewBtnText}>🟡 中風險</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.previewBtn, { backgroundColor: "#7BBF8E" }]}
-                onPress={() => navigation.navigate("ResultSafe")}
-              >
-                <Text style={styles.previewBtnText}>🟢 安全</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -593,7 +535,7 @@ export default function DetectScreen() {
           >
             <View style={styles.modalDragZone}>
               <View style={styles.modalHandle} />
-              <Text style={styles.modalTitle}>防詐偵測三步驟</Text>
+              <Text style={[styles.modalTitle, s.active && { fontSize: 26 * s.f }]}>防詐偵測三步驟</Text>
             </View>
             {[
               {
@@ -615,20 +557,20 @@ export default function DetectScreen() {
                 desc: "依風險等級查看結果，高風險請立即停止並回報",
               },
             ].map((item) => (
-              <View key={item.step} style={styles.tutorialItem}>
-                <View style={styles.tutorialStepBadge}>
-                  <Text style={styles.tutorialStepText}>{item.step}</Text>
+              <View key={item.step} style={[styles.tutorialItem, s.active && { paddingVertical: 22, paddingHorizontal: 20 }]}>
+                <View style={[styles.tutorialStepBadge, s.active && { width: 38, height: 38, borderRadius: 19 }]}>
+                  <Text style={[styles.tutorialStepText, s.active && { fontSize: 20 * s.f }]}>{item.step}</Text>
                 </View>
                 <View style={styles.tutorialContent}>
                   <View style={styles.tutorialItemHeader}>
-                    <Text style={styles.tutorialItemTitle}>{item.title}</Text>
+                    <Text style={[styles.tutorialItemTitle, s.active && { fontSize: 22 * s.f }]}>{item.title}</Text>
                     <Ionicons
                       name={item.icon as any}
-                      size={18}
+                      size={s.active ? 24 : 18}
                       color={Colors.primaryDark}
                     />
                   </View>
-                  <Text style={styles.tutorialItemDesc}>{item.desc}</Text>
+                  <Text style={[styles.tutorialItemDesc, s.active && { fontSize: 16 * s.f, lineHeight: 24 * s.f, marginTop: 4 }]}>{item.desc}</Text>
                 </View>
               </View>
             ))}
@@ -824,34 +766,5 @@ const styles = StyleSheet.create({
   tutorialItemTitle: { fontSize: 19, fontWeight: "700", color: Colors.text },
   tutorialItemDesc: { fontSize: 14, color: Colors.textLight, marginTop: 2 },
 
-  shareSection: { marginTop: 28, alignItems: "center" },
-  shareTitle: { fontSize: 13, color: Colors.textMuted, marginBottom: 10 },
-  shareBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: "#fcf2e3",
-    borderRadius: Radius.full,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-  },
-  shareBtnText: { fontSize: 14, fontWeight: "600", color: Colors.primaryDark },
 
-  previewSection: { marginTop: 32 },
-  previewLabel: {
-    fontSize: 12,
-    color: Colors.textMuted,
-    textAlign: "center",
-    marginBottom: 12,
-    letterSpacing: 1,
-    textTransform: "uppercase",
-  },
-  previewRow: { flexDirection: "row", gap: 10 },
-  previewBtn: {
-    flex: 1,
-    borderRadius: Radius.lg,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  previewBtnText: { fontSize: 13, fontWeight: "700", color: "#fff" },
 });

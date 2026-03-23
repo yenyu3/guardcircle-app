@@ -8,6 +8,7 @@ import * as Haptics from "expo-haptics";
 import { RootStackParamList } from "../../navigation";
 import { useAppStore } from "../../store";
 import { DetectEvent } from "../../types";
+import { useElderStyle } from "../../hooks/useElderStyle";
 
 const THEME = {
   bg: "#D4806E",
@@ -31,6 +32,7 @@ export default function ResultHighScreen() {
   const route = useRoute<RouteProp<RootStackParamList, "ResultHigh">>();
   const { scamType, riskScore, riskFactors, summary, reason, readonly, originalInput, imageUri } = route.params;
   const { currentUser, addEvent, setMemberStatus } = useAppStore();
+  const s = useElderStyle();
   const eventIdRef = useRef(`e_${Date.now()}`);
   const pulse1 = useRef(new Animated.Value(1)).current;
   const pulse2 = useRef(new Animated.Value(1)).current;
@@ -93,20 +95,20 @@ export default function ResultHighScreen() {
             </View>
           </View>
 
-          <Text style={styles.title}>危險</Text>
-          <Text style={styles.desc}>{reason ?? '已自動通知守門人，請等待家人協助確認'}</Text>
+          <Text style={[styles.title, s.active && { fontSize: 50 * s.f }]}>危險</Text>
+          <Text style={[styles.desc, s.active && { fontSize: 19 * s.f, lineHeight: 28 * s.f }]}>{reason ?? '已自動通知守門人，請等待家人協助確認'}</Text>
 
           <TouchableOpacity
-            style={styles.callBtn}
+            style={[styles.callBtn, s.active && { paddingVertical: 22 }]}
             onPress={() => callPhone("165")}
             activeOpacity={0.85}
           >
-            <Ionicons name="call" size={18} color="#D4806E" style={{ marginRight: 6 }} />
-            <Text style={styles.callBtnText}>打165報案</Text>
+            <Ionicons name="call" size={s.active ? 22 : 18} color="#D4806E" style={{ marginRight: 6 }} />
+            <Text style={[styles.callBtnText, s.active && { fontSize: 20 * s.f }]}>打165報案</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.outlineBtn}
+            style={[styles.outlineBtn, s.active && { paddingVertical: 22 }]}
             onPress={() => {
               const phone = currentUser.emergencyPhone;
               if (!phone) {
@@ -117,8 +119,8 @@ export default function ResultHighScreen() {
             }}
             activeOpacity={0.85}
           >
-            <Ionicons name="people" size={18} color="#fff" style={{ marginRight: 6 }} />
-            <Text style={styles.outlineBtnText}>通報家人</Text>
+            <Ionicons name="people" size={s.active ? 22 : 18} color="#fff" style={{ marginRight: 6 }} />
+            <Text style={[styles.outlineBtnText, s.active && { fontSize: 20 * s.f }]}>通報家人</Text>
           </TouchableOpacity>
           <View style={{ height: 64 }} />
         </View>

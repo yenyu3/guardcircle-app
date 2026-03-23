@@ -7,6 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { RootStackParamList } from "../../navigation";
 import { useAppStore } from "../../store";
 import { DetectEvent } from "../../types";
+import { useElderStyle } from "../../hooks/useElderStyle";
 
 const THEME = {
   bg: "#D4A455",
@@ -24,6 +25,7 @@ export default function ResultMediumScreen() {
   const route = useRoute<RouteProp<RootStackParamList, "ResultMedium">>();
   const { scamType, riskScore, riskFactors, summary, reason, readonly, originalInput, imageUri } = route.params;
   const { currentUser, addEvent, addReport, setMemberStatus } = useAppStore();
+  const s = useElderStyle();
   const eventIdRef = useRef(`e_${Date.now()}`);
   const pulse = useRef(new Animated.Value(1)).current;
 
@@ -94,17 +96,17 @@ export default function ResultMediumScreen() {
             </View>
           </View>
 
-          <Text style={styles.title}>注意</Text>
-          <Text style={styles.desc}>{reason ?? '這個內容有可疑特徵，請選擇處理方式'}</Text>
+          <Text style={[styles.title, s.active && { fontSize: 50 * s.f }]}>注意</Text>
+          <Text style={[styles.desc, s.active && { fontSize: 19 * s.f, lineHeight: 28 * s.f }]}>{reason ?? '這個內容有可疑特徵，請選擇處理方式'}</Text>
 
-          <TouchableOpacity style={styles.primaryBtn} onPress={handleSendNotification} activeOpacity={0.85}>
-            <Ionicons name="notifications" size={18} color={THEME.primaryBtnText} style={{ marginRight: 6 }} />
-            <Text style={styles.primaryBtnText}>傳送通知給守門人</Text>
+          <TouchableOpacity style={[styles.primaryBtn, s.active && { paddingVertical: 22 }]} onPress={handleSendNotification} activeOpacity={0.85}>
+            <Ionicons name="notifications" size={s.active ? 22 : 18} color={THEME.primaryBtnText} style={{ marginRight: 6 }} />
+            <Text style={[styles.primaryBtnText, s.active && { fontSize: 20 * s.f }]}>傳送通知給守門人</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.outlineBtn} onPress={handleCall165} activeOpacity={0.85}>
-            <Ionicons name="call" size={18} color="#fff" style={{ marginRight: 6 }} />
-            <Text style={styles.outlineBtnText}>撥打165反詐騙專線</Text>
+          <TouchableOpacity style={[styles.outlineBtn, s.active && { paddingVertical: 22 }]} onPress={handleCall165} activeOpacity={0.85}>
+            <Ionicons name="call" size={s.active ? 22 : 18} color="#fff" style={{ marginRight: 6 }} />
+            <Text style={[styles.outlineBtnText, s.active && { fontSize: 20 * s.f }]}>撥打165反詐騙專線</Text>
           </TouchableOpacity>
 
           <View style={{ height: 64 }} />

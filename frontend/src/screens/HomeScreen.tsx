@@ -22,6 +22,7 @@ import { useAppStore } from "../store";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { Colors, Radius, Shadow } from "../theme";
 import Svg, { Path, Defs, LinearGradient as SvgLinearGradient, Stop } from "react-native-svg";
+import { useElderStyle } from "../hooks/useElderStyle";
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -38,6 +39,7 @@ function GuardianHome({
 }) {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { currentUser, family } = useAppStore();
+  const s = useElderStyle();
   const guardians = family.members
     .filter((m) => m.role !== "guardian")
     .slice(0, 3);
@@ -90,10 +92,10 @@ function GuardianHome({
       contentContainerStyle={styles.container}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.gGreeting}>
+      <Text style={[styles.gGreeting, s.active && { fontSize: 34 * s.f }]}>
         {getGreeting()}，{currentUser.nickname}
       </Text>
-      <Text style={styles.gSubtitle}>今天天氣晴朗，記得多喝水。</Text>
+      <Text style={[styles.gSubtitle, s.active && { fontSize: 16 * s.f }]}>今天天氣晴朗，記得多喝水。</Text>
 
       {/* Large Square CTA */}
       <Pressable
@@ -129,15 +131,15 @@ function GuardianHome({
             </Animated.View>
           </View>
           <View style={styles.gCtaTextWrap}>
-            <Text style={styles.gCtaTitle}>我收到可疑訊息</Text>
-            <Text style={styles.gCtaSub}>讓我們幫您檢查，確保安全</Text>
+            <Text style={[styles.gCtaTitle, s.active && { fontSize: 28 * s.f }]}>我收到可疑訊息</Text>
+            <Text style={[styles.gCtaSub, s.active && { fontSize: 16 * s.f }]}>讓我們幫您檢查，確保安全</Text>
           </View>
         </LinearGradient>
       </Pressable>
 
       <View style={[styles.familyHeader, { marginTop: 32 }]}>
-        <Text style={styles.familyTitle}>守護你的人</Text>
-        <Text style={styles.familyAll}>全部 ({guardians.length})</Text>
+        <Text style={[styles.familyTitle, s.active && { fontSize: 22 * s.f }]}>守護你的人</Text>
+        <Text style={[styles.familyAll, s.active && { fontSize: 14 * s.f }]}>全部 ({guardians.length})</Text>
       </View>
       <View style={styles.familyRow}>
         {guardians.map((m) => (
@@ -152,7 +154,7 @@ function GuardianHome({
                 borderWidth={2}
               />
             </View>
-            <Text style={styles.familyName}>{m.nickname}</Text>
+            <Text style={[styles.familyName, s.active && { fontSize: 15 * s.f }]}>{m.nickname}</Text>
           </View>
         ))}
       </View>
@@ -165,10 +167,10 @@ function GuardianHome({
         <Text style={styles.gkBriefDate}>
           {new Date().toLocaleDateString("sv")}
         </Text>
-        <Text style={styles.gkBriefTitle}>
+        <Text style={[styles.gkBriefTitle, s.active && { fontSize: 22 * s.f, lineHeight: 30 * s.f }]}>
           AI 語音變聲詐騙急升：假冒子女求救，要求匯款至不明帳戶
         </Text>
-        <Text style={styles.gkBriefBody}>
+        <Text style={[styles.gkBriefBody, s.active && { fontSize: 15 * s.f, lineHeight: 24 * s.f }]}>
           近期詐騙集團利用生成式 AI
           技術，模擬親友音色。若接獲要求匯款的電話，請務必先與本人確認。
         </Text>
@@ -180,9 +182,9 @@ function GuardianHome({
             colors={["#89502e", "#ffb38a"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={styles.gkBriefBtn}
+            style={[styles.gkBriefBtn, s.active && { paddingVertical: 14 * s.p, paddingHorizontal: 24 * s.p }]}
           >
-            <Text style={styles.gkBriefBtnText}>立即閱讀</Text>
+            <Text style={[styles.gkBriefBtnText, s.active && { fontSize: 14 * s.f }]}>立即閱讀</Text>
           </LinearGradient>
         </Pressable>
       </View>

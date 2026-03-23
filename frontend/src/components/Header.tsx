@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import ShieldHeartIcon from './ShieldHeartIcon';
 import { useAppStore } from '../store';
 import { RootStackParamList } from '../navigation';
+import { useElderStyle } from '../hooks/useElderStyle';
 
 const DS = {
   bg: '#fff8f1',
@@ -32,6 +33,7 @@ interface Props {
 export default function AppHeader({ title, onBack, rightIcon, onRightPress }: Props) {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { currentUser } = useAppStore();
+  const s = useElderStyle();
   const gender = currentUser.gender === 'female' ? 'female' : currentUser.gender === 'male' ? 'male' : null;
   const avatarKey = gender ? `${currentUser.role}_${gender}` : null;
   const avatarSrc = avatarKey ? avatarMap[avatarKey] : null;
@@ -46,23 +48,23 @@ export default function AppHeader({ title, onBack, rightIcon, onRightPress }: Pr
 
   if (title) {
     return (
-      <View style={styles.header}>
+      <View style={[styles.header, s.active && { paddingVertical: 12 * s.p }]}>
         <TouchableOpacity style={styles.iconBtn} onPress={onBack ?? (() => navigation.goBack())}>
-          <Ionicons name="arrow-back" size={22} color={DS.primary} />
+          <Ionicons name="arrow-back" size={s.active ? 26 : 22} color={DS.primary} />
         </TouchableOpacity>
-        <Text style={styles.pageTitle}>{title}</Text>
+        <Text style={[styles.pageTitle, s.active && { fontSize: 18 * s.f }]}>{title}</Text>
         <TouchableOpacity style={styles.iconBtn} onPress={onRightPress} disabled={!onRightPress}>
-          {rightIcon ? <Ionicons name={rightIcon} size={22} color={DS.primary} /> : null}
+          {rightIcon ? <Ionicons name={rightIcon} size={s.active ? 26 : 22} color={DS.primary} /> : null}
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, s.active && { paddingVertical: 12 * s.p }]}>
       <View style={styles.brand}>
-        <ShieldHeartIcon size={28} color={DS.primary} bgColor={DS.bg} />
-        <Text style={styles.title}>GuardCircle</Text>
+        <ShieldHeartIcon size={s.active ? 34 : 28} color={DS.primary} bgColor={DS.bg} />
+        <Text style={[styles.title, s.active && { fontSize: 20 * s.f }]}>GuardCircle</Text>
       </View>
       <TouchableOpacity onPress={() => navigation.navigate('Main', { screen: 'Settings' } as any)} style={styles.avatarWrap}>
         {avatarElement}

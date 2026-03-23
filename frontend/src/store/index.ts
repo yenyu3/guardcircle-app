@@ -59,6 +59,8 @@ interface AppState {
   submitDailyChallengeResult: (
     payload: Omit<DailyChallengeResult, "userId">,
   ) => void;
+  elderMode: boolean;
+  toggleElderMode: () => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -66,6 +68,7 @@ export const useAppStore = create<AppState>((set) => ({
   family: mockFamily,
   events: initialEvents,
   dailyChallengeResults: [],
+  elderMode: true,
   isLoggedIn: false,
   hasFamilyCircle: false,
   suggestedRole: null,
@@ -283,4 +286,6 @@ export const useAppStore = create<AppState>((set) => ({
         reportCount: (s.currentUser.reportCount ?? 0) + 1,
       },
     })),
+
+  toggleElderMode: () => set((s) => ({ elderMode: !s.elderMode })),
 }));

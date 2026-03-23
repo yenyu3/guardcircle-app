@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image, Switch } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -29,7 +29,7 @@ const menuItems = [
 
 export default function SettingsScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const { currentUser, logout } = useAppStore();
+  const { currentUser, logout, elderMode, toggleElderMode } = useAppStore();
   const scrollRef = useRef<ScrollView>(null);
   const { register } = useScrollRef();
 
@@ -66,6 +66,30 @@ export default function SettingsScreen() {
             <Text style={styles.roleText}>{roleLabel[currentUser.role]}</Text>
           </View>
         </View>
+
+        {/* 長輩模式（只在 guardian 顯示）*/}
+        {currentUser.role === 'guardian' && (
+          <>
+            <Text style={styles.sectionLabel}>無障礙</Text>
+            <View style={[styles.menuCard, Shadow.card, { marginBottom: 28 }]}>
+              <View style={styles.elderRow}>
+                <View style={styles.iconWrap}>
+                  <Ionicons name="text-outline" size={20} color={Colors.primaryDark} />
+                </View>
+                <View style={styles.elderTextWrap}>
+                  <Text style={styles.menuLabel}>長輩模式</Text>
+                  <Text style={styles.menuSub}>放大字體與按鈕，方便閱讀</Text>
+                </View>
+                <Switch
+                  value={elderMode}
+                  onValueChange={toggleElderMode}
+                  trackColor={{ false: Colors.border, true: Colors.primary }}
+                  thumbColor={Colors.white}
+                />
+              </View>
+            </View>
+          </>
+        )}
 
         {/* Section label */}
         <Text style={styles.sectionLabel}>帳戶與安全</Text>
@@ -165,6 +189,21 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   menuLabel: { flex: 1, fontSize: 15, fontWeight: '500', color: Colors.text },
+  menuSub: { fontSize: 12, color: Colors.textMuted, marginTop: 2 },
+
+  elderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    gap: 14,
+    minHeight: 64,
+  },
+  elderTextWrap: {
+    flex: 1,
+    justifyContent: 'center',
+    flexShrink: 1,
+  },
 
   logoutBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
