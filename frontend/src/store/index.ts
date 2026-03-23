@@ -167,7 +167,7 @@ export const useAppStore = create<AppState>((set) => ({
   resolveEvent: (eventId, gatekeeperResponse) => {
     const now = new Date()
       .toLocaleString("zh-TW", { hour12: false })
-      .slice(0, 16);
+      .slice(0, 15);
     set((s) => ({
       events: s.events.map((e) =>
         e.id === eventId

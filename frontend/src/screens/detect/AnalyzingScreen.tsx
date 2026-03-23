@@ -108,7 +108,7 @@ function analyze(type: string, input: string): { riskLevel: RiskLevel; riskScore
 export default function AnalyzingScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'Analyzing'>>();
-  const { type, input } = route.params;
+  const { type, input, imageUri } = route.params;
   const { currentUser, addEvent, addContributionPoints } = useAppStore();
   const [step, setStep] = useState(0);
   const spin = useRef(new Animated.Value(0)).current;
@@ -134,7 +134,7 @@ export default function AnalyzingScreen() {
         const result = ['image', 'video', 'file'].includes(type)
           ? analyzeAttachment(type)
           : analyze(type, input);
-        const now = new Date().toLocaleString('zh-TW', { hour12: false }).slice(0, 16);
+        const now = new Date().toLocaleString('zh-TW', { hour12: false }).slice(0, 15);
 
         // safe 結果直接寫入 store（高/中風險由各 Result 畫面自行寫入）
         if (result.riskLevel === 'safe') {
@@ -144,6 +144,7 @@ export default function AnalyzingScreen() {
             userNickname: currentUser.nickname,
             type: type as any,
             input,
+            imageUri,
             ...result,
             createdAt: now,
             status: 'safe',
@@ -156,12 +157,14 @@ export default function AnalyzingScreen() {
           navigation.replace('ResultHigh', {
             scamType: result.scamType, riskScore: result.riskScore,
             riskFactors: result.riskFactors, summary: result.summary,
+            originalInput: input, imageUri,
           });
         } else {
           if (currentUser.role === 'solver') addContributionPoints(10);
           navigation.replace('ResultMedium', {
             scamType: result.scamType, riskScore: result.riskScore,
             riskFactors: result.riskFactors, summary: result.summary,
+            originalInput: input, imageUri,
           });
         }
       }, 4000),

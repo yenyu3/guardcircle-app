@@ -29,10 +29,6 @@ import SettingsScreen from "../screens/SettingsScreen";
 
 // Detect flow
 import AnalyzingScreen from "../screens/detect/AnalyzingScreen";
-import DetectInputImageScreen from "../screens/detect/DetectInputImageScreen";
-import DetectInputPhoneScreen from "../screens/detect/DetectInputPhoneScreen";
-import DetectInputTextScreen from "../screens/detect/DetectInputTextScreen";
-import DetectInputUrlScreen from "../screens/detect/DetectInputUrlScreen";
 import ResultHighScreen from "../screens/detect/ResultHighScreen";
 import ResultMediumScreen from "../screens/detect/ResultMediumScreen";
 import ResultSafeScreen from "../screens/detect/ResultSafeScreen";
@@ -66,11 +62,7 @@ export type RootStackParamList = {
   FamilyJoin: undefined;
   Main: undefined;
   Settings: undefined;
-  DetectInputText: undefined;
-  DetectInputUrl: undefined;
-  DetectInputPhone: undefined;
-  DetectInputImage: undefined;
-  Analyzing: { type: string; input: string };
+  Analyzing: { type: string; input: string; imageUri?: string };
   Result: {
     riskLevel: "safe" | "medium" | "high";
     scamType: string;
@@ -85,6 +77,8 @@ export type RootStackParamList = {
     riskFactors: string[];
     summary: string;
     readonly?: boolean;
+    originalInput?: string;
+    imageUri?: string;
   };
   ResultMedium: {
     scamType: string;
@@ -92,6 +86,8 @@ export type RootStackParamList = {
     riskFactors: string[];
     summary: string;
     readonly?: boolean;
+    originalInput?: string;
+    imageUri?: string;
   };
   ResultSafe: undefined;
   FamilyRecord: undefined;
@@ -227,19 +223,6 @@ export default function AppNavigator() {
         <Stack.Screen name="RoleSelect" component={RoleSelectScreen} />
         <Stack.Screen name="FamilyJoin" component={FamilyJoinScreen} />
         <Stack.Screen name="Main" component={MainTabs} />
-        <Stack.Screen
-          name="DetectInputText"
-          component={DetectInputTextScreen}
-        />
-        <Stack.Screen name="DetectInputUrl" component={DetectInputUrlScreen} />
-        <Stack.Screen
-          name="DetectInputPhone"
-          component={DetectInputPhoneScreen}
-        />
-        <Stack.Screen
-          name="DetectInputImage"
-          component={DetectInputImageScreen}
-        />
         <Stack.Screen name="Analyzing" component={AnalyzingScreen} />
         <Stack.Screen name="Result" component={ResultScreen} />
         <Stack.Screen name="ResultHigh" component={ResultHighScreen} />

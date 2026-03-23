@@ -22,7 +22,7 @@ const THEME = {
 export default function ResultHighScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "ResultHigh">>();
-  const { scamType, riskScore, riskFactors, summary, readonly } = route.params;
+  const { scamType, riskScore, riskFactors, summary, readonly, originalInput, imageUri } = route.params;
   const { currentUser, addEvent, setMemberStatus } = useAppStore();
   const eventIdRef = useRef(`e_${Date.now()}`);
 
@@ -33,13 +33,14 @@ export default function ResultHighScreen() {
       userId: currentUser.id,
       userNickname: currentUser.nickname,
       type: "text",
-      input: summary,
+      input: originalInput ?? summary,
+      imageUri,
       riskLevel: "high",
       riskScore,
       scamType,
       summary,
       riskFactors,
-      createdAt: new Date().toLocaleString("zh-TW", { hour12: false }).slice(0, 16),
+      createdAt: new Date().toLocaleString("zh-TW", { hour12: false }).slice(0, 15),
       status: "high_risk",
     };
     addEvent(newEvent);

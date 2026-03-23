@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { Audio } from "expo-av";
 import {
   View,
   Text,
@@ -74,6 +75,8 @@ export default function DetectScreen() {
 
   const [text, setText] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [isRecording, setIsRecording] = useState(false);
+  const recordingRef = useRef<Audio.Recording | null>(null);
   const inputRef = useRef<TextInput>(null);
   const scrollRef = useRef<ScrollView>(null);
   const { register } = useScrollRef();
@@ -190,6 +193,30 @@ export default function DetectScreen() {
     [closeOffset],
   );
 
+  const handleVoice = useCallback(async () => {
+    if (isRecording) {
+      await recordingRef.current?.stopAndUnloadAsync();
+      const uri = recordingRef.current?.getURI();
+      recordingRef.current = null;
+      setIsRecording(false);
+      if (uri) {
+        setAttachments((prev) => [
+          ...prev,
+          { type: "file", uri, name: "語音錄音.m4a" },
+        ]);
+      }
+      return;
+    }
+    const { granted } = await Audio.requestPermissionsAsync();
+    if (!granted) return;
+    await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+    const { recording } = await Audio.Recording.createAsync(
+      Audio.RecordingOptionsPresets.HIGH_QUALITY
+    );
+    recordingRef.current = recording;
+    setIsRecording(true);
+  }, [isRecording]);
+
   useFocusEffect(
     React.useCallback(() => {
       register('Detect', scrollRef);
@@ -197,6 +224,10 @@ export default function DetectScreen() {
       return () => {
         setText("");
         setAttachments([]);
+        if (recordingRef.current) {
+          recordingRef.current.stopAndUnloadAsync();
+          recordingRef.current = null;
+        }
       };
     }, [])
   );
@@ -256,12 +287,14 @@ export default function DetectScreen() {
 
   const handleSubmit = () => {
     if (!canSubmit) return;
+    const hasImage = attachments.length > 0 && attachments[0].type === 'image';
     const type =
       attachments.length > 0 && !text.trim()
-        ? "image"
+        ? attachments[0].type
         : (detectedType ?? "text");
     const input = text.trim() || attachments[0]?.name || "";
-    navigation.navigate("Analyzing", { type, input });
+    const imageUri = hasImage ? attachments[0].uri : undefined;
+    navigation.navigate("Analyzing", { type, input, imageUri });
   };
 
   return (
@@ -392,6 +425,16 @@ export default function DetectScreen() {
                   name="attach-outline"
                   size={22}
                   color={Colors.textLight}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.toolBtn, isRecording && styles.toolBtnActive]}
+                onPress={handleVoice}
+              >
+                <Ionicons
+                  name={isRecording ? "mic" : "mic-outline"}
+                  size={22}
+                  color={isRecording ? "#E97A7A" : Colors.textLight}
                 />
               </TouchableOpacity>
             </View>
@@ -706,6 +749,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   toolBtn: { padding: 8, borderRadius: Radius.md },
+  toolBtnActive: { backgroundColor: "#E97A7A22" },
 
   sendBtn: {
     borderRadius: Radius.full,

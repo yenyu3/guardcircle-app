@@ -22,7 +22,7 @@ const THEME = {
 export default function ResultMediumScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "ResultMedium">>();
-  const { scamType, riskScore, riskFactors, summary, readonly } = route.params;
+  const { scamType, riskScore, riskFactors, summary, readonly, originalInput, imageUri } = route.params;
   const { currentUser, addEvent, addReport } = useAppStore();
   const eventIdRef = useRef(`e_${Date.now()}`);
 
@@ -32,16 +32,17 @@ export default function ResultMediumScreen() {
       userId: currentUser.id,
       userNickname: currentUser.nickname,
       type: "text",
-      input: summary,
+      input: originalInput ?? summary,
+      imageUri,
       riskLevel: "medium",
       riskScore,
       scamType,
       summary,
       riskFactors,
-      createdAt: new Date().toLocaleString("zh-TW", { hour12: false }).slice(0, 16),
+      createdAt: new Date().toLocaleString("zh-TW", { hour12: false }).slice(0, 15),
       status,
       resolvedAt: status === "safe"
-        ? new Date().toLocaleString("zh-TW", { hour12: false }).slice(0, 16)
+        ? new Date().toLocaleString("zh-TW", { hour12: false }).slice(0, 15)
         : undefined,
     };
   }

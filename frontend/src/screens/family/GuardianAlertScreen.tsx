@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Alert,
   Animated,
+  Image,
 } from "react-native";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -156,7 +157,11 @@ export default function GuardianAlertScreen() {
               <Text style={s.msgTitle}>可疑訊息內容</Text>
             </View>
             <View style={s.msgBox}>
-              <Text style={s.msgText}>{event.input}</Text>
+              {event.imageUri ? (
+                <Image source={{ uri: event.imageUri }} style={s.msgImage} resizeMode="contain" />
+              ) : (
+                <Text style={s.msgText}>{event.input}</Text>
+              )}
             </View>
           </View>
 
@@ -379,6 +384,7 @@ const s = StyleSheet.create({
     borderStyle: "dashed",
     borderColor: "rgba(255,255,255,0.4)",
   },
+  msgImage: { width: '100%', height: 180, borderRadius: 10 },
   msgText: {
     fontSize: 13,
     color: "rgba(255,255,255,0.88)",

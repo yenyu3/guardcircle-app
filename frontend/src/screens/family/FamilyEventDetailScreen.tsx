@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, Alert, Pressable, Linking,
+  TouchableOpacity, Alert, Pressable, Linking, Image,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -249,7 +249,11 @@ export default function FamilyEventDetailScreen() {
             )}
           </View>
           <View style={[styles.inputBox, blurred && event.type === 'image' && styles.blurred]}>
-            <Text style={styles.inputText}>{event.input}</Text>
+            {event.imageUri ? (
+              <Image source={{ uri: event.imageUri }} style={styles.inputImage} resizeMode="contain" />
+            ) : (
+              <Text style={styles.inputText}>{event.input}</Text>
+            )}
           </View>
         </View>
 
@@ -391,6 +395,7 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed', borderColor: DS.primary + '33',
   },
   blurred: { opacity: 0.08 },
+  inputImage: { width: '100%', height: 220, borderRadius: 12 },
   inputText: { fontSize: 14, color: DS.onSurfaceVariant, lineHeight: 22, fontStyle: 'italic' },
 
   btnRow: { flexDirection: 'row', gap: 12 },
