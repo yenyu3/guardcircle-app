@@ -70,10 +70,10 @@ function RiskGauge({ score, color }: { score: number; color: string }) {
 export default function FamilyEventDetailScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'FamilyEventDetail'>>();
-  const { currentUser } = useAppStore();
+  const { currentUser, events } = useAppStore();
   const event =
-    useAppStore.getState().events.find((e) => e.id === route.params.eventId) ||
-    useAppStore.getState().events[0];
+    events.find((e) => e.id === route.params.eventId) ||
+    events[0];
   const [blurred, setBlurred] = useState(true);
   const risk = RISK_CONFIG[event.riskLevel];
   const score = event.riskScore ?? 0;

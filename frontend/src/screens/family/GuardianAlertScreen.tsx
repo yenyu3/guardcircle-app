@@ -42,7 +42,7 @@ const C = {
 export default function GuardianAlertScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "GuardianAlert">>();
-  const { events, resolveEvent, setMemberStatus, family } = useAppStore();
+  const { events, resolveEvent, family } = useAppStore();
   const event = events.find((e) => e.id === route.params.eventId) || events[0];
   const member = family.members.find((m) => m.id === event.userId);
 
@@ -62,7 +62,6 @@ export default function GuardianAlertScreen() {
       event.id,
       `${useAppStore.getState().currentUser.nickname} 已確認：這是詐騙，請勿理會`,
     );
-    setMemberStatus(event.userId, "safe");
     Alert.alert("已協助阻止", `${event.userNickname} 的狀態已恢復安全。`, [
       { text: "確定", onPress: () => navigation.goBack() },
     ]);

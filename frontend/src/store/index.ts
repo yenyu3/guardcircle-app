@@ -22,6 +22,7 @@ interface RegisteredAccount {
   hasFamilyCircle: boolean;
   contributionPoints?: number;
   reportCount?: number;
+  memberStatuses?: Record<string, "safe" | "pending" | "high_risk">;
 }
 
 interface AppState {
@@ -102,6 +103,8 @@ export const useAppStore = create<AppState>((set) => ({
       const existing = s.registeredAccounts.findIndex(
         (a) => a.email === s.currentUser.email,
       );
+      const memberStatuses: Record<string, "safe" | "pending" | "high_risk"> = {};
+      s.family.members.forEach((m) => { memberStatuses[m.id] = m.status; });
       const account: RegisteredAccount = {
         email: s.currentUser.email,
         password,
@@ -115,6 +118,7 @@ export const useAppStore = create<AppState>((set) => ({
         hasFamilyCircle: s.hasFamilyCircle,
         contributionPoints: s.currentUser.contributionPoints ?? 0,
         reportCount: s.currentUser.reportCount ?? 0,
+        memberStatuses,
       };
       const accounts = [...s.registeredAccounts];
       if (existing >= 0) accounts[existing] = account;
@@ -144,6 +148,15 @@ export const useAppStore = create<AppState>((set) => ({
         contributionPoints: account.contributionPoints ?? 0,
         reportCount: account.reportCount ?? 0,
       },
+      family: account.memberStatuses
+        ? {
+            ...s.family,
+            members: s.family.members.map((m) => ({
+              ...m,
+              status: account.memberStatuses![m.id] ?? m.status,
+            })),
+          }
+        : s.family,
     }));
     return true;
   },
@@ -168,19 +181,28 @@ export const useAppStore = create<AppState>((set) => ({
     const now = new Date()
       .toLocaleString("zh-TW", { hour12: false })
       .slice(0, 15);
-    set((s) => ({
-      events: s.events.map((e) =>
-        e.id === eventId
-          ? {
-              ...e,
-              status: "safe",
-              resolvedAt: now,
-              gatekeeperResponse,
-              gatekeeperResponseAt: now,
-            }
-          : e,
-      ),
-    }));
+    set((s) => {
+      const targetEvent = s.events.find((e) => e.id === eventId);
+      const updatedMembers = targetEvent
+        ? s.family.members.map((m) =>
+            m.id === targetEvent.userId ? { ...m, status: "safe" as const } : m,
+          )
+        : s.family.members;
+      return {
+        events: s.events.map((e) =>
+          e.id === eventId
+            ? {
+                ...e,
+                status: "safe",
+                resolvedAt: now,
+                gatekeeperResponse,
+                gatekeeperResponseAt: now,
+              }
+            : e,
+        ),
+        family: { ...s.family, members: updatedMembers },
+      };
+    });
   },
 
   setMemberStatus: (userId, status) =>

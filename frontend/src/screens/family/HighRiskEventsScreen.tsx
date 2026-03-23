@@ -22,7 +22,7 @@ const DS = {
 export default function HighRiskEventsScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { events, family } = useAppStore();
-  const highRiskEvents = events.filter((e) => e.status === 'high_risk');
+  const highRiskEvents = events.filter((e) => e.status === 'high_risk' || e.status === 'pending');
 
   function getMember(userId: string) {
     return family.members.find((m) => m.id === userId);
@@ -40,7 +40,7 @@ export default function HighRiskEventsScreen() {
         <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
           <Ionicons name="arrow-back" size={22} color={DS.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>未處理高風險事件</Text>
+        <Text style={styles.headerTitle}>未處理事件</Text>
         <View style={styles.iconBtn} />
       </View>
 
@@ -70,7 +70,7 @@ export default function HighRiskEventsScreen() {
                 activeOpacity={0.85}
               >
                 {/* Left accent */}
-                <View style={styles.dangerAccent} />
+                <View style={[styles.dangerAccent, { backgroundColor: ev.status === 'pending' ? Colors.warning : Colors.danger }]} />
 
                 <View style={styles.cardInner}>
                   {/* Top row */}

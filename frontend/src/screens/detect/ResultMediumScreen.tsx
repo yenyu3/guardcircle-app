@@ -23,7 +23,7 @@ export default function ResultMediumScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "ResultMedium">>();
   const { scamType, riskScore, riskFactors, summary, reason, readonly, originalInput, imageUri } = route.params;
-  const { currentUser, addEvent, addReport } = useAppStore();
+  const { currentUser, addEvent, addReport, setMemberStatus } = useAppStore();
   const eventIdRef = useRef(`e_${Date.now()}`);
   const pulse = useRef(new Animated.Value(1)).current;
 
@@ -58,14 +58,20 @@ export default function ResultMediumScreen() {
   }
 
   function handleSendNotification() {
-    if (!readonly) addEvent(buildEvent("pending"));
+    if (!readonly) {
+      addEvent(buildEvent("pending"));
+      setMemberStatus(currentUser.id, "pending");
+    }
     Alert.alert("已傳送通知", "守門人收到通知後會盡快回覆你", [
       { text: "確定", onPress: () => navigation.navigate("Main") },
     ]);
   }
 
   function handleCall165() {
-    if (!readonly) addEvent(buildEvent("safe"));
+    if (!readonly) {
+      addEvent(buildEvent("safe"));
+      setMemberStatus(currentUser.id, "safe");
+    }
     if (!readonly && currentUser.role === "solver") addReport();
     Linking.openURL("tel:165").catch(() =>
       Alert.alert("無法撥打電話", "請確認裝置支援撥話功能")
