@@ -12,6 +12,7 @@ import Svg, { Circle } from 'react-native-svg';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import { Video, ResizeMode } from 'expo-av';
 import { Colors, Radius, Shadow } from '../../theme';
 import { RootStackParamList } from '../../navigation';
 import { useAppStore } from '../../store';
@@ -364,6 +365,19 @@ export default function FamilyEventDetailScreen() {
           <View style={[styles.inputBox, blurred && event.type === 'image' && styles.blurred]}>
             {event.imageUri ? (
               <Image source={{ uri: event.imageUri }} style={styles.inputImage} resizeMode="contain" />
+            ) : event.attachmentUri && event.type === 'video' ? (
+              <Video
+                source={{ uri: event.attachmentUri }}
+                style={styles.inputImage}
+                useNativeControls
+                resizeMode={ResizeMode.CONTAIN}
+                isLooping={false}
+              />
+            ) : event.attachmentUri && event.type === 'file' ? (
+              <View style={styles.filePreview}>
+                <Ionicons name="document-text" size={40} color={DS.primary} />
+                <Text style={styles.filePreviewName} numberOfLines={2}>{event.input}</Text>
+              </View>
             ) : (
               <Text style={styles.inputText}>{event.input}</Text>
             )}
@@ -510,6 +524,8 @@ const styles = StyleSheet.create({
   blurred: { opacity: 0.08 },
   inputImage: { width: '100%', height: 220, borderRadius: 12 },
   inputText: { fontSize: 14, color: DS.onSurfaceVariant, lineHeight: 22, fontStyle: 'italic' },
+  filePreview: { alignItems: 'center', gap: 10, paddingVertical: 16 },
+  filePreviewName: { fontSize: 13, color: DS.onSurfaceVariant, textAlign: 'center', fontWeight: '600' },
 
   btnRow: { flexDirection: 'row', gap: 12 },
   gradientBtn: {

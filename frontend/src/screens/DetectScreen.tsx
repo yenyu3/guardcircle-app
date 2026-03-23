@@ -289,14 +289,16 @@ export default function DetectScreen() {
 
   const handleSubmit = () => {
     if (!canSubmit) return;
-    const hasImage = attachments.length > 0 && attachments[0].type === 'image';
+    const firstAttachment = attachments[0];
+    const hasImage = firstAttachment?.type === 'image';
     const type =
       attachments.length > 0 && !text.trim()
-        ? attachments[0].type
+        ? firstAttachment.type
         : (detectedType ?? "text");
-    const input = text.trim() || attachments[0]?.name || "";
-    const imageUri = hasImage ? attachments[0].uri : undefined;
-    navigation.navigate("Analyzing", { type, input, imageUri });
+    const input = text.trim() || firstAttachment?.name || "";
+    const imageUri = hasImage ? firstAttachment.uri : undefined;
+    const attachmentUri = !hasImage && firstAttachment ? firstAttachment.uri : undefined;
+    navigation.navigate("Analyzing", { type, input, imageUri, attachmentUri });
   };
 
   return (

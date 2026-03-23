@@ -46,6 +46,7 @@ export interface DetectEvent {
   type: DetectType;
   input: string;
   imageUri?: string;
+  attachmentUri?: string;
   riskLevel: RiskLevel;
   riskScore: number;
   scamType: string;

@@ -118,7 +118,7 @@ function analyze(type: string, input: string): { riskLevel: RiskLevel; riskScore
 export default function AnalyzingScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'Analyzing'>>();
-  const { type, input, imageUri } = route.params;
+  const { type, input, imageUri, attachmentUri } = route.params;
   const { currentUser, addEvent, addContributionPoints } = useAppStore();
   const elder = useElderStyle();
   const [step, setStep] = useState(0);
@@ -156,6 +156,7 @@ export default function AnalyzingScreen() {
             type: type as any,
             input,
             imageUri,
+            attachmentUri,
             ...result,
             createdAt: now,
             status: 'safe',
@@ -168,14 +169,14 @@ export default function AnalyzingScreen() {
           navigation.replace('ResultHigh', {
             scamType: result.scamType, riskScore: result.riskScore,
             riskFactors: result.riskFactors, summary: result.summary,
-            reason: result.reason, originalInput: input, imageUri,
+            reason: result.reason, originalInput: input, imageUri, attachmentUri,
           });
         } else {
           if (currentUser.role === 'solver') addContributionPoints(10);
           navigation.replace('ResultMedium', {
             scamType: result.scamType, riskScore: result.riskScore,
             riskFactors: result.riskFactors, summary: result.summary,
-            reason: result.reason, originalInput: input, imageUri,
+            reason: result.reason, originalInput: input, imageUri, attachmentUri,
           });
         }
       }, 4000),

@@ -30,7 +30,7 @@ function callPhone(phone: string) {
 export default function ResultHighScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "ResultHigh">>();
-  const { scamType, riskScore, riskFactors, summary, reason, readonly, originalInput, imageUri } = route.params;
+  const { scamType, riskScore, riskFactors, summary, reason, readonly, originalInput, imageUri, attachmentUri } = route.params;
   const { currentUser, addEvent, setMemberStatus } = useAppStore();
   const s = useElderStyle();
   const eventIdRef = useRef(`e_${Date.now()}`);
@@ -64,6 +64,7 @@ export default function ResultHighScreen() {
       type: "text",
       input: originalInput ?? summary,
       imageUri,
+      attachmentUri,
       riskLevel: "high",
       riskScore,
       scamType,

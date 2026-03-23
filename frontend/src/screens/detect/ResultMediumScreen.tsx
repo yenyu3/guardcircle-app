@@ -23,7 +23,7 @@ const THEME = {
 export default function ResultMediumScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "ResultMedium">>();
-  const { scamType, riskScore, riskFactors, summary, reason, readonly, originalInput, imageUri } = route.params;
+  const { scamType, riskScore, riskFactors, summary, reason, readonly, originalInput, imageUri, attachmentUri } = route.params;
   const { currentUser, addEvent, addReport, setMemberStatus } = useAppStore();
   const s = useElderStyle();
   const eventIdRef = useRef(`e_${Date.now()}`);
@@ -46,6 +46,7 @@ export default function ResultMediumScreen() {
       type: "text",
       input: originalInput ?? summary,
       imageUri,
+      attachmentUri,
       riskLevel: "medium",
       riskScore,
       scamType,
