@@ -190,9 +190,17 @@ function GuardianHome({
 
 // ── Gatekeeper Home ────────────────────────────────────────────
 const STATUS_CONFIG = {
-  safe:      { color: Colors.safe,    bg: Colors.safeBg,    label: 'SAFE 安全' },
-  pending:   { color: Colors.warning, bg: Colors.warningBg, label: 'PENDING 待確認' },
-  high_risk: { color: Colors.danger,  bg: Colors.dangerBg,  label: 'HIGH RISK 高風險' },
+  safe: { color: Colors.safe, bg: Colors.safeBg, label: "SAFE 安全" },
+  pending: {
+    color: Colors.warning,
+    bg: Colors.warningBg,
+    label: "PENDING 待確認",
+  },
+  high_risk: {
+    color: Colors.danger,
+    bg: Colors.dangerBg,
+    label: "HIGH RISK 高風險",
+  },
 } as const;
 
 function GatekeeperHome({
@@ -202,11 +210,14 @@ function GatekeeperHome({
 }) {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { events, family } = useAppStore();
+  const totalScans = events.length;
+  const safeCount = events.filter((e) => e.status === "safe").length;
+  const threatBlockPct = totalScans > 0 ? Math.round((safeCount / totalScans) * 100) : 0;
   const activeHighRisk = events.filter((e) => e.status === "high_risk");
   const guardianMembers = family.members.filter((m) => m.role === "guardian");
-  // 近期事件：已結案（safe）且有 resolvedAt，取最新 3 筆
   const recentResolved = events
     .filter((e) => e.status === "safe" && e.riskLevel !== "safe")
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .slice(0, 3);
 
   return (
@@ -219,18 +230,14 @@ function GatekeeperHome({
       {activeHighRisk.length > 0 ? (
         <TouchableOpacity
           style={styles.gkAlertBanner}
-          onPress={() =>
-            navigation.navigate("GuardianAlert", {
-              eventId: activeHighRisk[0].id,
-            })
-          }
+          onPress={() => navigation.navigate("HighRiskEvents")}
           activeOpacity={0.85}
         >
           <View style={styles.gkAlertIcon}>
             <Ionicons name="warning" size={20} color={Colors.white} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.gkAlertTitle}>⚠️ 有未處理的高風險事件</Text>
+            <Text style={styles.gkAlertTitle}>有未處理的高風險事件</Text>
             <Text style={styles.gkAlertSub}>
               在 15 分鐘前偵測到異常活動，請立即查看。
             </Text>
@@ -298,16 +305,16 @@ function GatekeeperHome({
       <View style={styles.gkStatsRow}>
         <View style={styles.gkStatCard}>
           <Text style={styles.gkStatLabel}>總查詢數</Text>
-          <Text style={styles.gkStatNum}>1.2k</Text>
+          <Text style={styles.gkStatNum}>{totalScans}</Text>
           <View style={styles.gkStatBar}>
-            <View style={[styles.gkStatBarFill, { width: "75%" }]} />
+            <View style={[styles.gkStatBarFill, { width: "100%" }]} />
           </View>
         </View>
         <View style={styles.gkStatCard}>
           <Text style={styles.gkStatLabel}>威脅阻斷</Text>
-          <Text style={styles.gkStatNum}>89%</Text>
+          <Text style={styles.gkStatNum}>{threatBlockPct}%</Text>
           <View style={styles.gkStatBar}>
-            <View style={[styles.gkStatBarFill, { width: "89%" }]} />
+            <View style={[styles.gkStatBarFill, { width: `${threatBlockPct}%` as any }]} />
           </View>
         </View>
       </View>
@@ -321,7 +328,8 @@ function GatekeeperHome({
             <Text style={styles.gkNoEvents}>目前尚無已處理事件</Text>
           ) : (
             recentResolved.map((ev) => {
-              const dotColor = ev.riskLevel === 'high' ? Colors.danger : Colors.warning;
+              const dotColor =
+                ev.riskLevel === "high" ? Colors.danger : Colors.warning;
               return (
                 <TouchableOpacity
                   key={ev.id}
@@ -394,7 +402,11 @@ function GatekeeperHome({
 }
 
 // ── Solver Home ────────────────────────────────────────────────
-function SolverHome({ scrollRef }: { scrollRef: React.RefObject<ScrollView | null> }) {
+function SolverHome({
+  scrollRef,
+}: {
+  scrollRef: React.RefObject<ScrollView | null>;
+}) {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { currentUser, dailyChallengeResults } = useAppStore();
 
@@ -702,8 +714,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.dangerBg,
     borderRadius: Radius.lg,
     padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
     marginBottom: 24,
     ...Shadow.card,
@@ -712,19 +724,21 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.safeBg,
     borderRadius: Radius.lg,
     padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
     marginBottom: 24,
   },
-  gkSafeBannerText: { fontSize: 14, fontWeight: '700', color: Colors.safe },
+  gkSafeBannerText: { fontSize: 14, fontWeight: "700", color: Colors.safe },
   gkAlertIcon: {
-    width: 36, height: 36, borderRadius: 18,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: Colors.danger,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
-  gkAlertTitle: { fontSize: 15, fontWeight: '700', color: Colors.dangerDark },
+  gkAlertTitle: { fontSize: 15, fontWeight: "700", color: Colors.dangerDark },
   gkAlertSub: { fontSize: 12, color: Colors.dangerDark, marginTop: 2 },
   gkSectionHeader: {
     flexDirection: "row",

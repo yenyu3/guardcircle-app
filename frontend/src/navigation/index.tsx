@@ -44,6 +44,7 @@ import FamilyEventDetailScreen from '../screens/family/FamilyEventDetailScreen';
 import FamilyCreateScreen from '../screens/family/FamilyCreateScreen';
 import FamilyInviteScreen from '../screens/family/FamilyInviteScreen';
 import GuardianAlertScreen from '../screens/family/GuardianAlertScreen';
+import HighRiskEventsScreen from '../screens/family/HighRiskEventsScreen';
 
 // Settings
 import SettingsAdvancedScreen from "../screens/settings/SettingsAdvancedScreen";
@@ -98,6 +99,7 @@ export type RootStackParamList = {
   FamilyCreate: undefined;
   FamilyInvite: undefined;
   GuardianAlert: { eventId: string };
+  HighRiskEvents: undefined;
   ScamBrief: undefined;
   WeeklyReport: undefined;
   DailyChallenge: undefined;
@@ -251,6 +253,7 @@ export default function AppNavigator() {
         <Stack.Screen name="FamilyCreate" component={FamilyCreateScreen} />
         <Stack.Screen name="FamilyInvite" component={FamilyInviteScreen} />
         <Stack.Screen name="GuardianAlert" component={GuardianAlertScreen} />
+        <Stack.Screen name="HighRiskEvents" component={HighRiskEventsScreen} />
         <Stack.Screen name="ScamBrief" component={ScamBriefScreen} />
         <Stack.Screen name="WeeklyReport" component={WeeklyReportScreen} />
         <Stack.Screen name="DailyChallenge" component={DailyChallengeScreen} />
