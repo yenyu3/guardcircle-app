@@ -1,0 +1,6 @@
+data/
+output/
+__pycache__/
+詐騙資料集/
+checkpoints/
+.env
