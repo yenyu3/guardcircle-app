@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ActivityIndicator,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -48,10 +49,12 @@ function stripPhone(formatted: string): string {
 export default function LoginScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const directLogin = useAppStore((s) => s.directLogin);
+  const apiLogin = useAppStore((s) => s.apiLogin);
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ phone?: string; password?: string; general?: string }>({});
 
   const handlePhoneChange = (text: string) => {
@@ -68,16 +71,23 @@ export default function LoginScreen() {
     return e;
   };
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     const e = validate();
     if (Object.keys(e).length > 0) { setErrors(e); return; }
     setErrors({});
-    const success = directLogin(phone, password);
-    if (!success) {
-      setErrors({ general: "手機號碼或密碼錯誤，請再試一次" });
-      return;
+    setLoading(true);
+    const rawPhone = stripPhone(phone);
+    try {
+      await apiLogin(rawPhone, password);
+      navigation.replace("Main");
+    } catch (err: any) {
+      // fallback: 嘗試本地帳號（開發用），本地存的 email 可能是格式化或純數字，兩種都試
+      const success = directLogin(rawPhone, password) || directLogin(phone, password);
+      if (success) { navigation.replace("Main"); return; }
+      setErrors({ general: err?.message === 'Invalid credentials' ? "手機號碼或密碼錯誤" : "登入失敗，請稍後再試" });
+    } finally {
+      setLoading(false);
     }
-    navigation.replace("Main");
   };
 
   const inputStyle = (field: string) => [
@@ -152,8 +162,9 @@ export default function LoginScreen() {
                 end={{ x: 1, y: 1 }}
                 style={styles.ctaBtn}
               >
-                <Text style={styles.ctaText}>登入</Text>
-                <Ionicons name="arrow-forward" size={18} color="#fff" />
+                {loading
+                  ? <ActivityIndicator color="#fff" />
+                  : <><Text style={styles.ctaText}>登入</Text><Ionicons name="arrow-forward" size={18} color="#fff" /></>}
               </LinearGradient>
             </Pressable>
 

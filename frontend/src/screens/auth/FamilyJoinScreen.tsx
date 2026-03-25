@@ -37,13 +37,14 @@ const DS = {
 
 export default function FamilyJoinScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const { joinFamily, currentUser, saveAccount, registeredAccounts } = useAppStore();
-  const password = registeredAccounts.find(a => a.email === currentUser.email)?.password ?? '';
+  const { joinFamily, currentUser, saveAccount, registeredAccounts, apiJoinFamily, apiCreateFamily } = useAppStore();
+  const password = registeredAccounts.find(a => a.phone === currentUser.phone)?.password ?? '';
   const role = currentUser?.role;
   const [digits, setDigits] = useState(["", "", "", "", "", ""]);
   const [familyName, setFamilyName] = useState("");
   const [showQR, setShowQR] = useState(false);
   const [showPairingModal, setShowPairingModal] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [pairingCode] = useState(() =>
     String(Math.floor(1000 + Math.random() * 9000))
   );
@@ -69,12 +70,21 @@ export default function FamilyJoinScreen() {
 
   const codeComplete = digits.every((d) => d !== "");
 
-  const handleJoin = () => {
+  const handleJoin = async () => {
     if (!codeComplete) {
       Alert.alert("請輸入完整的 6 位數代碼");
       return;
     }
-    joinFamily();
+    const code = digits.join('');
+    setLoading(true);
+    try {
+      await apiJoinFamily(code);
+    } catch {
+      // 後端不可用時使用本地模式
+      joinFamily();
+    } finally {
+      setLoading(false);
+    }
     saveAccount(password);
     navigation.replace("Main");
   };
@@ -91,12 +101,19 @@ export default function FamilyJoinScreen() {
     });
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!familyName) {
       Alert.alert("請輸入家庭名稱");
       return;
     }
-    joinFamily();
+    setLoading(true);
+    try {
+      await apiCreateFamily(familyName, circleId);
+    } catch {
+      joinFamily();
+    } finally {
+      setLoading(false);
+    }
     saveAccount(password);
     navigation.replace("Main");
   };

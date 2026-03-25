@@ -191,7 +191,7 @@ export default function AnalyzingScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "Analyzing">>();
   const { type, input, imageUri, attachmentUri } = route.params;
-  const { currentUser, addEvent, addContributionPoints, blacklistKeywords } = useAppStore();
+  const { currentUser, addEvent, addContributionPoints, blacklistKeywords, apiAnalyze } = useAppStore();
   const elder = useElderStyle();
   const [step, setStep] = useState(0);
   const spin = useRef(new Animated.Value(0)).current;
@@ -239,24 +239,45 @@ export default function AnalyzingScreen() {
       setTimeout(() => setStep(1), 1000),
       setTimeout(() => setStep(2), 2200),
       setTimeout(() => setStep(3), 3200),
-      setTimeout(() => {
-        const baseResult = ["image", "video", "file"].includes(type)
-          ? analyzeAttachment(type)
-          : analyze(type, input);
-        const hitBlacklist = blacklistKeywords.filter((k) => input.includes(k));
-        const result =
-          hitBlacklist.length > 0 && baseResult.riskLevel !== "high"
-            ? {
-                ...baseResult,
-                riskLevel: "high" as const,
-                riskScore: Math.max(baseResult.riskScore, 80),
-                riskFactors: [
-                  ...baseResult.riskFactors,
-                  ...hitBlacklist.map((k) => `黑名單關鍵字「${k}」`),
-                ],
-                reason: `${baseResult.reason} 另偵測到您設定的黑名單關鍵字：${hitBlacklist.join("、")}。`,
-              }
-            : baseResult;
+      setTimeout(async () => {
+        let result: ReturnType<typeof analyze>;
+
+        // 嘗試呼叫後端 API
+        try {
+          const apiResult = await apiAnalyze({
+            input_type: type as any,
+            content: input,
+          });
+          const { mapRiskLevel } = await import('../../api');
+          const riskLevel = mapRiskLevel(apiResult.risk_level);
+          result = {
+            riskLevel,
+            riskScore: apiResult.risk_score,
+            scamType: apiResult.top_signals?.[0] ?? '無詳細資訊',
+            summary: apiResult.reason,
+            riskFactors: apiResult.top_signals ?? [],
+            reason: apiResult.reason,
+          };
+        } catch {
+          // 後端不可用，回路本地分析
+          const baseResult = ["image", "video", "file"].includes(type)
+            ? analyzeAttachment(type)
+            : analyze(type, input);
+          const hitBlacklist = blacklistKeywords.filter((k) => input.includes(k));
+          result =
+            hitBlacklist.length > 0 && baseResult.riskLevel !== "high"
+              ? {
+                  ...baseResult,
+                  riskLevel: "high" as const,
+                  riskScore: Math.max(baseResult.riskScore, 80),
+                  riskFactors: [
+                    ...baseResult.riskFactors,
+                    ...hitBlacklist.map((k) => `黑名單關鍵字「${k}」`),
+                  ],
+                  reason: `${baseResult.reason} 另偵測到您設定的黑名單關鍵字：${hitBlacklist.join("、")}。`,
+                }
+              : baseResult;
+        }
         const now = new Date()
           .toLocaleString("zh-TW", { hour12: false })
           .slice(0, 15);

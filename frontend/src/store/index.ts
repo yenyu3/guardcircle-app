@@ -8,9 +8,10 @@ import {
   Role,
   User,
 } from "../types";
+import * as API from "../api";
 
 interface RegisteredAccount {
-  email: string;
+  phone: string;
   password: string;
   nickname: string;
   birthYear?: number;
@@ -34,10 +35,29 @@ interface AppState {
   hasFamilyCircle: boolean;
   suggestedRole: Role | null;
   registeredAccounts: RegisteredAccount[];
+  // 後端真實 ID
+  userId: string | null;
+  familyId: string | null;
   setRole: (role: Role) => void;
   setUser: (user: Partial<User>) => void;
-  login: (nickname: string, email: string, birthYear?: number, gender?: string, emergencyPhone?: string, birthMonth?: string, birthDay?: string) => void;
-  directLogin: (email: string, password: string) => boolean;
+  login: (nickname: string, phone: string, birthYear?: number, gender?: string, emergencyPhone?: string, birthMonth?: string, birthDay?: string) => void;
+  directLogin: (phone: string, password: string) => boolean;
+  // 真實 API 登入
+  apiLogin: (phone: string, password: string) => Promise<void>;
+  // 真實 API 註冊
+  apiRegister: (params: {
+    phone: string; password: string; nickname: string;
+    gender?: 'male' | 'female' | 'other' | 'unknown';
+    birthday?: string; role: API.BackendRole; contact_phone: string;
+  }) => Promise<void>;
+  // 真實 API 建立家庭圈
+  apiCreateFamily: (familyName: string, inviteCode: string) => Promise<{ family_id: string; invite_code: string }>;
+  // 真實 API 加入家庭圈
+  apiJoinFamily: (inviteCode: string) => Promise<void>;
+  // 真實 API 分析
+  apiAnalyze: (params: { input_type: 'text' | 'image' | 'url' | 'phone'; content: string }) => Promise<API.AnalysisRes['data']>;
+  // 真實 API 更新個人資料
+  apiPatchUser: (body: API.PatchUserReq) => Promise<void>;
   logout: () => void;
   joinFamily: () => void;
   addEvent: (event: DetectEvent) => void;
@@ -75,13 +95,15 @@ export const useAppStore = create<AppState>((set) => ({
   hasFamilyCircle: false,
   suggestedRole: null,
   registeredAccounts: [],
+  userId: null,
+  familyId: null,
 
   setRole: (role) => set((s) => ({ currentUser: { ...s.currentUser, role } })),
 
   setUser: (user) =>
     set((s) => ({ currentUser: { ...s.currentUser, ...user } })),
 
-  login: (nickname, email, birthYear, gender, emergencyPhone, birthMonth, birthDay) => {
+  login: (nickname, phone, birthYear, gender, emergencyPhone, birthMonth, birthDay) => {
     let suggestedRole: Role | null = null;
     if (birthYear !== undefined) {
       const age = new Date().getFullYear() - birthYear;
@@ -99,19 +121,19 @@ export const useAppStore = create<AppState>((set) => ({
     set((s) => ({
       isLoggedIn: true,
       suggestedRole,
-      currentUser: { ...s.currentUser, nickname, email, birthYear, birthMonth, birthDay, gender: genderMapped, emergencyPhone, contributionPoints: 0, reportCount: 0 },
+      currentUser: { ...s.currentUser, nickname, phone, birthYear, birthMonth, birthDay, gender: genderMapped, emergencyPhone, contributionPoints: 0, reportCount: 0 },
     }));
   },
 
   saveAccount: (password: string) =>
     set((s) => {
       const existing = s.registeredAccounts.findIndex(
-        (a) => a.email === s.currentUser.email,
+        (a) => a.phone === s.currentUser.phone,
       );
       const memberStatuses: Record<string, "safe" | "pending" | "high_risk"> = {};
       s.family.members.forEach((m) => { memberStatuses[m.id] = m.status; });
       const account: RegisteredAccount = {
-        email: s.currentUser.email,
+        phone: s.currentUser.phone,
         password,
         nickname: s.currentUser.nickname,
         birthYear: s.currentUser.birthYear,
@@ -131,10 +153,10 @@ export const useAppStore = create<AppState>((set) => ({
       return { registeredAccounts: accounts };
     }),
 
-  directLogin: (email: string, password: string) => {
+  directLogin: (phone: string, password: string) => {
     const accounts = useAppStore.getState().registeredAccounts;
     const account = accounts.find(
-      (a) => a.email === email && a.password === password,
+      (a) => a.phone === phone && a.password === password,
     );
     if (!account) return false;
     set((s) => ({
@@ -143,7 +165,7 @@ export const useAppStore = create<AppState>((set) => ({
       currentUser: {
         ...s.currentUser,
         nickname: account.nickname,
-        email: account.email,
+        phone: account.phone,
         birthYear: account.birthYear,
         birthMonth: account.birthMonth,
         birthDay: account.birthDay,
@@ -166,7 +188,59 @@ export const useAppStore = create<AppState>((set) => ({
     return true;
   },
 
-  logout: () => set({ isLoggedIn: false, hasFamilyCircle: false }),
+  apiLogin: async (phone, password) => {
+    const res = await API.login({ phone, password });
+    const d = res.data;
+    const role = API.mapRole(d.role);
+    set((s) => ({
+      isLoggedIn: true,
+      userId: d.user_id,
+      familyId: d.family_id,
+      hasFamilyCircle: !!d.family_id,
+      currentUser: { ...s.currentUser, nickname: d.nickname, phone, role },
+    }));
+  },
+
+  apiRegister: async ({ phone, password, nickname, gender, birthday, role, contact_phone }) => {
+    const res = await API.createUser({ phone, password, nickname, gender, birthday, role, contact_phone });
+    const frontendRole = API.mapRole(res.data.role);
+    set((s) => ({
+      isLoggedIn: true,
+      userId: res.data.user_id,
+      currentUser: { ...s.currentUser, nickname, phone, role: frontendRole },
+    }));
+  },
+
+  apiCreateFamily: async (familyName, inviteCode) => {
+    const { userId } = useAppStore.getState();
+    if (!userId) throw new Error('not logged in');
+    const res = await API.createFamily({ family_name: familyName, invite_code: inviteCode, creator_id: userId });
+    set({ familyId: res.data.family_id, hasFamilyCircle: true });
+    return { family_id: res.data.family_id, invite_code: res.data.invite_code };
+  },
+
+  apiJoinFamily: async (inviteCode) => {
+    const { userId } = useAppStore.getState();
+    if (!userId) throw new Error('not logged in');
+    const res = await API.joinFamily({ user_id: userId, invite_code: inviteCode });
+    set({ familyId: res.data.family_id, hasFamilyCircle: true });
+  },
+
+  apiAnalyze: async ({ input_type, content }) => {
+    const { userId } = useAppStore.getState();
+    if (!userId) throw new Error('not logged in');
+    const res = await API.analyze({ user_id: userId, input_type, content });
+    return res.data;
+  },
+
+  apiPatchUser: async (body) => {
+    const { userId } = useAppStore.getState();
+    if (!userId) throw new Error('not logged in');
+    const res = await API.patchUser(userId, body);
+    set((s) => ({ currentUser: { ...s.currentUser, nickname: res.data.nickname } }));
+  },
+
+  logout: () => set({ isLoggedIn: false, hasFamilyCircle: false, userId: null, familyId: null }),
 
   joinFamily: () => set({ hasFamilyCircle: true }),
 

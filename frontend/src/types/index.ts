@@ -7,7 +7,7 @@ export type EventStatus = "safe" | "high_risk" | "pending";
 export interface User {
   id: string;
   nickname: string;
-  email: string;
+  phone: string;
   role: Role;
   birthYear?: number;
   birthMonth?: string;

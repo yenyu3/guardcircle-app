@@ -16,7 +16,7 @@ export const mockUsers: User[] = [
   {
     id: "u1",
     nickname: "阿嬤",
-    email: "grandma@example.com",
+    phone: "0911111111",
     role: "guardian",
     birthYear: 1950,
     familyIds: ["f1"],
@@ -25,7 +25,7 @@ export const mockUsers: User[] = [
   {
     id: "u2",
     nickname: "小明",
-    email: "ming@example.com",
+    phone: "0922222222",
     role: "gatekeeper",
     birthYear: 1985,
     familyIds: ["f1"],
@@ -34,7 +34,7 @@ export const mockUsers: User[] = [
   {
     id: "u3",
     nickname: "阿志",
-    email: "zhi@example.com",
+    phone: "0933333333",
     role: "solver",
     birthYear: 1995,
     familyIds: ["f1"],

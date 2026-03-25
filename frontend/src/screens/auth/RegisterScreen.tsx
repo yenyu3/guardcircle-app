@@ -11,6 +11,7 @@ import {
   Pressable,
   Modal,
   FlatList,
+  ActivityIndicator,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -105,7 +106,8 @@ export default function RegisterScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const login = useAppStore((s) => s.login);
   const saveAccount = useAppStore((s) => s.saveAccount);
-  const [email, setEmail] = useState("");
+  const apiRegister = useAppStore((s) => s.apiRegister);
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [emergencyPhone, setEmergencyPhone] = useState("");
@@ -115,9 +117,10 @@ export default function RegisterScreen() {
   const [birthMonth, setBirthMonth] = useState("");
   const [birthDay, setBirthDay] = useState("");
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handlePhoneChange = (text: string) => setEmail(formatPhone(stripPhone(text)));
+  const handlePhoneChange = (text: string) => setPhone(formatPhone(stripPhone(text)));
   const handleEmergencyPhoneChange = (text: string) => setEmergencyPhone(formatPhone(stripPhone(text)));
 
   const strength =
@@ -129,9 +132,9 @@ export default function RegisterScreen() {
 
   const validate = () => {
     const e: Record<string, string> = {};
-    const digits = stripPhone(email);
-    if (!email) e.email = "請輸入手機號碼";
-    else if (digits.length !== 10) e.email = "手機號碼須為 10 位數字";
+    const digits = stripPhone(phone);
+    if (!phone) e.phone = "請輸入手機號碼";
+    else if (digits.length !== 10) e.phone = "手機號碼須為 10 位數字";
     if (!password) e.password = "請設定密碼";
     else if (password.length < 8) e.password = "密碼至少 8 個字元";
     else if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) e.password = "密碼須包含英文字母與數字";
@@ -144,14 +147,40 @@ export default function RegisterScreen() {
     return e;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const e = validate();
     if (Object.keys(e).length > 0) { setErrors(e); return; }
     setErrors({});
     const yr = birthYear ? parseInt(birthYear, 10) : undefined;
-    login(nickname, email, yr, gender, emergencyPhone, birthMonth, birthDay);
-    saveAccount(password);
-    navigation.replace("RoleSelect");
+    const genderMapped = gender === '男' ? 'male' : gender === '女' ? 'female' : gender === '其他' ? 'other' : undefined;
+    const birthday = yr && birthMonth && birthDay ? `${yr}-${birthMonth.padStart(2,'0')}-${birthDay.padStart(2,'0')}` : undefined;
+    // 對映前端 role 到後端 role
+    const suggestedRole = yr ? (new Date().getFullYear() - yr <= 18 ? 'youth' : new Date().getFullYear() - yr <= 59 ? 'gatekeeper' : 'guardian') : 'gatekeeper';
+    setLoading(true);
+    try {
+      await apiRegister({
+        phone: stripPhone(phone),
+        password,
+        nickname,
+        gender: genderMapped,
+        birthday,
+        role: suggestedRole as any,
+        contact_phone: stripPhone(emergencyPhone),
+      });
+      login(nickname, stripPhone(phone), yr, gender, emergencyPhone, birthMonth, birthDay);
+      saveAccount(password);
+      navigation.replace("RoleSelect");
+    } catch (err: any) {
+      if (err?.message === 'phone already exists') {
+        setErrors({ phone: '此手機號碼已被註冊' });
+      } else {
+        login(nickname, stripPhone(phone), yr, gender, emergencyPhone, birthMonth, birthDay);
+        saveAccount(password);
+        navigation.replace("RoleSelect");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const currentYear = new Date().getFullYear();
@@ -191,17 +220,17 @@ export default function RegisterScreen() {
             {/* 1. 手機號碼 */}
             <Text style={styles.label}>手機號碼</Text>
             <TextInput
-              style={inputStyle("email")}
+              style={inputStyle("phone")}
               placeholder="0912-345-678"
               placeholderTextColor={DS.outlineVariant}
-              value={email}
+              value={phone}
               onChangeText={handlePhoneChange}
               keyboardType="phone-pad"
               maxLength={12}
-              onFocus={() => setFocusedField("email")}
+              onFocus={() => setFocusedField("phone")}
               onBlur={() => setFocusedField(null)}
             />
-            {errors.email && <Text style={styles.fieldError}>{errors.email}</Text>}
+            {errors.phone && <Text style={styles.fieldError}>{errors.phone}</Text>}
 
             {/* 2. 密碼 */}
             <Text style={styles.label}>密碼</Text>
@@ -313,8 +342,9 @@ export default function RegisterScreen() {
                 end={{ x: 1, y: 1 }}
                 style={styles.ctaBtn}
               >
-                <Text style={styles.ctaText}>繼續</Text>
-                <Ionicons name="arrow-forward" size={18} color="#fff" />
+                {loading
+                  ? <ActivityIndicator color="#fff" />
+                  : <><Text style={styles.ctaText}>繼續</Text><Ionicons name="arrow-forward" size={18} color="#fff" /></>}
               </LinearGradient>
             </Pressable>
 
