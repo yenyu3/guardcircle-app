@@ -31,6 +31,151 @@ function getGreeting() {
   return "晚安";
 }
 
+// ── WeeklyReportCard ────────────────────────────────────────────
+function WeeklyReportCard({ onPress }: { onPress: () => void }) {
+  const { events, family } = useAppStore();
+  const s = useElderStyle();
+
+  const totalScans = events.length;
+  const blocked = events.filter(
+    (e) => e.status === "safe" && e.riskLevel !== "safe",
+  ).length;
+  const highRisk = events.filter((e) => e.riskLevel === "high").length;
+  const safePct =
+    totalScans > 0
+      ? Math.round(((totalScans - highRisk) / totalScans) * 100)
+      : 0;
+
+  const blockPct =
+    totalScans > 0 ? Math.round((blocked / totalScans) * 100) : 0;
+  const activeMembers = family.members.filter((m) =>
+    events.some((e) => e.userNickname === m.nickname),
+  ).length;
+  const resolvedCount = events.filter((e) => e.resolvedAt).length;
+  const resolveRate = events.length > 0 ? resolvedCount / events.length : 0;
+
+  const axes = [
+    { label: "查詢量", value: Math.min(totalScans / 20, 1) },
+    { label: "攔截率", value: blockPct / 100 },
+    { label: "安全率", value: safePct / 100 },
+    { label: "成員活躍", value: Math.min(activeMembers / Math.max(family.members.length, 1), 1) },
+    { label: "處理速度", value: resolveRate },
+  ];
+  const SIZE = 130;
+  const cx = SIZE / 2;
+  const cy = SIZE / 2;
+  const R = 42;
+  const LABEL_R = R + 16;
+  const n = axes.length;
+
+  function point(i: number, ratio: number) {
+    const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
+    return { x: cx + R * ratio * Math.cos(angle), y: cy + R * ratio * Math.sin(angle) };
+  }
+
+  function labelPoint(i: number) {
+    const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
+    return { x: cx + LABEL_R * Math.cos(angle), y: cy + LABEL_R * Math.sin(angle) };
+  }
+
+  function toPath(pts: { x: number; y: number }[]) {
+    return pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ") + " Z";
+  }
+
+  const gridLevels = [0.33, 0.66, 1];
+  const dataPoints = axes.map((a, i) => point(i, Math.max(a.value, 0.08)));
+  const gridPaths = gridLevels.map((lvl) => toPath(axes.map((_, i) => point(i, lvl))));
+  const dataPath = toPath(dataPoints);
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.wrCard, { opacity: pressed ? 0.92 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}
+    >
+      {/* 標題列 */}
+      <View style={styles.wrHeader}>
+        <Text style={[styles.wrTitle, s.active && { fontSize: 22 * s.f }]}>本週報告</Text>
+        <View style={styles.wrBadge}>
+          <Text style={styles.wrBadgeText}>WEEKLY</Text>
+        </View>
+      </View>
+      <Text style={styles.wrPeriod}>2026/03/23 – 03/29</Text>
+
+      {/* 內容區：雷達圖 + 右側數字 */}
+      <View style={styles.wrBody}>
+        {/* 雷達圖 + 標籤 */}
+        <View style={{ width: SIZE, height: SIZE }}>
+          <Svg width={SIZE} height={SIZE} style={{ position: 'absolute' }}>
+            <Defs>
+              <SvgLinearGradient id="radarFill" x1="0" y1="0" x2="1" y2="1">
+                <Stop offset="0" stopColor="#89502e" stopOpacity="0.35" />
+                <Stop offset="1" stopColor="#ffb38a" stopOpacity="0.2" />
+              </SvgLinearGradient>
+            </Defs>
+            {gridPaths.map((d, i) => (
+              <Path key={i} d={d} stroke="#d7c2b960" strokeWidth={1} fill="none" />
+            ))}
+            {axes.map((_, i) => {
+              const to = point(i, 1);
+              return <Path key={i} d={`M ${cx} ${cy} L ${to.x.toFixed(1)} ${to.y.toFixed(1)}`} stroke="#d7c2b980" strokeWidth={1} fill="none" />;
+            })}
+            <Path d={dataPath} fill="url(#radarFill)" stroke="#89502e" strokeWidth={1.5} />
+            {dataPoints.map((p, i) => (
+              <Path key={i} d={`M ${p.x} ${p.y} m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0`} fill="#89502e" />
+            ))}
+          </Svg>
+          {axes.map((a, i) => {
+            const lp = labelPoint(i);
+            return (
+              <Text
+                key={i}
+                style={[styles.wrAxisLabel, { position: 'absolute', left: lp.x - 18, top: lp.y - 8, width: 36, textAlign: 'center' }]}
+              >
+                {a.label}
+              </Text>
+            );
+          })}
+        </View>
+
+        {/* 右側數字統計 */}
+        <View style={styles.wrStats}>
+          <View style={styles.wrStatRow}>
+            <Text style={[styles.wrStatNum, s.active && { fontSize: 18 * s.f }]}>{totalScans}</Text>
+            <Text style={[styles.wrStatLabel, s.active && { fontSize: 12 * s.f }]}>總查詢</Text>
+          </View>
+          <View style={styles.wrDivider} />
+          <View style={styles.wrStatRow}>
+            <Text style={[styles.wrStatNum, { color: Colors.safe }, s.active && { fontSize: 18 * s.f }]}>{blocked}</Text>
+            <Text style={[styles.wrStatLabel, s.active && { fontSize: 12 * s.f }]}>攔截</Text>
+          </View>
+          <View style={styles.wrDivider} />
+          <View style={styles.wrStatRow}>
+            <Text style={[styles.wrStatNum, { color: Colors.danger }, s.active && { fontSize: 18 * s.f }]}>{highRisk}</Text>
+            <Text style={[styles.wrStatLabel, s.active && { fontSize: 12 * s.f }]}>高風險</Text>
+          </View>
+          <View style={styles.wrDivider} />
+          <View style={styles.wrStatRow}>
+            <Text style={[styles.wrStatNum, { color: "#89502e" }, s.active && { fontSize: 18 * s.f }]}>{safePct}%</Text>
+            <Text style={[styles.wrStatLabel, s.active && { fontSize: 12 * s.f }]}>安全率</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* 按鈕 */}
+      <Pressable onPress={onPress} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1, alignSelf: 'flex-start' }]}>
+        <LinearGradient
+          colors={["#89502e", "#ffb38a"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.wrBtn}
+        >
+          <Text style={[styles.wrBtnText, s.active && { fontSize: 15 * s.f }]}>查看完整報告</Text>
+        </LinearGradient>
+      </Pressable>
+    </Pressable>
+  );
+}
+
 // ── Guardian Home ──────────────────────────────────────────────
 function GuardianHome({
   scrollRef,
@@ -42,7 +187,7 @@ function GuardianHome({
   const s = useElderStyle();
   const guardians = family.members
     .filter((m) => m.role !== "guardian")
-    .slice(0, 3);
+    .map((m) => m.id === currentUser.id ? { ...m, nickname: currentUser.nickname } : m);
 
   const glow = useRef(new Animated.Value(0)).current;
   const iconScale = useRef(new Animated.Value(1)).current;
@@ -188,6 +333,9 @@ function GuardianHome({
           </LinearGradient>
         </Pressable>
       </View>
+
+      {/* 本週報告 */}
+      <WeeklyReportCard onPress={() => navigation.navigate("WeeklyReport")} />
     </ScrollView>
   );
 }
@@ -423,6 +571,9 @@ function GatekeeperHome({
         </TouchableOpacity>
       </View>
 
+      {/* 本週報告 */}
+      <WeeklyReportCard onPress={() => navigation.navigate("WeeklyReport")} />
+
       {/* Daily Scam Brief */}
       <View style={styles.gkBriefCard}>
         <View style={styles.gkBriefPill}>
@@ -577,6 +728,9 @@ function SolverHome({
           />
         </View>
       </View>
+
+      {/* 本週報告 */}
+      <WeeklyReportCard onPress={() => navigation.navigate("WeeklyReport")} />
 
       {/* 今日知識卡 */}
       <View style={styles.slKnowledgeCard}>
@@ -923,6 +1077,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#fcf2e3",
     borderRadius: Radius.md,
     alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
   },
   gkViewAllText: { fontSize: 13, fontWeight: "700", color: Colors.textLight },
   gkBriefCard: {
@@ -1233,4 +1389,54 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   slKnSource: { fontSize: 11, color: Colors.textMuted, marginTop: 8 },
+  // WeeklyReportCard
+  wrCard: {
+    backgroundColor: "#f6edde",
+    borderRadius: Radius.lg,
+    padding: 24,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#d7c2b926",
+    ...Shadow.card,
+  },
+  wrHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  wrTitle: { fontSize: 22, fontWeight: "800", color: Colors.text },
+  wrBadge: {
+    backgroundColor: "rgba(137,80,46,0.15)",
+    borderRadius: Radius.full,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: "rgba(137,80,46,0.25)",
+  },
+  wrBadgeText: { fontSize: 11, fontWeight: "800", color: "#89502e", letterSpacing: 1 },
+  wrPeriod: {
+    fontSize: 11, fontWeight: '700', color: '#1f1b1266',
+    letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 16,
+  },
+  wrBody: { flexDirection: "row", alignItems: "center", marginBottom: 20, gap: 16 },
+  wrAxisLabel: { fontSize: 9, fontWeight: '700', color: '#89502e' },
+  wrStats: { flex: 1, paddingLeft: 16, gap: 4 },
+  wrStatRow: { flexDirection: "row", alignItems: "baseline", gap: 6 },
+  wrStatNum: { fontSize: 18, fontWeight: "900", color: Colors.text },
+  wrStatLabel: { fontSize: 12, color: Colors.textMuted, fontWeight: "600" },
+  wrDivider: { height: 1, backgroundColor: "#d7c2b950", marginVertical: 4 },
+  wrBtn: {
+    alignSelf: 'flex-start',
+    borderRadius: Radius.full,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    overflow: "hidden",
+    shadowColor: "#89502e",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  wrBtnText: { fontSize: 15, fontWeight: "700", color: Colors.white },
 });
