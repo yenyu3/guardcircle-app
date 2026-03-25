@@ -10,8 +10,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Colors } from "../theme";
 import { useAppStore } from "../store";
+import { Colors } from "../theme";
 import { ScrollRefProvider, useScrollRef } from "./ScrollRefContext";
 
 // Auth
@@ -35,12 +35,12 @@ import ResultSafeScreen from "../screens/detect/ResultSafeScreen";
 import ResultScreen from "../screens/detect/ResultScreen";
 
 // Family
-import FamilyRecordScreen from '../screens/family/FamilyRecordScreen';
-import FamilyEventDetailScreen from '../screens/family/FamilyEventDetailScreen';
-import FamilyCreateScreen from '../screens/family/FamilyCreateScreen';
-import FamilyInviteScreen from '../screens/family/FamilyInviteScreen';
-import GuardianAlertScreen from '../screens/family/GuardianAlertScreen';
-import HighRiskEventsScreen from '../screens/family/HighRiskEventsScreen';
+import FamilyCreateScreen from "../screens/family/FamilyCreateScreen";
+import FamilyEventDetailScreen from "../screens/family/FamilyEventDetailScreen";
+import FamilyInviteScreen from "../screens/family/FamilyInviteScreen";
+import FamilyRecordScreen from "../screens/family/FamilyRecordScreen";
+import GuardianAlertScreen from "../screens/family/GuardianAlertScreen";
+import HighRiskEventsScreen from "../screens/family/HighRiskEventsScreen";
 
 // Settings
 import SettingsAdvancedScreen from "../screens/settings/SettingsAdvancedScreen";
@@ -48,7 +48,7 @@ import SettingsAndroidScreen from "../screens/settings/SettingsAndroidScreen";
 import SettingsPrivacyScreen from "../screens/settings/SettingsPrivacyScreen";
 import SettingsProfileScreen from "../screens/settings/SettingsProfileScreen";
 
-import ScamBriefScreen from '../screens/ScamBriefScreen';
+import ScamBriefScreen from "../screens/ScamBriefScreen";
 
 // Other
 import DailyChallengeScreen from "../screens/DailyChallengeScreen";
@@ -62,7 +62,12 @@ export type RootStackParamList = {
   FamilyJoin: undefined;
   Main: undefined;
   Settings: undefined;
-  Analyzing: { type: string; input: string; imageUri?: string; attachmentUri?: string };
+  Analyzing: {
+    type: string;
+    input: string;
+    imageUri?: string;
+    attachmentUri?: string;
+  };
   Result: {
     riskLevel: "safe" | "medium" | "high";
     scamType: string;
@@ -104,6 +109,7 @@ export type RootStackParamList = {
   ScamBrief: undefined;
   WeeklyReport: undefined;
   DailyChallenge: undefined;
+  KnowledgeCard: { cardId: string };
   SettingsProfile: undefined;
   SettingsFamily: undefined;
   SettingsPrivacy: undefined;
@@ -114,11 +120,14 @@ export type RootStackParamList = {
 const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
 
-const TAB_ITEMS: Record<string, { label: string; icon: string; iconActive: string }> = {
-  Home:     { label: '首頁',   icon: 'home-outline',     iconActive: 'home' },
-  Detect:   { label: '偵測',   icon: 'radio-outline',    iconActive: 'radio' },
-  Family:   { label: '家庭圈', icon: 'people-outline',   iconActive: 'people' },
-  Settings: { label: '設定',   icon: 'settings-outline', iconActive: 'settings' },
+const TAB_ITEMS: Record<
+  string,
+  { label: string; icon: string; iconActive: string }
+> = {
+  Home: { label: "首頁", icon: "home-outline", iconActive: "home" },
+  Detect: { label: "偵測", icon: "radio-outline", iconActive: "radio" },
+  Family: { label: "家庭圈", icon: "people-outline", iconActive: "people" },
+  Settings: { label: "設定", icon: "settings-outline", iconActive: "settings" },
 } as const;
 
 function CustomTabBar({ state, navigation }: any) {
@@ -196,7 +205,7 @@ const tabStyles = StyleSheet.create({
 
 function MainTabs() {
   const { currentUser } = useAppStore();
-  const isGuardian = currentUser.role === 'guardian';
+  const isGuardian = currentUser.role === "guardian";
 
   return (
     <ScrollRefProvider>
