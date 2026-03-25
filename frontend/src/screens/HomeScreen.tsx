@@ -415,7 +415,7 @@ function GatekeeperHome({
   const totalScans = events.length;
   const safeCount = events.filter((e) => e.status === "safe").length;
   const threatBlockPct = totalScans > 0 ? Math.round((safeCount / totalScans) * 100) : 0;
-  const activeHighRisk = events.filter((e) => e.status === "high_risk");
+  const activeHighRisk = events.filter((e) => e.status === "high_risk" || e.status === "pending");
   const guardianMembers = family.members.filter((m) => m.role === "guardian");
   const recentResolved = events
     .filter((e) => e.status === "safe" && e.riskLevel !== "safe")

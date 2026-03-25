@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import * as Clipboard from "expo-clipboard";
 import { Audio } from "expo-av";
 import {
   View,
@@ -85,6 +86,8 @@ export default function DetectScreen() {
   const { register } = useScrollRef();
 
   const [infoModal, setInfoModal] = useState(false);
+  const [clipboardModal, setClipboardModal] = useState(false);
+  const [clipboardText, setClipboardText] = useState("");
   const screenHeight = Dimensions.get("window").height;
   const closeOffset = screenHeight * 0.6;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
@@ -232,9 +235,18 @@ export default function DetectScreen() {
     React.useCallback(() => {
       register('Detect', scrollRef);
       scrollRef.current?.scrollTo({ y: 0, animated: false });
+
+      Clipboard.getStringAsync().then((content) => {
+        if (content.trim().length > 5) {
+          setClipboardText(content.trim());
+          setClipboardModal(true);
+        }
+      });
+
       return () => {
         setText("");
         setAttachments([]);
+        setClipboardModal(false);
         if (recordingRef.current) {
           recordingRef.current.stopAndUnloadAsync();
           recordingRef.current = null;
@@ -522,6 +534,31 @@ export default function DetectScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
+      {/* Clipboard Prompt Modal */}
+      <Modal visible={clipboardModal} transparent animationType="fade" onRequestClose={() => setClipboardModal(false)}>
+        <Pressable style={styles.clipOverlay} onPress={() => setClipboardModal(false)}>
+          <View style={styles.clipCard}>
+            <Ionicons name="clipboard-outline" size={28} color={Colors.primaryDark} />
+            <Text style={styles.clipTitle}>偵測到剪貼簿內容</Text>
+            <Text style={styles.clipPreview} numberOfLines={3}>{clipboardText}</Text>
+            <View style={styles.clipBtns}>
+              <TouchableOpacity style={styles.clipBtnSecondary} onPress={() => setClipboardModal(false)}>
+                <Text style={styles.clipBtnSecondaryText}>略過</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.clipBtnPrimary}
+                onPress={() => {
+                  setClipboardModal(false);
+                  setText(clipboardText);
+                }}
+              >
+                <Text style={styles.clipBtnPrimaryText}>貼入並分析</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Pressable>
+      </Modal>
+
       <Modal
         visible={infoModal}
         animationType="none"
@@ -777,5 +814,48 @@ const styles = StyleSheet.create({
   tutorialItemTitle: { fontSize: 19, fontWeight: "700", color: Colors.text },
   tutorialItemDesc: { fontSize: 14, color: Colors.textLight, marginTop: 2 },
 
-
+  clipOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 32,
+  },
+  clipCard: {
+    backgroundColor: "#fff8f1",
+    borderRadius: Radius.lg,
+    padding: 24,
+    width: "100%",
+    alignItems: "center",
+    gap: 10,
+    ...Shadow.card,
+  },
+  clipTitle: { fontSize: 17, fontWeight: "800", color: Colors.text },
+  clipPreview: {
+    fontSize: 13,
+    color: Colors.textLight,
+    backgroundColor: "#fcf2e3",
+    borderRadius: Radius.md,
+    padding: 10,
+    width: "100%",
+    lineHeight: 20,
+  },
+  clipBtns: { flexDirection: "row", gap: 10, marginTop: 4, width: "100%" },
+  clipBtnSecondary: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: "center",
+  },
+  clipBtnSecondaryText: { fontSize: 14, fontWeight: "600", color: Colors.textLight },
+  clipBtnPrimary: {
+    flex: 2,
+    paddingVertical: 12,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.primaryDark,
+    alignItems: "center",
+  },
+  clipBtnPrimaryText: { fontSize: 14, fontWeight: "700", color: "#fff" },
 });
