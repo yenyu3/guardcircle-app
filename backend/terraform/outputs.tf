@@ -30,6 +30,7 @@ output "lambda_names" {
     aws_lambda_function.analysis.function_name,
     aws_lambda_function.user_event.function_name,
     aws_lambda_function.families_feed.function_name,
+    aws_lambda_function.auth_login.function_name,
   ]
 }
 

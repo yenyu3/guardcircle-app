@@ -214,3 +214,20 @@ resource "aws_lambda_function" "families_feed" {
     variables = local.lambda_env
   }
 }
+
+resource "aws_lambda_function" "auth_login" {
+  function_name = "${var.project_name}-auth-login"
+  role          = aws_iam_role.lambda.arn
+  package_type  = "Image"
+  image_uri     = module.docker_image["auth_login"].image_uri
+  architectures = [var.lambda_architecture]
+
+  vpc_config {
+    subnet_ids         = local.lambda_subnets
+    security_group_ids = [aws_security_group.lambda.id]
+  }
+
+  environment {
+    variables = local.lambda_env
+  }
+}

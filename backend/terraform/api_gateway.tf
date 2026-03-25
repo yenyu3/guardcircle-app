@@ -66,6 +66,13 @@ resource "aws_apigatewayv2_integration" "families_feed" {
   payload_format_version = "2.0"
 }
 
+resource "aws_apigatewayv2_integration" "auth_login" {
+  api_id                 = aws_apigatewayv2_api.http.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.auth_login.arn
+  payload_format_version = "2.0"
+}
+
 resource "aws_apigatewayv2_route" "post_users" {
   api_id    = aws_apigatewayv2_api.http.id
   route_key = "POST /users"
@@ -118,6 +125,12 @@ resource "aws_apigatewayv2_route" "get_user_event" {
   api_id    = aws_apigatewayv2_api.http.id
   route_key = "GET /users/{user_id}/events/{event_id}"
   target    = "integrations/${aws_apigatewayv2_integration.user_event.id}"
+}
+
+resource "aws_apigatewayv2_route" "post_auth_login" {
+  api_id    = aws_apigatewayv2_api.http.id
+  route_key = "POST /auth/login"
+  target    = "integrations/${aws_apigatewayv2_integration.auth_login.id}"
 }
 
 resource "aws_apigatewayv2_stage" "default" {
@@ -194,6 +207,14 @@ resource "aws_lambda_permission" "apigw_invoke_families_feed" {
   statement_id  = "AllowApiGatewayInvokeFamiliesFeed"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.families_feed.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.http.execution_arn}/*/*"
+}
+
+resource "aws_lambda_permission" "apigw_invoke_auth_login" {
+  statement_id  = "AllowApiGatewayInvokeAuthLogin"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.auth_login.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.http.execution_arn}/*/*"
 }
