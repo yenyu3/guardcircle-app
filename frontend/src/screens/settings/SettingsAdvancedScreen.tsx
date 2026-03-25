@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Header from '../../components/Header';
+import { useAppStore } from '../../store';
 import { Colors, Radius, Shadow } from '../../theme';
 
 const DS = {
@@ -21,12 +22,9 @@ const DS = {
   outlineVariant: '#d7c2b9',
 };
 
-const DEFAULT_KEYWORDS = ['投資', '解除分期', '帳號異常', '點數卡', '轉帳', '警察'];
-
 export default function SettingsAdvancedScreen() {
   const navigation = useNavigation();
-
-  const [keywords, setKeywords] = useState<string[]>(DEFAULT_KEYWORDS);
+  const { blacklistKeywords: keywords, setBlacklistKeywords: setKeywords } = useAppStore();
   const [newKeyword, setNewKeyword] = useState('');
   const [dataConsent, setDataConsent] = useState(false);
 

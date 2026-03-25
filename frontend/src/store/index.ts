@@ -61,6 +61,8 @@ interface AppState {
   ) => void;
   elderMode: boolean;
   toggleElderMode: () => void;
+  blacklistKeywords: string[];
+  setBlacklistKeywords: (keywords: string[]) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -288,4 +290,7 @@ export const useAppStore = create<AppState>((set) => ({
     })),
 
   toggleElderMode: () => set((s) => ({ elderMode: !s.elderMode })),
+
+  blacklistKeywords: ['投資', '解除分期', '帳號異常', '點數卡', '轉帳', '警察'],
+  setBlacklistKeywords: (keywords) => set({ blacklistKeywords: keywords }),
 }));
