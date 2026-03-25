@@ -22,7 +22,6 @@ import Svg, {
 } from "react-native-svg";
 import { Colors, Radius, Shadow } from "../theme";
 import { useAppStore } from "../store";
-import { mockEvents } from "../mock";
 import { useElderStyle } from "../hooks/useElderStyle";
 
 const DS = {

@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Animated,
   TouchableOpacity,
+  Alert,
 } from "react-native";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -14,7 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors, Radius } from "../../theme";
 import { RootStackParamList } from "../../navigation";
 import { useAppStore } from "../../store";
-import { DetectEvent, RiskLevel } from "../../types";
+import { DetectEvent } from "../../types";
 import { useElderStyle } from "../../hooks/useElderStyle";
 
 const STEPS = [
@@ -23,175 +24,12 @@ const STEPS = [
   { label: "產生風險報告" },
 ];
 
-// 附件類型 → mock 分析結果
-function analyzeAttachment(type: string): ReturnType<typeof analyze> {
-  if (type === "image")
-    return {
-      riskLevel: "medium",
-      riskScore: 62,
-      scamType: "可疑截圖",
-      summary: "圖片中偵測到可疑文字特徵，建議謹慎確認來源。",
-      riskFactors: ["圖片含可疑文字", "來源不明"],
-      reason: "圖片中偵測到可疑文字特徵，建議謹慎確認來源。",
-    };
-  if (type === "video")
-    return {
-      riskLevel: "medium",
-      riskScore: 55,
-      scamType: "可疑影音",
-      summary: "影音檔案需進一步後端分析，目前顯示初步結果。",
-      riskFactors: ["影音內容待審查"],
-      reason: "影音檔案需進一步後端分析，目前顯示初步結果。",
-    };
-  return {
-    riskLevel: "safe",
-    riskScore: 8,
-    scamType: "無",
-    summary: "檔案無明顯詐騙特徵，仍建議確認來源。",
-    riskFactors: [],
-    reason: "檔案無明顯詐騙特徵，仍建議確認來源。",
-  };
-}
-
-// ── 關鍵字規則 ──────────────────────────────────────────────────
-const HIGH_KEYWORDS = [
-  "ATM",
-  "解除分期",
-  "匯款",
-  "轉帳",
-  "提款機",
-  "保管費",
-  "操作ATM",
-  "bank-secure",
-  "secure-login",
-  "凍結帳戶",
-  "警察",
-  "檢察官",
-  "洗錢",
-  "保管帳戶",
-  "手續費",
-  "保證金",
-  "解除設定",
-];
-const MEDIUM_KEYWORDS = [
-  "包裹",
-  "物流",
-  "點擊連結",
-  "更新資料",
-  "驗證",
-  "中獎",
-  "免費領取",
-  "限時優惠",
-  "帳號異常",
-  "密碼",
-  "個人資料",
-  "身分證",
-  "投資",
-  "獲利",
-  "內部消息",
-  "私密群組",
-  "0800",
-];
-const HIGH_URL_PATTERNS = [
-  "secure-login",
-  "bank-verify",
-  "tw-bank",
-  "verify-account",
-  ".xyz",
-  ".top",
-  ".cc",
-];
-const MEDIUM_URL_PATTERNS = ["free", "prize", "lucky", "win", "click"];
-
-function analyze(
-  type: string,
-  input: string,
-): {
-  riskLevel: RiskLevel;
-  riskScore: number;
-  scamType: string;
-  summary: string;
-  riskFactors: string[];
-  reason: string;
-} {
-  const lower = input.toLowerCase();
-
-  if (type === "url") {
-    if (HIGH_URL_PATTERNS.some((p) => lower.includes(p))) {
-      return {
-        riskLevel: "high",
-        riskScore: 88,
-        scamType: "釣魚網站",
-        summary: "此網址疑似仿冒官方網站，域名異常，請勿點擊或輸入任何資料。",
-        riskFactors: ["非官方域名", "仿冒官方介面", "SSL 憑證異常"],
-        reason: "網址包含仿冒官方網站的域名特徵，並偵測到 SSL 憑證異常。",
-      };
-    }
-    if (MEDIUM_URL_PATTERNS.some((p) => lower.includes(p))) {
-      return {
-        riskLevel: "medium",
-        riskScore: 58,
-        scamType: "可疑連結",
-        summary: "此連結含有可疑特徵，建議謹慎確認來源後再點擊。",
-        riskFactors: ["可疑關鍵字", "來源不明"],
-        reason: "連結中包含常見詐騙關鍵字，來源無法確認。",
-      };
-    }
-  }
-
-  if (type === "phone") {
-    const digits = input.replace(/\D/g, "");
-    if (digits.startsWith("0800") || digits.startsWith("0900")) {
-      return {
-        riskLevel: "medium",
-        riskScore: 55,
-        scamType: "可疑電話",
-        summary: "此號碼類型常見於詐騙來電，有多筆民眾回報紀錄，建議謹慎。",
-        riskFactors: ["多筆民眾回報", "非官方客服號碼"],
-        reason: "此號碼已有多筆民眾回報為詐騙來電，非官方客服號碼。",
-      };
-    }
-  }
-
-  const hitHigh = HIGH_KEYWORDS.filter((k) => input.includes(k));
-  if (hitHigh.length > 0) {
-    return {
-      riskLevel: "high",
-      riskScore: Math.min(70 + hitHigh.length * 8, 98),
-      scamType: "假冒官方詐騙",
-      summary: "偵測到多項高風險詐騙特徵，請勿依照指示操作，立即停止。",
-      riskFactors: hitHigh.map((k) => `包含關鍵字「${k}」`),
-      reason: `訊息中出現 ${hitHigh.join("、")} 等高風險詐騙關鍵字。`,
-    };
-  }
-
-  const hitMedium = MEDIUM_KEYWORDS.filter((k) => input.includes(k));
-  if (hitMedium.length > 0) {
-    return {
-      riskLevel: "medium",
-      riskScore: Math.min(40 + hitMedium.length * 7, 75),
-      scamType: "可疑訊息",
-      summary: "偵測到可疑特徵，建議謹慎確認後再行動，勿輕易提供個人資料。",
-      riskFactors: hitMedium.map((k) => `包含關鍵字「${k}」`),
-      reason: `訊息中出現 ${hitMedium.join("、")} 等可疑特徵。`,
-    };
-  }
-
-  return {
-    riskLevel: "safe",
-    riskScore: Math.floor(Math.random() * 15) + 3,
-    scamType: "無",
-    summary: "此內容無明顯詐騙特徵，看起來是一般訊息，仍建議保持警覺。",
-    riskFactors: [],
-    reason: "未偵測到明顯詐騙特徵，內容看起來是一般訊息。",
-  };
-}
 
 export default function AnalyzingScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "Analyzing">>();
   const { type, input, imageUri, attachmentUri } = route.params;
-  const { currentUser, addEvent, addContributionPoints, blacklistKeywords, apiAnalyze } = useAppStore();
+  const { currentUser, addEvent, addContributionPoints, apiAnalyze } = useAppStore();
   const elder = useElderStyle();
   const [step, setStep] = useState(0);
   const spin = useRef(new Animated.Value(0)).current;
@@ -240,9 +78,6 @@ export default function AnalyzingScreen() {
       setTimeout(() => setStep(2), 2200),
       setTimeout(() => setStep(3), 3200),
       setTimeout(async () => {
-        let result: ReturnType<typeof analyze>;
-
-        // 嘗試呼叫後端 API
         try {
           const apiResult = await apiAnalyze({
             input_type: type as any,
@@ -250,7 +85,7 @@ export default function AnalyzingScreen() {
           });
           const { mapRiskLevel } = await import('../../api');
           const riskLevel = mapRiskLevel(apiResult.risk_level);
-          result = {
+          const result = {
             riskLevel,
             riskScore: apiResult.risk_score,
             scamType: apiResult.top_signals?.[0] ?? '無詳細資訊',
@@ -258,32 +93,11 @@ export default function AnalyzingScreen() {
             riskFactors: apiResult.top_signals ?? [],
             reason: apiResult.reason,
           };
-        } catch {
-          // 後端不可用，回路本地分析
-          const baseResult = ["image", "video", "file"].includes(type)
-            ? analyzeAttachment(type)
-            : analyze(type, input);
-          const hitBlacklist = blacklistKeywords.filter((k) => input.includes(k));
-          result =
-            hitBlacklist.length > 0 && baseResult.riskLevel !== "high"
-              ? {
-                  ...baseResult,
-                  riskLevel: "high" as const,
-                  riskScore: Math.max(baseResult.riskScore, 80),
-                  riskFactors: [
-                    ...baseResult.riskFactors,
-                    ...hitBlacklist.map((k) => `黑名單關鍵字「${k}」`),
-                  ],
-                  reason: `${baseResult.reason} 另偵測到您設定的黑名單關鍵字：${hitBlacklist.join("、")}。`,
-                }
-              : baseResult;
-        }
-        const now = new Date()
-          .toLocaleString("zh-TW", { hour12: false })
-          .slice(0, 15);
+          const now = new Date()
+            .toLocaleString("zh-TW", { hour12: false })
+            .slice(0, 15);
 
-        // safe 結果直接寫入 store（高/中風險由各 Result 畫面自行寫入）
-        if (result.riskLevel === "safe") {
+          if (result.riskLevel === "safe") {
           const event: DetectEvent = {
             id: `e_${Date.now()}`,
             userId: currentUser.id,
@@ -296,33 +110,38 @@ export default function AnalyzingScreen() {
             createdAt: now,
             status: "safe",
           };
-          addEvent(event);
-          if (currentUser.role === "solver") addContributionPoints(10);
-          navigation.replace("ResultSafe", { reason: result.reason });
-        } else if (result.riskLevel === "high") {
-          if (currentUser.role === "solver") addContributionPoints(10);
-          navigation.replace("ResultHigh", {
-            scamType: result.scamType,
-            riskScore: result.riskScore,
-            riskFactors: result.riskFactors,
-            summary: result.summary,
-            reason: result.reason,
-            originalInput: input,
-            imageUri,
-            attachmentUri,
-          });
-        } else {
-          if (currentUser.role === "solver") addContributionPoints(10);
-          navigation.replace("ResultMedium", {
-            scamType: result.scamType,
-            riskScore: result.riskScore,
-            riskFactors: result.riskFactors,
-            summary: result.summary,
-            reason: result.reason,
-            originalInput: input,
-            imageUri,
-            attachmentUri,
-          });
+            addEvent(event);
+            if (currentUser.role === "solver") addContributionPoints(10);
+            navigation.replace("ResultSafe", { reason: result.reason });
+          } else if (result.riskLevel === "high") {
+            if (currentUser.role === "solver") addContributionPoints(10);
+            navigation.replace("ResultHigh", {
+              scamType: result.scamType,
+              riskScore: result.riskScore,
+              riskFactors: result.riskFactors,
+              summary: result.summary,
+              reason: result.reason,
+              originalInput: input,
+              imageUri,
+              attachmentUri,
+            });
+          } else {
+            if (currentUser.role === "solver") addContributionPoints(10);
+            navigation.replace("ResultMedium", {
+              scamType: result.scamType,
+              riskScore: result.riskScore,
+              riskFactors: result.riskFactors,
+              summary: result.summary,
+              reason: result.reason,
+              originalInput: input,
+              imageUri,
+              attachmentUri,
+            });
+          }
+        } catch (err) {
+          Alert.alert('分析失敗', '無法連線至伺服器，請確認網路後再試', [
+            { text: '返回', onPress: () => navigation.goBack() },
+          ]);
         }
       }, 4000),
     ];

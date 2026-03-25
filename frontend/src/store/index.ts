@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { mockEvents as initialEvents, mockFamily, mockUsers } from "../mock";
+import { mockDailyChallenges } from "../mock";
 import {
   DailyChallengeResult,
   DetectEvent,
@@ -86,9 +86,23 @@ interface AppState {
 }
 
 export const useAppStore = create<AppState>((set) => ({
-  currentUser: mockUsers[1], // default gatekeeper
-  family: mockFamily,
-  events: initialEvents,
+  currentUser: {
+    id: "",
+    nickname: "",
+    phone: "",
+    role: "gatekeeper" as Role,
+    familyIds: [],
+    contributionPoints: 0,
+    reportCount: 0,
+  },
+  family: {
+    id: "",
+    name: "",
+    code: "",
+    members: [],
+    createdAt: "",
+  },
+  events: [],
   dailyChallengeResults: [],
   elderMode: true,
   isLoggedIn: false,
@@ -365,6 +379,6 @@ export const useAppStore = create<AppState>((set) => ({
 
   toggleElderMode: () => set((s) => ({ elderMode: !s.elderMode })),
 
-  blacklistKeywords: ['投資', '解除分期', '帳號異常', '點數卡', '轉帳', '警察'],
+  blacklistKeywords: [],
   setBlacklistKeywords: (keywords) => set({ blacklistKeywords: keywords }),
 }));
