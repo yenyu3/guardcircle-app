@@ -46,6 +46,17 @@ export default function GuardianAlertScreen() {
   const event = events.find((e) => e.id === route.params.eventId) || events[0];
   const member = family.members.find((m) => m.id === event.userId);
 
+  const isMedium = event.riskLevel === 'medium';
+  const M = { main: '#E8820C', light: '#FFB347', bg: '#FFF3E0', shadow: '#E8820C' };
+  const heroColors: [string, string] = isMedium ? [M.main, M.light] : ['#E25858', '#FF9560'];
+  const heroShadow = isMedium ? M.shadow : '#E25858';
+  const accentColor = isMedium ? M.main : C.error;
+  const heroTitle = isMedium ? '中風險詐騙警示' : '高風險詐騙警報';
+  const heroSubText = isMedium
+    ? '你的家人收到可疑訊息，請協助確認內容'
+    : '你的家人正面臨詐騙威脅，請立即採取行動';
+  const pillText = isMedium ? 'MEDIUM RISK' : 'HIGH RISK';
+
   const glowAnim = useRef(new Animated.Value(0.7)).current;
 
   useEffect(() => {
@@ -92,21 +103,21 @@ export default function GuardianAlertScreen() {
       >
         {/* ── Hero Alert Card ── */}
         <LinearGradient
-          colors={["#E25858", "#FF9560"]}
+          colors={heroColors}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={s.heroCard}
+          style={[s.heroCard, { shadowColor: heroShadow }]}
         >
           {/* Warning Icon */}
           <Animated.View style={[s.warningCircle, { opacity: glowAnim }]}>
             <View style={s.warningInner}>
-              <Ionicons name="warning" size={32} color={C.error} />
+              <Ionicons name="warning" size={32} color={accentColor} />
             </View>
           </Animated.View>
 
           {/* Title */}
-          <Text style={s.heroTitle}>高風險詐騙警報</Text>
-          <Text style={s.heroSub}>你的家人正面臨詐騙威脅，請立即採取行動</Text>
+          <Text style={s.heroTitle}>{heroTitle}</Text>
+          <Text style={s.heroSub}>{heroSubText}</Text>
 
           {/* Member Row */}
           <View style={s.memberRow}>
@@ -115,17 +126,17 @@ export default function GuardianAlertScreen() {
                 avatar={member?.avatar}
                 initials={event.userNickname[0]}
                 size={52}
-                color={C.error}
+                color={accentColor}
                 borderColor={C.white}
                 borderWidth={2}
               />
-              <View style={s.dangerDot} />
+              <View style={[s.dangerDot, { borderColor: accentColor }]} />
             </View>
             <View style={s.memberInfo}>
               <Text style={s.memberName}>{event.userNickname}</Text>
               <View style={s.memberMeta}>
                 <View style={s.highRiskPill}>
-                  <Text style={s.highRiskText}>HIGH RISK</Text>
+                  <Text style={s.highRiskText}>{pillText}</Text>
                 </View>
                 <Text style={s.timeText}>{event.createdAt}</Text>
               </View>

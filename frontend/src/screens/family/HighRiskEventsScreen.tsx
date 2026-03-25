@@ -18,6 +18,7 @@ const DS = {
   surface: '#f6edde',
   outline: '#d7c2b9',
 };
+const M = { main: '#E8820C', light: '#FFB347', bg: '#FFF3E0' };
 
 export default function HighRiskEventsScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
@@ -56,11 +57,15 @@ export default function HighRiskEventsScreen() {
         {highRiskEvents.length === 0 ? (
           <View style={styles.emptyWrap}>
             <Ionicons name="checkmark-circle" size={56} color={Colors.safe} />
-            <Text style={styles.emptyTitle}>目前無高風險事件</Text>
+            <Text style={styles.emptyTitle}>目前無未處理風險事件</Text>
             <Text style={styles.emptySub}>家人目前都很安全</Text>
           </View>
         ) : (
           highRiskEvents.map((ev) => {
+            const isMedium = ev.riskLevel === 'medium';
+            const accentColor = isMedium ? M.main : Colors.danger;
+            const accentBg = isMedium ? M.bg : Colors.dangerBg;
+            const accentLight = isMedium ? M.light : '#FF9560';
             const member = getMember(ev.userId);
             return (
               <TouchableOpacity
@@ -70,7 +75,7 @@ export default function HighRiskEventsScreen() {
                 activeOpacity={0.85}
               >
                 {/* Left accent */}
-                <View style={[styles.dangerAccent, { backgroundColor: ev.status === 'pending' ? Colors.warning : Colors.danger }]} />
+                <View style={[styles.dangerAccent, { backgroundColor: accentColor }]} />
 
                 <View style={styles.cardInner}>
                   {/* Top row */}
@@ -80,19 +85,19 @@ export default function HighRiskEventsScreen() {
                         avatar={member?.avatar}
                         initials={ev.userNickname[0]}
                         size={44}
-                        color={Colors.danger}
-                        borderColor={Colors.dangerBg}
+                        color={accentColor}
+                        borderColor={accentBg}
                         borderWidth={2}
                       />
-                      <View style={styles.dangerDot} />
+                      <View style={[styles.dangerDot, { backgroundColor: accentColor }]} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.memberName}>{ev.userNickname}</Text>
                       <Text style={styles.scamType}>{ev.scamType}</Text>
                     </View>
-                    <View style={styles.scorePill}>
-                      <Text style={styles.scoreNum}>{ev.riskScore}</Text>
-                      <Text style={styles.scoreLabel}>RISK</Text>
+                    <View style={[styles.scorePill, { backgroundColor: accentBg }]}>
+                      <Text style={[styles.scoreNum, { color: accentColor }]}>{ev.riskScore}</Text>
+                      <Text style={[styles.scoreLabel, { color: accentColor }]}>RISK</Text>
                     </View>
                   </View>
 
@@ -106,7 +111,7 @@ export default function HighRiskEventsScreen() {
                       <Text style={styles.timeText}>{getTimeAgo(ev.createdAt)}</Text>
                     </View>
                     <LinearGradient
-                      colors={['#E25858', '#FF9560']}
+                      colors={[accentColor, accentLight]}
                       start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                       style={styles.actionBtn}
                     >

@@ -32,7 +32,7 @@ import { RiskLevel } from "../types";
 import { useScrollRef } from "../navigation/ScrollRefContext";
 import { useElderStyle } from "../hooks/useElderStyle";
 
-type AttachmentType = "image" | "file" | "video";
+type AttachmentType = "image" | "file" | "video" | "audio";
 interface Attachment {
   type: AttachmentType;
   uri: string;
@@ -66,6 +66,7 @@ const INPUT_TYPE_LABEL: Record<
   image: { icon: "image", label: "圖片偵測", color: "#A0785A" },
   video: { icon: "videocam", label: "影音偵測", color: "#C0724A" },
   file: { icon: "document", label: "檔案偵測", color: "#8A7BAA" },
+  audio: { icon: "mic", label: "語音偵測", color: "#5B8FA8" },
 };
 
 export default function DetectScreen() {
@@ -197,26 +198,34 @@ export default function DetectScreen() {
 
   const handleVoice = useCallback(async () => {
     if (isRecording) {
-      await recordingRef.current?.stopAndUnloadAsync();
-      const uri = recordingRef.current?.getURI();
+      const rec = recordingRef.current;
       recordingRef.current = null;
       setIsRecording(false);
+      await rec?.stopAndUnloadAsync();
+      const uri = rec?.getURI();
       if (uri) {
         setAttachments((prev) => [
           ...prev,
-          { type: "file", uri, name: "語音錄音.m4a" },
+          { type: "audio", uri, name: "語音錄音.m4a" },
         ]);
       }
       return;
     }
-    const { granted } = await Audio.requestPermissionsAsync();
-    if (!granted) return;
-    await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
-    const { recording } = await Audio.Recording.createAsync(
-      Audio.RecordingOptionsPresets.HIGH_QUALITY
-    );
-    recordingRef.current = recording;
-    setIsRecording(true);
+    try {
+      const { granted } = await Audio.requestPermissionsAsync();
+      if (!granted) {
+        alert("請到設定開啟麥克風權限，才能使用語音錄音功能。");
+        return;
+      }
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      const recording = new Audio.Recording();
+      await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      await recording.startAsync();
+      recordingRef.current = recording;
+      setIsRecording(true);
+    } catch (e) {
+      console.error("[Voice] error:", e);
+    }
   }, [isRecording]);
 
   useFocusEffect(

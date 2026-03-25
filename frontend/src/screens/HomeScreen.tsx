@@ -291,7 +291,7 @@ function GatekeeperHome({
             <Ionicons name="warning" size={20} color={Colors.white} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.gkAlertTitle}>有未處理的高風險事件</Text>
+            <Text style={styles.gkAlertTitle}>有未處理的風險事件</Text>
             <Text style={styles.gkAlertSub}>
               在 15 分鐘前偵測到異常活動，請立即查看。
             </Text>
