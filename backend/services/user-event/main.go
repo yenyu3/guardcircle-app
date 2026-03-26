@@ -66,15 +66,15 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	var inputType, inputContent, riskLevel, scamType, summary, consequence, reason, notifyStatus, createdAt string
+	var inputTypeJSON, inputContent, riskLevel, scamType, summary, consequence, reason, notifyStatus, updatedBy, updatedAt, createdAt string
 	var riskScore sql.NullInt32
 	var riskFactors sql.NullString
 	var topSignals sql.NullString
 	var s3Key sql.NullString
 
 	err := db.QueryRowContext(ctx, `
-		SELECT
-			input_type,
+		SELECT 
+			input_type::text,
 			input_content,
 			COALESCE(s3_key, ''),
 			risk_level,
@@ -86,15 +86,22 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 			risk_factors::text,
 			top_signals::text,
 			notify_status,
+			COALESCE(updated_by, ''),
+			COALESCE(to_char(updated_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), ''),
 			to_char(created_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
 		FROM scan_events
 		WHERE user_id = $1 AND event_id = $2
-	`, userID, eventID).Scan(&inputType, &inputContent, &s3Key, &riskLevel, &riskScore, &scamType, &summary, &consequence, &reason, &riskFactors, &topSignals, &notifyStatus, &createdAt)
+	`, userID, eventID).Scan(&inputTypeJSON, &inputContent, &s3Key, &riskLevel, &riskScore, &scamType, &summary, &consequence, &reason, &riskFactors, &topSignals, &notifyStatus, &updatedBy, &updatedAt, &createdAt)
 	if err == sql.ErrNoRows {
 		return jsonResp(http.StatusNotFound, map[string]string{"error": "event not found"})
 	}
 	if err != nil {
 		return jsonResp(http.StatusInternalServerError, map[string]string{"error": "failed to fetch event"})
+	}
+
+	var inputTypeParsed []string
+	if inputTypeJSON != "" {
+		_ = json.Unmarshal([]byte(inputTypeJSON), &inputTypeParsed)
 	}
 
 	var topSignalsVal interface{}
@@ -115,7 +122,7 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 	data := map[string]interface{}{
 		"event_id":      eventID,
 		"user_id":       userID,
-		"input_type":    inputType,
+		"input_type":    inputTypeParsed,
 		"input_content": inputContent,
 		"risk_level":    riskLevel,
 		"scam_type":     scamType,
@@ -123,6 +130,8 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 		"consequence":   consequence,
 		"reason":        reason,
 		"notify_status": notifyStatus,
+		"updated_by":    updatedBy,
+		"updated_at":    updatedAt,
 		"created_at":    createdAt,
 		"raw_result":    nil,
 	}
