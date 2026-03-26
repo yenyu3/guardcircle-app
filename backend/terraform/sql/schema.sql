@@ -28,11 +28,14 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
 CREATE TABLE IF NOT EXISTS scan_events (
     event_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
-    input_type VARCHAR(20) NOT NULL CHECK (input_type IN ('text', 'image', 'url', 'phone')),
+    input_type VARCHAR(20) NOT NULL CHECK (input_type IN ('text', 'image', 'url', 'phone', 'video', 'audio', 'file')),
     input_content TEXT NOT NULL,
     risk_level VARCHAR(10) NOT NULL CHECK (risk_level IN ('low', 'medium', 'high')),
     risk_score INT CHECK (risk_score >= 0 AND risk_score <= 100),
+    scam_type VARCHAR(100),
+    summary TEXT,
     reason TEXT,
+    risk_factors JSONB,
     top_signals JSONB,
     notify_status VARCHAR(20) NOT NULL DEFAULT 'pending'
         CHECK (notify_status IN ('pending', 'sent', 'not_required', 'failed')),

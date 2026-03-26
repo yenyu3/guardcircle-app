@@ -8,3 +8,7 @@
 
 # Docs
 docs/
+
+# Go build artifacts
+backend/services/*/bootstrap
+backend/services/*/analysis

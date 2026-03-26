@@ -50,6 +50,49 @@ resource "aws_iam_role_policy_attachment" "lambda_vpc" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
 
+resource "aws_iam_role_policy" "lambda_bedrock" {
+  name = "${var.project_name}-lambda-bedrock"
+  role = aws_iam_role.lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "bedrock:InvokeModel",
+          "bedrock:InvokeModelWithResponseStream",
+        ]
+        Resource = "arn:aws:bedrock:${var.aws_region}::foundation-model/*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "bedrock:Retrieve",
+        ]
+        Resource = "arn:aws:bedrock:${var.aws_region}:*:knowledge-base/*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "transcribe:StartTranscriptionJob",
+          "transcribe:GetTranscriptionJob",
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:DeleteObject",
+        ]
+        Resource = "arn:aws:s3:::${var.transcribe_s3_bucket}/transcribe-input/*"
+      }
+    ]
+  })
+}
+
 locals {
   lambda_env = {
     DB_HOST = aws_rds_cluster.this.endpoint
@@ -170,6 +213,8 @@ resource "aws_lambda_function" "analysis" {
   package_type  = "Image"
   image_uri     = module.docker_image["analysis"].image_uri
   architectures = [var.lambda_architecture]
+  timeout       = 300
+  memory_size   = 512
 
   vpc_config {
     subnet_ids         = local.lambda_subnets
@@ -177,7 +222,14 @@ resource "aws_lambda_function" "analysis" {
   }
 
   environment {
-    variables = local.lambda_env
+    variables = merge(local.lambda_env, {
+      WHOSCALL_API_KEY     = var.whoscall_api_key
+      WHOSCALL_BASE_URL    = var.whoscall_base_url
+      BEDROCK_KB_ID        = var.bedrock_kb_id
+      BEDROCK_REGION       = var.aws_region
+      BEDROCK_MODEL_ID     = var.bedrock_model_id
+      TRANSCRIBE_S3_BUCKET = var.transcribe_s3_bucket
+    })
   }
 }
 

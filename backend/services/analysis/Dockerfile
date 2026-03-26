@@ -4,11 +4,10 @@ ARG TARGETARCH
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*
 ENV GOPROXY=https://proxy.golang.org,direct
 ENV GOSUMDB=sum.golang.org
-COPY go.mod ./
-COPY go.sum ./
-COPY main.go ./
+COPY go.mod go.sum ./
 RUN go mod download
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -o bootstrap main.go
+COPY *.go ./
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -o bootstrap .
 
 FROM public.ecr.aws/lambda/provided:al2
 COPY --from=build /src/bootstrap /var/runtime/bootstrap

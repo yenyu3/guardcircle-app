@@ -1,0 +1,637 @@
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"testing"
+
+	"github.com/aws/aws-lambda-go/events"
+)
+
+// ══════════════════════════════════════════════════════════════════
+// Mock implementations
+// ══════════════════════════════════════════════════════════════════
+
+// ── Mock ExternalAPI ────────────────────────────────────────────
+
+type mockExternalAPI struct {
+	result *ExternalAPIResult
+	err    error
+	called bool
+}
+
+func (m *mockExternalAPI) Call(ctx context.Context, inputType, content, region, apiKey, baseURL string) (*ExternalAPIResult, error) {
+	m.called = true
+	if m.err != nil {
+		return nil, m.err
+	}
+	if m.result != nil {
+		return m.result, nil
+	}
+	return &ExternalAPIResult{Source: inputType, RawData: nil}, nil
+}
+
+// ── Mock KnowledgeBase ──────────────────────────────────────────
+
+type mockKnowledgeBase struct {
+	context string
+	err     error
+	called  bool
+}
+
+func (m *mockKnowledgeBase) Query(ctx context.Context, region, kbID, query string) (string, error) {
+	m.called = true
+	return m.context, m.err
+}
+
+// ── Mock Analyzer ───────────────────────────────────────────────
+
+type mockAnalyzer struct {
+	analysis *BedrockAnalysis
+	err      error
+	called   bool
+	// Capture what was passed in
+	receivedReq       *AnalysisRequest
+	receivedAPIResult *ExternalAPIResult
+	receivedKBContext string
+}
+
+func (m *mockAnalyzer) Analyze(ctx context.Context, region, modelID string, req *AnalysisRequest, apiResult *ExternalAPIResult, kbContext string) (*BedrockAnalysis, error) {
+	m.called = true
+	m.receivedReq = req
+	m.receivedAPIResult = apiResult
+	m.receivedKBContext = kbContext
+	if m.err != nil {
+		return nil, m.err
+	}
+	return m.analysis, nil
+}
+
+// ── Mock Transcriber ────────────────────────────────────────────
+
+type mockTranscriber struct {
+	text   string
+	err    error
+	called bool
+}
+
+func (m *mockTranscriber) Transcribe(ctx context.Context, region, bucket, base64Content, fileExt string) (string, error) {
+	m.called = true
+	return m.text, m.err
+}
+
+// ── Mock DB ─────────────────────────────────────────────────────
+
+type mockDB struct {
+	err       error
+	called    bool
+	lastEvent *EventData
+}
+
+func (m *mockDB) WriteScanEvent(ctx context.Context, e *EventData) error {
+	m.called = true
+	m.lastEvent = e
+	return m.err
+}
+
+// ── Helper: build mock deps ─────────────────────────────────────
+
+func newMockDeps() (*Dependencies, *mockExternalAPI, *mockKnowledgeBase, *mockAnalyzer, *mockTranscriber, *mockDB) {
+	ext := &mockExternalAPI{}
+	kb := &mockKnowledgeBase{}
+	az := &mockAnalyzer{
+		analysis: &BedrockAnalysis{
+			RiskLevel:   "high",
+			RiskScore:   92,
+			ScamType:    "假冒官方詐騙",
+			Summary:     "偵測到高風險詐騙特徵",
+			Reason:      "訊息要求操作 ATM 並提供驗證碼",
+			RiskFactors: []string{"要求操作ATM", "索取驗證碼"},
+			TopSignals:  []string{"假冒官方", "緊急催促", "索取敏感資訊"},
+		},
+	}
+	tx := &mockTranscriber{}
+	db := &mockDB{}
+
+	d := &Dependencies{
+		Config:        Config{},
+		ExternalAPI:   ext,
+		KnowledgeBase: kb,
+		Analyzer:      az,
+		Transcriber:   tx,
+		DB:            db,
+	}
+	return d, ext, kb, az, tx, db
+}
+
+func makeRequest(body interface{}) events.APIGatewayV2HTTPRequest {
+	b, _ := json.Marshal(body)
+	return events.APIGatewayV2HTTPRequest{Body: string(b)}
+}
+
+// ══════════════════════════════════════════════════════════════════
+// Unit tests (pure functions)
+// ══════════════════════════════════════════════════════════════════
+
+func TestValidateRequest_Valid(t *testing.T) {
+	cases := []AnalysisRequest{
+		{UserID: "u1", InputType: "text", InputContent: "hello"},
+		{UserID: "u1", InputType: "url", InputContent: "https://example.com"},
+		{UserID: "u1", InputType: "phone", InputContent: "+886912345678"},
+		{UserID: "u1", InputType: "image", InputContent: "base64data"},
+		{UserID: "u1", InputType: "video", InputContent: "base64data", FileExt: "mp4"},
+		{UserID: "u1", InputType: "audio", InputContent: "base64data", FileExt: "m4a"},
+		{UserID: "u1", InputType: "file", InputContent: "base64data", FileExt: "pdf"},
+	}
+	for _, c := range cases {
+		if err := validateRequest(&c); err != nil {
+			t.Errorf("validateRequest(%+v) unexpected error: %v", c, err)
+		}
+	}
+}
+
+func TestValidateRequest_Errors(t *testing.T) {
+	cases := []struct {
+		name string
+		req  AnalysisRequest
+	}{
+		{"missing user_id", AnalysisRequest{InputType: "text", InputContent: "hi"}},
+		{"invalid input_type", AnalysisRequest{UserID: "u1", InputType: "unknown", InputContent: "hi"}},
+		{"missing input_content", AnalysisRequest{UserID: "u1", InputType: "text"}},
+		{"video without file_ext", AnalysisRequest{UserID: "u1", InputType: "video", InputContent: "data"}},
+		{"audio without file_ext", AnalysisRequest{UserID: "u1", InputType: "audio", InputContent: "data"}},
+		{"file without file_ext", AnalysisRequest{UserID: "u1", InputType: "file", InputContent: "data"}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if err := validateRequest(&c.req); err == nil {
+				t.Errorf("expected error for %s", c.name)
+			}
+		})
+	}
+}
+
+func TestErrorResponse(t *testing.T) {
+	resp := errorResponse(400, "bad request")
+	if resp.StatusCode != 400 {
+		t.Errorf("expected status 400, got %d", resp.StatusCode)
+	}
+	var body map[string]string
+	json.Unmarshal([]byte(resp.Body), &body)
+	if body["error"] != "bad request" {
+		t.Errorf("expected 'bad request', got %q", body["error"])
+	}
+}
+
+func TestTruncateContent(t *testing.T) {
+	if got := truncateContent("hello", 10); got != "hello" {
+		t.Errorf("expected 'hello', got %q", got)
+	}
+	if got := truncateContent("abcdef", 3); got != "abc" {
+		t.Errorf("expected 'abc', got %q", got)
+	}
+	if got := truncateContent("你好世界測試", 4); got != "你好世界" {
+		t.Errorf("expected '你好世界', got %q", got)
+	}
+}
+
+func TestBuildKBQuery(t *testing.T) {
+	cases := []struct {
+		inputType, content, expected string
+	}{
+		{"url", "https://scam.com", "詐騙網址 https://scam.com"},
+		{"phone", "+886123", "詐騙電話號碼 +886123"},
+		{"image", "base64...", "詐騙截圖分析"},
+		{"text", "短文", "短文"},
+		{"video", "轉錄文字", "轉錄文字"},
+		{"audio", "轉錄文字", "轉錄文字"},
+	}
+	for _, c := range cases {
+		if got := buildKBQuery(c.inputType, c.content); got != c.expected {
+			t.Errorf("buildKBQuery(%q, %q) = %q, want %q", c.inputType, c.content, got, c.expected)
+		}
+	}
+	// Long text truncation
+	longText := make([]rune, 250)
+	for i := range longText {
+		longText[i] = '你'
+	}
+	got := buildKBQuery("text", string(longText))
+	if len([]rune(got)) != 200 {
+		t.Errorf("expected 200 runes, got %d", len([]rune(got)))
+	}
+}
+
+func TestExtractJSON(t *testing.T) {
+	cases := []struct {
+		name, input, expected string
+	}{
+		{"raw JSON", `{"risk_level": "high"}`, `{"risk_level": "high"}`},
+		{"markdown json block", "text\n```json\n{\"a\": 1}\n```\nend", `{"a": 1}`},
+		{"markdown code block", "```\n{\"a\": 2}\n```", `{"a": 2}`},
+		{"embedded JSON", `前文 {"a": 3} 後文`, `{"a": 3}`},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := extractJSON(c.input); got != c.expected {
+				t.Errorf("extractJSON = %q, want %q", got, c.expected)
+			}
+		})
+	}
+}
+
+func TestResolveMediaFormat(t *testing.T) {
+	cases := map[string]string{
+		"mp3": "mp3", "mp4": "mp4", "m4a": "mp4", "wav": "wav",
+		"flac": "flac", "ogg": "ogg", "webm": "webm", "amr": "amr",
+		".MP3": "mp3", "xyz": "mp4",
+	}
+	for ext, expected := range cases {
+		if got := string(resolveMediaFormat(ext)); got != expected {
+			t.Errorf("resolveMediaFormat(%q) = %q, want %q", ext, got, expected)
+		}
+	}
+}
+
+// ══════════════════════════════════════════════════════════════════
+// Pipeline integration tests (with mocks)
+// ══════════════════════════════════════════════════════════════════
+
+func TestPipeline_TextHighRisk(t *testing.T) {
+	d, ext, _, az, tx, db := newMockDeps()
+
+	req := makeRequest(AnalysisRequest{
+		UserID:       "user-123",
+		InputType:    "text",
+		InputContent: "我是銀行客服，請立即操作ATM解除分期付款",
+	})
+
+	resp, err := handleAnalysis(context.Background(), req, d)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if resp.StatusCode != 200 {
+		t.Fatalf("expected 200, got %d: %s", resp.StatusCode, resp.Body)
+	}
+
+	var result AnalysisResponse
+	json.Unmarshal([]byte(resp.Body), &result)
+
+	// Verify pipeline was called correctly
+	if !ext.called {
+		t.Error("ExternalAPI.Call should have been called")
+	}
+	if !az.called {
+		t.Error("Analyzer.Analyze should have been called")
+	}
+	if !db.called {
+		t.Error("DB.WriteScanEvent should have been called")
+	}
+	if tx.called {
+		t.Error("Transcriber should NOT have been called for text input")
+	}
+
+	// Verify response data
+	if result.Data.RiskLevel != "high" {
+		t.Errorf("expected risk_level 'high', got %q", result.Data.RiskLevel)
+	}
+	if result.Data.RiskScore != 92 {
+		t.Errorf("expected risk_score 92, got %d", result.Data.RiskScore)
+	}
+	if result.Data.NotifyStatus != "pending" {
+		t.Errorf("expected notify_status 'pending' for high risk, got %q", result.Data.NotifyStatus)
+	}
+	if result.Data.UserID != "user-123" {
+		t.Errorf("expected user_id 'user-123', got %q", result.Data.UserID)
+	}
+	if result.Data.ScamType != "假冒官方詐騙" {
+		t.Errorf("expected scam_type '假冒官方詐騙', got %q", result.Data.ScamType)
+	}
+
+	// Verify DB received same data
+	if db.lastEvent.RiskLevel != "high" {
+		t.Errorf("DB event risk_level mismatch: %q", db.lastEvent.RiskLevel)
+	}
+}
+
+func TestPipeline_TextLowRisk(t *testing.T) {
+	d, _, _, az, _, db := newMockDeps()
+	az.analysis = &BedrockAnalysis{
+		RiskLevel:   "low",
+		RiskScore:   12,
+		ScamType:    "無",
+		Summary:     "一般訊息",
+		Reason:      "無詐騙特徵",
+		RiskFactors: []string{},
+		TopSignals:  []string{},
+	}
+
+	req := makeRequest(AnalysisRequest{
+		UserID: "user-123", InputType: "text", InputContent: "今天天氣很好",
+	})
+
+	resp, _ := handleAnalysis(context.Background(), req, d)
+	var result AnalysisResponse
+	json.Unmarshal([]byte(resp.Body), &result)
+
+	if result.Data.RiskLevel != "low" {
+		t.Errorf("expected 'low', got %q", result.Data.RiskLevel)
+	}
+	if result.Data.NotifyStatus != "not_required" {
+		t.Errorf("expected 'not_required' for low risk, got %q", result.Data.NotifyStatus)
+	}
+	if db.lastEvent.NotifyStatus != "not_required" {
+		t.Errorf("DB should have 'not_required', got %q", db.lastEvent.NotifyStatus)
+	}
+}
+
+func TestPipeline_URLWithAPIResult(t *testing.T) {
+	d, ext, _, az, _, _ := newMockDeps()
+	ext.result = &ExternalAPIResult{
+		Source:  "url-check",
+		RawData: map[string]interface{}{"trust_score": float64(15)},
+	}
+
+	req := makeRequest(AnalysisRequest{
+		UserID: "u1", InputType: "url", InputContent: "https://scam-site.xyz",
+	})
+
+	handleAnalysis(context.Background(), req, d)
+
+	// Verify the API result was passed to the analyzer
+	if az.receivedAPIResult == nil {
+		t.Fatal("Analyzer should have received API result")
+	}
+	if az.receivedAPIResult.Source != "url-check" {
+		t.Errorf("expected source 'url-check', got %q", az.receivedAPIResult.Source)
+	}
+}
+
+func TestPipeline_PhoneWithKBContext(t *testing.T) {
+	d, _, kb, az, _, _ := newMockDeps()
+	d.Config.BedrockKBID = "kb-test-123"
+	kb.context = "類似案例：+886900111222 為已知詐騙號碼"
+
+	req := makeRequest(AnalysisRequest{
+		UserID: "u1", InputType: "phone", InputContent: "+886900111222",
+	})
+
+	handleAnalysis(context.Background(), req, d)
+
+	if !kb.called {
+		t.Error("KnowledgeBase.Query should have been called")
+	}
+	if az.receivedKBContext != "類似案例：+886900111222 為已知詐騙號碼" {
+		t.Errorf("Analyzer should have received KB context, got %q", az.receivedKBContext)
+	}
+}
+
+func TestPipeline_AudioTranscribe(t *testing.T) {
+	d, _, _, az, tx, _ := newMockDeps()
+	d.Config.TranscribeS3Bucket = "test-bucket"
+	tx.text = "你好，我是銀行客服"
+
+	req := makeRequest(AnalysisRequest{
+		UserID: "u1", InputType: "audio", InputContent: "base64audiodata", FileExt: "m4a",
+	})
+
+	handleAnalysis(context.Background(), req, d)
+
+	if !tx.called {
+		t.Error("Transcriber should have been called for audio")
+	}
+	// Analyzer should receive the transcribed text, not the base64
+	if az.receivedReq.InputContent != "你好，我是銀行客服" {
+		t.Errorf("Analyzer should have received transcribed text, got %q", az.receivedReq.InputContent)
+	}
+}
+
+func TestPipeline_VideoTranscribe(t *testing.T) {
+	d, _, _, az, tx, _ := newMockDeps()
+	d.Config.TranscribeS3Bucket = "test-bucket"
+	tx.text = "投資必賺，保證獲利"
+
+	req := makeRequest(AnalysisRequest{
+		UserID: "u1", InputType: "video", InputContent: "base64video", FileExt: "mp4",
+	})
+
+	handleAnalysis(context.Background(), req, d)
+
+	if !tx.called {
+		t.Error("Transcriber should have been called for video")
+	}
+	if az.receivedReq.InputContent != "投資必賺，保證獲利" {
+		t.Errorf("expected transcribed text, got %q", az.receivedReq.InputContent)
+	}
+}
+
+func TestPipeline_FileTranscribe(t *testing.T) {
+	d, _, _, az, tx, _ := newMockDeps()
+	d.Config.TranscribeS3Bucket = "test-bucket"
+	tx.text = "匯款到以下帳戶"
+
+	req := makeRequest(AnalysisRequest{
+		UserID: "u1", InputType: "file", InputContent: "base64file", FileExt: "wav",
+	})
+
+	handleAnalysis(context.Background(), req, d)
+
+	if !tx.called {
+		t.Error("Transcriber should have been called for file")
+	}
+	if az.receivedReq.InputContent != "匯款到以下帳戶" {
+		t.Errorf("expected transcribed text, got %q", az.receivedReq.InputContent)
+	}
+}
+
+func TestPipeline_TranscribeEmptyResult(t *testing.T) {
+	d, _, _, az, tx, _ := newMockDeps()
+	d.Config.TranscribeS3Bucket = "test-bucket"
+	tx.text = "" // empty transcription
+
+	req := makeRequest(AnalysisRequest{
+		UserID: "u1", InputType: "audio", InputContent: "base64", FileExt: "m4a",
+	})
+
+	handleAnalysis(context.Background(), req, d)
+
+	// Should fall back to placeholder text
+	if az.receivedReq.InputContent != "(無法辨識語音內容)" {
+		t.Errorf("expected fallback text, got %q", az.receivedReq.InputContent)
+	}
+}
+
+func TestPipeline_AudioWithoutS3Bucket(t *testing.T) {
+	d, _, _, _, _, _ := newMockDeps()
+	d.Config.TranscribeS3Bucket = ""
+
+	req := makeRequest(AnalysisRequest{
+		UserID: "u1", InputType: "audio", InputContent: "base64", FileExt: "m4a",
+	})
+
+	resp, _ := handleAnalysis(context.Background(), req, d)
+	if resp.StatusCode != 500 {
+		t.Errorf("expected 500, got %d", resp.StatusCode)
+	}
+}
+
+func TestPipeline_TranscribeError(t *testing.T) {
+	d, _, _, _, tx, _ := newMockDeps()
+	d.Config.TranscribeS3Bucket = "test-bucket"
+	tx.err = fmt.Errorf("transcription timeout")
+
+	req := makeRequest(AnalysisRequest{
+		UserID: "u1", InputType: "audio", InputContent: "base64", FileExt: "m4a",
+	})
+
+	resp, _ := handleAnalysis(context.Background(), req, d)
+	if resp.StatusCode != 500 {
+		t.Errorf("expected 500, got %d", resp.StatusCode)
+	}
+}
+
+func TestPipeline_ExternalAPIError_NonFatal(t *testing.T) {
+	d, ext, _, az, _, _ := newMockDeps()
+	ext.err = fmt.Errorf("API timeout")
+
+	req := makeRequest(AnalysisRequest{
+		UserID: "u1", InputType: "url", InputContent: "https://example.com",
+	})
+
+	resp, _ := handleAnalysis(context.Background(), req, d)
+
+	// Should still succeed — external API error is non-fatal
+	if resp.StatusCode != 200 {
+		t.Errorf("expected 200 (non-fatal API error), got %d", resp.StatusCode)
+	}
+	// Analyzer should receive the error in API result
+	if az.receivedAPIResult.Error != "API timeout" {
+		t.Errorf("expected API error passed through, got %q", az.receivedAPIResult.Error)
+	}
+}
+
+func TestPipeline_KBError_NonFatal(t *testing.T) {
+	d, _, kb, az, _, _ := newMockDeps()
+	d.Config.BedrockKBID = "kb-123"
+	kb.err = fmt.Errorf("KB unavailable")
+
+	req := makeRequest(AnalysisRequest{
+		UserID: "u1", InputType: "text", InputContent: "test",
+	})
+
+	resp, _ := handleAnalysis(context.Background(), req, d)
+	if resp.StatusCode != 200 {
+		t.Errorf("expected 200 (non-fatal KB error), got %d", resp.StatusCode)
+	}
+	if az.receivedKBContext != "" {
+		t.Errorf("expected empty KB context on error, got %q", az.receivedKBContext)
+	}
+}
+
+func TestPipeline_AnalyzerError_Fatal(t *testing.T) {
+	d, _, _, az, _, _ := newMockDeps()
+	az.analysis = nil
+	az.err = fmt.Errorf("model invocation failed")
+
+	req := makeRequest(AnalysisRequest{
+		UserID: "u1", InputType: "text", InputContent: "test",
+	})
+
+	resp, _ := handleAnalysis(context.Background(), req, d)
+	if resp.StatusCode != 500 {
+		t.Errorf("expected 500 for analyzer error, got %d", resp.StatusCode)
+	}
+}
+
+func TestPipeline_DBError_NonFatal(t *testing.T) {
+	d, _, _, _, _, db := newMockDeps()
+	db.err = fmt.Errorf("connection refused")
+
+	req := makeRequest(AnalysisRequest{
+		UserID: "u1", InputType: "text", InputContent: "test",
+	})
+
+	resp, _ := handleAnalysis(context.Background(), req, d)
+	// DB error is non-fatal — should still return 200
+	if resp.StatusCode != 200 {
+		t.Errorf("expected 200 (non-fatal DB error), got %d", resp.StatusCode)
+	}
+}
+
+func TestPipeline_InvalidJSON(t *testing.T) {
+	d, _, _, _, _, _ := newMockDeps()
+	resp, _ := handleAnalysis(context.Background(), events.APIGatewayV2HTTPRequest{Body: "not json"}, d)
+	if resp.StatusCode != 400 {
+		t.Errorf("expected 400, got %d", resp.StatusCode)
+	}
+}
+
+func TestPipeline_MissingFields(t *testing.T) {
+	d, _, _, _, _, _ := newMockDeps()
+	req := makeRequest(map[string]string{"input_type": "text"})
+	resp, _ := handleAnalysis(context.Background(), req, d)
+	if resp.StatusCode != 400 {
+		t.Errorf("expected 400, got %d", resp.StatusCode)
+	}
+}
+
+func TestPipeline_DefaultRegion(t *testing.T) {
+	d, _, _, az, _, _ := newMockDeps()
+
+	req := makeRequest(AnalysisRequest{
+		UserID: "u1", InputType: "text", InputContent: "test",
+		// Region omitted — should default to "TW"
+	})
+
+	handleAnalysis(context.Background(), req, d)
+
+	if az.receivedReq.Region != "TW" {
+		t.Errorf("expected default region 'TW', got %q", az.receivedReq.Region)
+	}
+}
+
+func TestPipeline_ContentTruncatedInResponse(t *testing.T) {
+	d, _, _, _, _, db := newMockDeps()
+
+	longContent := make([]rune, 1000)
+	for i := range longContent {
+		longContent[i] = '字'
+	}
+
+	req := makeRequest(AnalysisRequest{
+		UserID: "u1", InputType: "text", InputContent: string(longContent),
+	})
+
+	resp, _ := handleAnalysis(context.Background(), req, d)
+	var result AnalysisResponse
+	json.Unmarshal([]byte(resp.Body), &result)
+
+	if len([]rune(result.Data.InputContent)) != 500 {
+		t.Errorf("expected content truncated to 500 runes, got %d", len([]rune(result.Data.InputContent)))
+	}
+	if len([]rune(db.lastEvent.InputContent)) != 500 {
+		t.Errorf("DB event should also be truncated, got %d", len([]rune(db.lastEvent.InputContent)))
+	}
+}
+
+func TestPipeline_ImageCallsExternalAPI(t *testing.T) {
+	d, ext, _, _, tx, _ := newMockDeps()
+	ext.result = &ExternalAPIResult{
+		Source:  "content-check",
+		RawData: map[string]interface{}{"category": "SCAM"},
+	}
+
+	req := makeRequest(AnalysisRequest{
+		UserID: "u1", InputType: "image", InputContent: "base64imagedata",
+	})
+
+	handleAnalysis(context.Background(), req, d)
+
+	if !ext.called {
+		t.Error("ExternalAPI should be called for image")
+	}
+	if tx.called {
+		t.Error("Transcriber should NOT be called for image")
+	}
+}
