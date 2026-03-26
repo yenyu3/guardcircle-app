@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -15,11 +16,11 @@ import (
 // ── Request / Response ──────────────────────────────────────────
 
 type AnalysisRequest struct {
-	UserID       string `json:"user_id"`
-	InputType    string `json:"input_type"`    // text | url | phone | image | video | audio | file
-	InputContent string `json:"input_content"` // raw text, URL, phone number, or base64 encoded media
-	FileExt      string `json:"file_ext,omitempty"` // file extension for video/audio/file (e.g. "mp4", "m4a", "pdf")
-	Region       string `json:"region,omitempty"`
+	UserID       string   `json:"user_id"`
+	InputType    []string `json:"input_type"`    // ["text"] | ["text","url"] | ["image"] etc.
+	InputContent string   `json:"input_content"` // raw text, URL, phone number, or base64 encoded media
+	FileExt      string   `json:"file_ext,omitempty"` // file extension for video/audio/file (e.g. "mp4", "m4a", "pdf")
+	Region       string   `json:"region,omitempty"`
 }
 
 type AnalysisResponse struct {
@@ -76,7 +77,14 @@ func handleAnalysis(ctx context.Context, req events.APIGatewayV2HTTPRequest, d *
 	cfg := d.Config
 
 	// 2. For video/audio/file: transcribe to text first
-	if ar.InputType == "video" || ar.InputType == "audio" || ar.InputType == "file" {
+	needsTranscribe := false
+	for _, t := range ar.InputType {
+		if t == "video" || t == "audio" || t == "file" {
+			needsTranscribe = true
+			break
+		}
+	}
+	if needsTranscribe {
 		if cfg.TranscribeS3Bucket == "" {
 			return errorResponse(500, "TRANSCRIBE_S3_BUCKET not configured"), nil
 		}
@@ -91,27 +99,32 @@ func handleAnalysis(ctx context.Context, req events.APIGatewayV2HTTPRequest, d *
 		ar.InputContent = transcribedText
 	}
 
-	// 3. Call external API based on input type
-	apiResult, err := d.ExternalAPI.Call(ctx, ar.InputType, ar.InputContent, ar.Region, cfg.WhoscallAPIKey, cfg.WhoscallBaseURL)
-	if err != nil {
-		log.Printf("external API error (non-fatal): %v", err)
-		apiResult = &ExternalAPIResult{
-			Source: ar.InputType,
-			Error:  err.Error(),
+	// 3. Call external API for each input type
+	var apiResults []*ExternalAPIResult
+	for _, inputType := range ar.InputType {
+		result, err := d.ExternalAPI.Call(ctx, inputType, ar.InputContent, ar.Region, cfg.WhoscallAPIKey, cfg.WhoscallBaseURL)
+		if err != nil {
+			log.Printf("external API error for %s (non-fatal): %v", inputType, err)
+			result = &ExternalAPIResult{
+				Source: inputType,
+				Error:  err.Error(),
+			}
 		}
+		apiResults = append(apiResults, result)
 	}
 
 	// 4. Query Bedrock Knowledge Base for similar scam cases
 	var kbContext string
 	if cfg.BedrockKBID != "" {
-		kbContext, err = d.KnowledgeBase.Query(ctx, cfg.BedrockRegion, cfg.BedrockKBID, buildKBQuery(ar.InputType, ar.InputContent))
-		if err != nil {
-			log.Printf("knowledge base query error (non-fatal): %v", err)
+		var kbErr error
+		kbContext, kbErr = d.KnowledgeBase.Query(ctx, cfg.BedrockRegion, cfg.BedrockKBID, buildKBQuery(ar.InputType[0], ar.InputContent))
+		if kbErr != nil {
+			log.Printf("knowledge base query error (non-fatal): %v", kbErr)
 		}
 	}
 
 	// 5. Send everything to Bedrock Claude Sonnet for analysis
-	analysis, err := d.Analyzer.Analyze(ctx, cfg.BedrockRegion, cfg.BedrockModelID, &ar, apiResult, kbContext)
+	analysis, err := d.Analyzer.Analyze(ctx, cfg.BedrockRegion, cfg.BedrockModelID, &ar, apiResults, kbContext)
 	if err != nil {
 		log.Printf("bedrock analysis error: %v", err)
 		return errorResponse(500, "AI analysis failed"), nil
@@ -129,7 +142,7 @@ func handleAnalysis(ctx context.Context, req events.APIGatewayV2HTTPRequest, d *
 	eventData := &EventData{
 		EventID:      eventID,
 		UserID:       ar.UserID,
-		InputType:    ar.InputType,
+		InputType:    strings.Join(ar.InputType, ","),
 		InputContent: truncateContent(ar.InputContent, 500),
 		RiskLevel:    analysis.RiskLevel,
 		RiskScore:    analysis.RiskScore,
@@ -166,14 +179,20 @@ func validateRequest(r *AnalysisRequest) error {
 	if r.UserID == "" {
 		return fmt.Errorf("missing required field: user_id")
 	}
-	switch r.InputType {
-	case "text", "url", "phone", "image":
-	case "video", "audio", "file":
-		if r.FileExt == "" {
-			return fmt.Errorf("file_ext is required for input_type %q", r.InputType)
+	if len(r.InputType) == 0 {
+		return fmt.Errorf("missing required field: input_type")
+	}
+	validTypes := map[string]bool{
+		"text": true, "url": true, "phone": true, "image": true,
+		"video": true, "audio": true, "file": true,
+	}
+	for _, t := range r.InputType {
+		if !validTypes[t] {
+			return fmt.Errorf("invalid input_type: %q, must be text|url|phone|image|video|audio|file", t)
 		}
-	default:
-		return fmt.Errorf("invalid input_type: %q, must be text|url|phone|image|video|audio|file", r.InputType)
+		if (t == "video" || t == "audio" || t == "file") && r.FileExt == "" {
+			return fmt.Errorf("file_ext is required for input_type %q", t)
+		}
 	}
 	if r.InputContent == "" {
 		return fmt.Errorf("missing required field: input_content")

@@ -56,8 +56,8 @@ func queryKnowledgeBase(ctx context.Context, client *bedrockagentruntime.Client,
 
 // ── Bedrock Claude Analysis ─────────────────────────────────────
 
-func analyzeWithBedrock(ctx context.Context, client *bedrockruntime.Client, modelID string, req *AnalysisRequest, apiResult *ExternalAPIResult, kbContext string) (*BedrockAnalysis, error) {
-	prompt := buildPrompt(req, apiResult, kbContext)
+func analyzeWithBedrock(ctx context.Context, client *bedrockruntime.Client, modelID string, req *AnalysisRequest, apiResults []*ExternalAPIResult, kbContext string) (*BedrockAnalysis, error) {
+	prompt := buildPrompt(req, apiResults, kbContext)
 
 	payload := map[string]interface{}{
 		"anthropic_version": "bedrock-2023-05-31",
@@ -148,17 +148,19 @@ func systemPrompt() string {
 請用繁體中文回覆。只回傳 JSON，不要有其他文字。`
 }
 
-func buildPrompt(req *AnalysisRequest, apiResult *ExternalAPIResult, kbContext string) string {
+func buildPrompt(req *AnalysisRequest, apiResults []*ExternalAPIResult, kbContext string) string {
 	var sb strings.Builder
 
-	sb.WriteString(fmt.Sprintf("## 使用者提交內容\n- 類型：%s\n- 內容：%s\n\n", req.InputType, truncateForPrompt(req.InputContent, 2000)))
+	sb.WriteString(fmt.Sprintf("## 使用者提交內容\n- 類型：%s\n- 內容：%s\n\n", strings.Join(req.InputType, ", "), truncateForPrompt(req.InputContent, 2000)))
 
-	if apiResult != nil && apiResult.RawData != nil {
-		apiJSON, _ := json.MarshalIndent(apiResult.RawData, "", "  ")
-		sb.WriteString(fmt.Sprintf("## 外部 API 查詢結果（來源：%s）\n```json\n%s\n```\n\n", apiResult.Source, string(apiJSON)))
-	}
-	if apiResult != nil && apiResult.Error != "" {
-		sb.WriteString(fmt.Sprintf("## 外部 API 查詢備註\n%s\n\n", apiResult.Error))
+	for _, apiResult := range apiResults {
+		if apiResult != nil && apiResult.RawData != nil {
+			apiJSON, _ := json.MarshalIndent(apiResult.RawData, "", "  ")
+			sb.WriteString(fmt.Sprintf("## 外部 API 查詢結果（來源：%s）\n```json\n%s\n```\n\n", apiResult.Source, string(apiJSON)))
+		}
+		if apiResult != nil && apiResult.Error != "" {
+			sb.WriteString(fmt.Sprintf("## 外部 API 查詢備註（%s）\n%s\n\n", apiResult.Source, apiResult.Error))
+		}
 	}
 
 	if kbContext != "" {

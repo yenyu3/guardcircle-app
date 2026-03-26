@@ -52,15 +52,15 @@ type mockAnalyzer struct {
 	err      error
 	called   bool
 	// Capture what was passed in
-	receivedReq       *AnalysisRequest
-	receivedAPIResult *ExternalAPIResult
-	receivedKBContext string
+	receivedReq        *AnalysisRequest
+	receivedAPIResults []*ExternalAPIResult
+	receivedKBContext  string
 }
 
-func (m *mockAnalyzer) Analyze(ctx context.Context, region, modelID string, req *AnalysisRequest, apiResult *ExternalAPIResult, kbContext string) (*BedrockAnalysis, error) {
+func (m *mockAnalyzer) Analyze(ctx context.Context, region, modelID string, req *AnalysisRequest, apiResults []*ExternalAPIResult, kbContext string) (*BedrockAnalysis, error) {
 	m.called = true
 	m.receivedReq = req
-	m.receivedAPIResult = apiResult
+	m.receivedAPIResults = apiResults
 	m.receivedKBContext = kbContext
 	if m.err != nil {
 		return nil, m.err
@@ -136,13 +136,15 @@ func makeRequest(body interface{}) events.APIGatewayV2HTTPRequest {
 
 func TestValidateRequest_Valid(t *testing.T) {
 	cases := []AnalysisRequest{
-		{UserID: "u1", InputType: "text", InputContent: "hello"},
-		{UserID: "u1", InputType: "url", InputContent: "https://example.com"},
-		{UserID: "u1", InputType: "phone", InputContent: "+886912345678"},
-		{UserID: "u1", InputType: "image", InputContent: "base64data"},
-		{UserID: "u1", InputType: "video", InputContent: "base64data", FileExt: "mp4"},
-		{UserID: "u1", InputType: "audio", InputContent: "base64data", FileExt: "m4a"},
-		{UserID: "u1", InputType: "file", InputContent: "base64data", FileExt: "pdf"},
+		{UserID: "u1", InputType: []string{"text"}, InputContent: "hello"},
+		{UserID: "u1", InputType: []string{"url"}, InputContent: "https://example.com"},
+		{UserID: "u1", InputType: []string{"phone"}, InputContent: "+886912345678"},
+		{UserID: "u1", InputType: []string{"image"}, InputContent: "base64data"},
+		{UserID: "u1", InputType: []string{"video"}, InputContent: "base64data", FileExt: "mp4"},
+		{UserID: "u1", InputType: []string{"audio"}, InputContent: "base64data", FileExt: "m4a"},
+		{UserID: "u1", InputType: []string{"file"}, InputContent: "base64data", FileExt: "pdf"},
+		{UserID: "u1", InputType: []string{"text", "url"}, InputContent: "check https://example.com"},
+		{UserID: "u1", InputType: []string{"text", "image"}, InputContent: "base64data"},
 	}
 	for _, c := range cases {
 		if err := validateRequest(&c); err != nil {
@@ -156,12 +158,13 @@ func TestValidateRequest_Errors(t *testing.T) {
 		name string
 		req  AnalysisRequest
 	}{
-		{"missing user_id", AnalysisRequest{InputType: "text", InputContent: "hi"}},
-		{"invalid input_type", AnalysisRequest{UserID: "u1", InputType: "unknown", InputContent: "hi"}},
-		{"missing input_content", AnalysisRequest{UserID: "u1", InputType: "text"}},
-		{"video without file_ext", AnalysisRequest{UserID: "u1", InputType: "video", InputContent: "data"}},
-		{"audio without file_ext", AnalysisRequest{UserID: "u1", InputType: "audio", InputContent: "data"}},
-		{"file without file_ext", AnalysisRequest{UserID: "u1", InputType: "file", InputContent: "data"}},
+		{"missing user_id", AnalysisRequest{InputType: []string{"text"}, InputContent: "hi"}},
+		{"invalid input_type", AnalysisRequest{UserID: "u1", InputType: []string{"unknown"}, InputContent: "hi"}},
+		{"missing input_content", AnalysisRequest{UserID: "u1", InputType: []string{"text"}}},
+		{"empty input_type", AnalysisRequest{UserID: "u1", InputType: []string{}, InputContent: "hi"}},
+		{"video without file_ext", AnalysisRequest{UserID: "u1", InputType: []string{"video"}, InputContent: "data"}},
+		{"audio without file_ext", AnalysisRequest{UserID: "u1", InputType: []string{"audio"}, InputContent: "data"}},
+		{"file without file_ext", AnalysisRequest{UserID: "u1", InputType: []string{"file"}, InputContent: "data"}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -263,7 +266,7 @@ func TestPipeline_TextHighRisk(t *testing.T) {
 
 	req := makeRequest(AnalysisRequest{
 		UserID:       "user-123",
-		InputType:    "text",
+		InputType:    []string{"text"},
 		InputContent: "我是銀行客服，請立即操作ATM解除分期付款",
 	})
 
@@ -328,7 +331,7 @@ func TestPipeline_TextLowRisk(t *testing.T) {
 	}
 
 	req := makeRequest(AnalysisRequest{
-		UserID: "user-123", InputType: "text", InputContent: "今天天氣很好",
+		UserID: "user-123", InputType: []string{"text"}, InputContent: "今天天氣很好",
 	})
 
 	resp, _ := handleAnalysis(context.Background(), req, d)
@@ -354,17 +357,17 @@ func TestPipeline_URLWithAPIResult(t *testing.T) {
 	}
 
 	req := makeRequest(AnalysisRequest{
-		UserID: "u1", InputType: "url", InputContent: "https://scam-site.xyz",
+		UserID: "u1", InputType: []string{"url"}, InputContent: "https://scam-site.xyz",
 	})
 
 	handleAnalysis(context.Background(), req, d)
 
 	// Verify the API result was passed to the analyzer
-	if az.receivedAPIResult == nil {
-		t.Fatal("Analyzer should have received API result")
+	if len(az.receivedAPIResults) == 0 {
+		t.Fatal("Analyzer should have received API results")
 	}
-	if az.receivedAPIResult.Source != "url-check" {
-		t.Errorf("expected source 'url-check', got %q", az.receivedAPIResult.Source)
+	if az.receivedAPIResults[0].Source != "url-check" {
+		t.Errorf("expected source 'url-check', got %q", az.receivedAPIResults[0].Source)
 	}
 }
 
@@ -374,7 +377,7 @@ func TestPipeline_PhoneWithKBContext(t *testing.T) {
 	kb.context = "類似案例：+886900111222 為已知詐騙號碼"
 
 	req := makeRequest(AnalysisRequest{
-		UserID: "u1", InputType: "phone", InputContent: "+886900111222",
+		UserID: "u1", InputType: []string{"phone"}, InputContent: "+886900111222",
 	})
 
 	handleAnalysis(context.Background(), req, d)
@@ -393,7 +396,7 @@ func TestPipeline_AudioTranscribe(t *testing.T) {
 	tx.text = "你好，我是銀行客服"
 
 	req := makeRequest(AnalysisRequest{
-		UserID: "u1", InputType: "audio", InputContent: "base64audiodata", FileExt: "m4a",
+		UserID: "u1", InputType: []string{"audio"}, InputContent: "base64audiodata", FileExt: "m4a",
 	})
 
 	handleAnalysis(context.Background(), req, d)
@@ -413,7 +416,7 @@ func TestPipeline_VideoTranscribe(t *testing.T) {
 	tx.text = "投資必賺，保證獲利"
 
 	req := makeRequest(AnalysisRequest{
-		UserID: "u1", InputType: "video", InputContent: "base64video", FileExt: "mp4",
+		UserID: "u1", InputType: []string{"video"}, InputContent: "base64video", FileExt: "mp4",
 	})
 
 	handleAnalysis(context.Background(), req, d)
@@ -432,7 +435,7 @@ func TestPipeline_FileTranscribe(t *testing.T) {
 	tx.text = "匯款到以下帳戶"
 
 	req := makeRequest(AnalysisRequest{
-		UserID: "u1", InputType: "file", InputContent: "base64file", FileExt: "wav",
+		UserID: "u1", InputType: []string{"file"}, InputContent: "base64file", FileExt: "wav",
 	})
 
 	handleAnalysis(context.Background(), req, d)
@@ -451,7 +454,7 @@ func TestPipeline_TranscribeEmptyResult(t *testing.T) {
 	tx.text = "" // empty transcription
 
 	req := makeRequest(AnalysisRequest{
-		UserID: "u1", InputType: "audio", InputContent: "base64", FileExt: "m4a",
+		UserID: "u1", InputType: []string{"audio"}, InputContent: "base64", FileExt: "m4a",
 	})
 
 	handleAnalysis(context.Background(), req, d)
@@ -467,7 +470,7 @@ func TestPipeline_AudioWithoutS3Bucket(t *testing.T) {
 	d.Config.TranscribeS3Bucket = ""
 
 	req := makeRequest(AnalysisRequest{
-		UserID: "u1", InputType: "audio", InputContent: "base64", FileExt: "m4a",
+		UserID: "u1", InputType: []string{"audio"}, InputContent: "base64", FileExt: "m4a",
 	})
 
 	resp, _ := handleAnalysis(context.Background(), req, d)
@@ -482,7 +485,7 @@ func TestPipeline_TranscribeError(t *testing.T) {
 	tx.err = fmt.Errorf("transcription timeout")
 
 	req := makeRequest(AnalysisRequest{
-		UserID: "u1", InputType: "audio", InputContent: "base64", FileExt: "m4a",
+		UserID: "u1", InputType: []string{"audio"}, InputContent: "base64", FileExt: "m4a",
 	})
 
 	resp, _ := handleAnalysis(context.Background(), req, d)
@@ -496,7 +499,7 @@ func TestPipeline_ExternalAPIError_NonFatal(t *testing.T) {
 	ext.err = fmt.Errorf("API timeout")
 
 	req := makeRequest(AnalysisRequest{
-		UserID: "u1", InputType: "url", InputContent: "https://example.com",
+		UserID: "u1", InputType: []string{"url"}, InputContent: "https://example.com",
 	})
 
 	resp, _ := handleAnalysis(context.Background(), req, d)
@@ -505,9 +508,9 @@ func TestPipeline_ExternalAPIError_NonFatal(t *testing.T) {
 	if resp.StatusCode != 200 {
 		t.Errorf("expected 200 (non-fatal API error), got %d", resp.StatusCode)
 	}
-	// Analyzer should receive the error in API result
-	if az.receivedAPIResult.Error != "API timeout" {
-		t.Errorf("expected API error passed through, got %q", az.receivedAPIResult.Error)
+	// Analyzer should receive the error in API results
+	if len(az.receivedAPIResults) == 0 || az.receivedAPIResults[0].Error != "API timeout" {
+		t.Errorf("expected API error passed through")
 	}
 }
 
@@ -517,7 +520,7 @@ func TestPipeline_KBError_NonFatal(t *testing.T) {
 	kb.err = fmt.Errorf("KB unavailable")
 
 	req := makeRequest(AnalysisRequest{
-		UserID: "u1", InputType: "text", InputContent: "test",
+		UserID: "u1", InputType: []string{"text"}, InputContent: "test",
 	})
 
 	resp, _ := handleAnalysis(context.Background(), req, d)
@@ -535,7 +538,7 @@ func TestPipeline_AnalyzerError_Fatal(t *testing.T) {
 	az.err = fmt.Errorf("model invocation failed")
 
 	req := makeRequest(AnalysisRequest{
-		UserID: "u1", InputType: "text", InputContent: "test",
+		UserID: "u1", InputType: []string{"text"}, InputContent: "test",
 	})
 
 	resp, _ := handleAnalysis(context.Background(), req, d)
@@ -549,7 +552,7 @@ func TestPipeline_DBError_NonFatal(t *testing.T) {
 	db.err = fmt.Errorf("connection refused")
 
 	req := makeRequest(AnalysisRequest{
-		UserID: "u1", InputType: "text", InputContent: "test",
+		UserID: "u1", InputType: []string{"text"}, InputContent: "test",
 	})
 
 	resp, _ := handleAnalysis(context.Background(), req, d)
@@ -580,7 +583,7 @@ func TestPipeline_DefaultRegion(t *testing.T) {
 	d, _, _, az, _, _ := newMockDeps()
 
 	req := makeRequest(AnalysisRequest{
-		UserID: "u1", InputType: "text", InputContent: "test",
+		UserID: "u1", InputType: []string{"text"}, InputContent: "test",
 		// Region omitted — should default to "TW"
 	})
 
@@ -600,7 +603,7 @@ func TestPipeline_ContentTruncatedInResponse(t *testing.T) {
 	}
 
 	req := makeRequest(AnalysisRequest{
-		UserID: "u1", InputType: "text", InputContent: string(longContent),
+		UserID: "u1", InputType: []string{"text"}, InputContent: string(longContent),
 	})
 
 	resp, _ := handleAnalysis(context.Background(), req, d)
@@ -623,7 +626,7 @@ func TestPipeline_ImageCallsExternalAPI(t *testing.T) {
 	}
 
 	req := makeRequest(AnalysisRequest{
-		UserID: "u1", InputType: "image", InputContent: "base64imagedata",
+		UserID: "u1", InputType: []string{"image"}, InputContent: "base64imagedata",
 	})
 
 	handleAnalysis(context.Background(), req, d)
