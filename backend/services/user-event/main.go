@@ -51,8 +51,9 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	var inputType, inputContent, riskLevel, reason, notifyStatus, createdAt string
+	var inputType, inputContent, riskLevel, scamType, summary, consequence, reason, notifyStatus, createdAt string
 	var riskScore sql.NullInt32
+	var riskFactors sql.NullString
 	var topSignals sql.NullString
 
 	err := db.QueryRowContext(ctx, `
@@ -61,13 +62,17 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 			input_content,
 			risk_level,
 			risk_score,
+			scam_type,
+			summary,
+			COALESCE(consequence, ''),
 			reason,
+			risk_factors::text,
 			top_signals::text,
 			notify_status,
 			to_char(created_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
 		FROM scan_events
 		WHERE user_id = $1 AND event_id = $2
-	`, userID, eventID).Scan(&inputType, &inputContent, &riskLevel, &riskScore, &reason, &topSignals, &notifyStatus, &createdAt)
+	`, userID, eventID).Scan(&inputType, &inputContent, &riskLevel, &riskScore, &scamType, &summary, &consequence, &reason, &riskFactors, &topSignals, &notifyStatus, &createdAt)
 	if err == sql.ErrNoRows {
 		return jsonResp(http.StatusNotFound, map[string]string{"error": "event not found"})
 	}
@@ -82,6 +87,13 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 			topSignalsVal = parsed
 		}
 	}
+	var riskFactorsVal interface{}
+	if riskFactors.Valid && riskFactors.String != "" {
+		var parsed interface{}
+		if err := json.Unmarshal([]byte(riskFactors.String), &parsed); err == nil {
+			riskFactorsVal = parsed
+		}
+	}
 
 	data := map[string]interface{}{
 		"event_id":      eventID,
@@ -89,6 +101,9 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 		"input_type":    inputType,
 		"input_content": inputContent,
 		"risk_level":    riskLevel,
+		"scam_type":     scamType,
+		"summary":       summary,
+		"consequence":   consequence,
 		"reason":        reason,
 		"notify_status": notifyStatus,
 		"created_at":    createdAt,
@@ -96,6 +111,9 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 	}
 	if riskScore.Valid {
 		data["risk_score"] = int(riskScore.Int32)
+	}
+	if riskFactorsVal != nil {
+		data["risk_factors"] = riskFactorsVal
 	}
 	if topSignalsVal != nil {
 		data["top_signals"] = topSignalsVal

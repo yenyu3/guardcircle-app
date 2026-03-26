@@ -45,3 +45,40 @@ variable "lambda_architecture" {
   type        = string
   default     = "arm64"
 }
+
+variable "whoscall_api_key" {
+  description = "Whoscall API key for external scam-check APIs"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "whoscall_base_url" {
+  description = "Whoscall API base URL"
+  type        = string
+  default     = ""
+}
+
+variable "bedrock_model_id" {
+  description = "Bedrock model ID for scam analysis (defaults to Claude Sonnet 4 in Go code)"
+  type        = string
+  default     = "arn:aws:bedrock:us-east-1:271189006497:inference-profile/global.anthropic.claude-sonnet-4-5-20250929-v1:0"
+}
+
+variable "bedrock_kb_id" {
+  description = "AWS Bedrock Knowledge Base ID for similar scam retrieval"
+  type        = string
+  default     = ""
+}
+
+variable "transcribe_s3_bucket" {
+  description = "S3 bucket for temporary Transcribe media uploads"
+  type        = string
+  default     = ""
+}
+
+variable "uploads_bucket_name" {
+  description = "S3 bucket name for presigned upload files"
+  type        = string
+  default     = "guardcircle-upload"
+}

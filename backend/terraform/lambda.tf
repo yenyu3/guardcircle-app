@@ -50,6 +50,82 @@ resource "aws_iam_role_policy_attachment" "lambda_vpc" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
 
+resource "aws_iam_role_policy" "lambda_bedrock" {
+  name = "${var.project_name}-lambda-bedrock"
+  role = aws_iam_role.lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "bedrock:InvokeModel",
+          "bedrock:InvokeModelWithResponseStream",
+        ]
+        Resource = [
+          "arn:aws:bedrock:*::foundation-model/*",
+          "arn:aws:bedrock:*:*:inference-profile/*",
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "bedrock:Retrieve",
+        ]
+        Resource = "arn:aws:bedrock:${var.aws_region}:*:knowledge-base/*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "transcribe:StartTranscriptionJob",
+          "transcribe:GetTranscriptionJob",
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "rekognition:StartContentModeration",
+          "rekognition:GetContentModeration",
+          "rekognition:StartLabelDetection",
+          "rekognition:GetLabelDetection",
+          "rekognition:DetectText",
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:DeleteObject",
+        ]
+        Resource = "arn:aws:s3:::${var.transcribe_s3_bucket}/*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "lambda_s3_uploads" {
+  name = "${var.project_name}-lambda-uploads"
+  role = aws_iam_role.lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+        ]
+        Resource = "arn:aws:s3:::${aws_s3_bucket.uploads.bucket}/*"
+      }
+    ]
+  })
+}
+
 locals {
   lambda_env = {
     DB_HOST = aws_rds_cluster.this.endpoint
@@ -170,6 +246,8 @@ resource "aws_lambda_function" "analysis" {
   package_type  = "Image"
   image_uri     = module.docker_image["analysis"].image_uri
   architectures = [var.lambda_architecture]
+  timeout       = 300
+  memory_size   = 512
 
   vpc_config {
     subnet_ids         = local.lambda_subnets
@@ -177,7 +255,14 @@ resource "aws_lambda_function" "analysis" {
   }
 
   environment {
-    variables = local.lambda_env
+    variables = merge(local.lambda_env, {
+      WHOSCALL_API_KEY     = var.whoscall_api_key
+      WHOSCALL_BASE_URL    = var.whoscall_base_url
+      BEDROCK_KB_ID        = var.bedrock_kb_id
+      BEDROCK_REGION       = var.aws_region
+      BEDROCK_MODEL_ID     = var.bedrock_model_id
+      TRANSCRIBE_S3_BUCKET = var.transcribe_s3_bucket
+    })
   }
 }
 
@@ -229,5 +314,36 @@ resource "aws_lambda_function" "auth_login" {
 
   environment {
     variables = local.lambda_env
+  }
+}
+
+resource "aws_lambda_function" "scan_events_notify_status" {
+  function_name = "${var.project_name}-scan-events-notify-status"
+  role          = aws_iam_role.lambda.arn
+  package_type  = "Image"
+  image_uri     = module.docker_image["scan_events_notify_status"].image_uri
+  architectures = [var.lambda_architecture]
+
+  vpc_config {
+    subnet_ids         = local.lambda_subnets
+    security_group_ids = [aws_security_group.lambda.id]
+  }
+
+  environment {
+    variables = local.lambda_env
+  }
+}
+
+resource "aws_lambda_function" "uploads_presign" {
+  function_name = "${var.project_name}-uploads-presign"
+  role          = aws_iam_role.lambda.arn
+  package_type  = "Image"
+  image_uri     = module.docker_image["uploads_presign"].image_uri
+  architectures = [var.lambda_architecture]
+
+  environment {
+    variables = merge(local.lambda_env, {
+      UPLOADS_BUCKET = aws_s3_bucket.uploads.bucket
+    })
   }
 }

@@ -2,16 +2,18 @@ import { Ionicons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import {
+  AppState,
   Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { Colors } from "../theme";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppStore } from "../store";
+import { Colors } from "../theme";
 import { ScrollRefProvider, useScrollRef } from "./ScrollRefContext";
 
 // Auth
@@ -35,25 +37,34 @@ import ResultSafeScreen from "../screens/detect/ResultSafeScreen";
 import ResultScreen from "../screens/detect/ResultScreen";
 
 // Family
-import FamilyRecordScreen from '../screens/family/FamilyRecordScreen';
-import FamilyEventDetailScreen from '../screens/family/FamilyEventDetailScreen';
-import FamilyCreateScreen from '../screens/family/FamilyCreateScreen';
-import FamilyInviteScreen from '../screens/family/FamilyInviteScreen';
-import GuardianAlertScreen from '../screens/family/GuardianAlertScreen';
-import HighRiskEventsScreen from '../screens/family/HighRiskEventsScreen';
+import FamilyCreateScreen from "../screens/family/FamilyCreateScreen";
+import FamilyEventDetailScreen from "../screens/family/FamilyEventDetailScreen";
+import FamilyInviteScreen from "../screens/family/FamilyInviteScreen";
+import FamilyRecordScreen from "../screens/family/FamilyRecordScreen";
+import GuardianAlertScreen from "../screens/family/GuardianAlertScreen";
+import HighRiskEventsScreen from "../screens/family/HighRiskEventsScreen";
 
 // Settings
+import QuickScanSettingsScreen from "../screens/settings/QuickScanSettingsScreen";
 import SettingsAdvancedScreen from "../screens/settings/SettingsAdvancedScreen";
 import SettingsAndroidScreen from "../screens/settings/SettingsAndroidScreen";
 import SettingsPrivacyScreen from "../screens/settings/SettingsPrivacyScreen";
 import SettingsProfileScreen from "../screens/settings/SettingsProfileScreen";
 
-import ScamBriefScreen from '../screens/ScamBriefScreen';
-import KnowledgeCardScreen from '../screens/KnowledgeCardScreen';
+import KnowledgeCardScreen from "../screens/KnowledgeCardScreen";
+import ScamBriefScreen from "../screens/ScamBriefScreen";
 
 // Other
 import DailyChallengeScreen from "../screens/DailyChallengeScreen";
 import WeeklyReportScreen from "../screens/WeeklyReportScreen";
+
+// Services
+import {
+  consumePendingScreenshot,
+  isOverlayActive,
+  startOverlay,
+  stopOverlay,
+} from "../services/QuickScan";
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -106,29 +117,42 @@ export type RootStackParamList = {
   ScamBrief: undefined;
   WeeklyReport: undefined;
   DailyChallenge: undefined;
+  KnowledgeCard: { cardId: string };
   SettingsProfile: undefined;
   SettingsFamily: undefined;
   SettingsPrivacy: undefined;
   SettingsAdvanced: undefined;
   SettingsAndroid: undefined;
+  QuickScanSettings: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
 
-const TAB_ITEMS: Record<string, { label: string; icon: string; iconActive: string }> = {
-  Home:     { label: '首頁',   icon: 'home-outline',     iconActive: 'home' },
-  Detect:   { label: '偵測',   icon: 'radio-outline',    iconActive: 'radio' },
-  Family:   { label: '家庭圈', icon: 'people-outline',   iconActive: 'people' },
-  Settings: { label: '設定',   icon: 'settings-outline', iconActive: 'settings' },
+const TAB_ITEMS: Record<
+  string,
+  { label: string; icon: string; iconActive: string }
+> = {
+  Home: { label: "首頁", icon: "home-outline", iconActive: "home" },
+  Detect: { label: "偵測", icon: "radio-outline", iconActive: "radio" },
+  Family: { label: "家庭圈", icon: "people-outline", iconActive: "people" },
+  Settings: { label: "設定", icon: "settings-outline", iconActive: "settings" },
 } as const;
 
 function CustomTabBar({ state, navigation }: any) {
   const { scrollToTop } = useScrollRef();
   const lastPressTime = useRef<Record<string, number>>({});
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={tabStyles.bar}>
+    <View
+      style={[
+        tabStyles.bar,
+        {
+          paddingBottom: insets.bottom + 12,
+        },
+      ]}
+    >
       {state.routes.map((route: any, index: number) => {
         const item = TAB_ITEMS[route.name];
         if (!item) return null;
@@ -198,7 +222,7 @@ const tabStyles = StyleSheet.create({
 
 function MainTabs() {
   const { currentUser, hasFamilyCircle, apiFetchFamily } = useAppStore();
-  const isGuardian = currentUser.role === 'guardian';
+  const isGuardian = currentUser.role === "guardian";
 
   React.useEffect(() => {
     if (!hasFamilyCircle) return;
@@ -222,9 +246,121 @@ function MainTabs() {
   );
 }
 
+const linking = {
+  prefixes: ["guardcircle://"],
+  config: {
+    screens: {
+      Analyzing: {
+        path: "quickscan",
+        parse: {
+          type: (type: string) => type || "text",
+          // iOS Share Extension sends "content" param; map to "input"
+          input: (_: string) => "",
+        },
+      },
+    },
+  },
+  // Custom URL parser to map "content" → "input"
+  getStateFromPath: (path: string) => {
+    const url = new URL("guardcircle://" + path);
+    if (url.pathname === "/quickscan" || path.startsWith("quickscan")) {
+      const params = new URLSearchParams(
+        url.search || path.split("?")[1] || "",
+      );
+      const type = params.get("type") || "text";
+      const content = params.get("content") || "";
+      return {
+        routes: [
+          {
+            name: "Analyzing",
+            params: {
+              type,
+              input: decodeURIComponent(content),
+            },
+          },
+        ],
+      };
+    }
+    return undefined;
+  },
+};
+
+function QuickScanIntentHandler({
+  navigationRef,
+}: {
+  navigationRef: React.RefObject<any>;
+}) {
+  // Track whether the user has enabled the overlay (so we know to restore it)
+  const overlayEnabled = React.useRef(false);
+
+  // Auto-hide bubble when app is in foreground, show when in background
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+
+    const sub = AppState.addEventListener("change", async (state) => {
+      try {
+        if (state === "active") {
+          // App came to foreground — hide bubble (not needed inside our app)
+          const active = await isOverlayActive();
+          if (active) {
+            overlayEnabled.current = true;
+            stopOverlay();
+          }
+        } else if (state === "background" && overlayEnabled.current) {
+          // App went to background — restore bubble
+          startOverlay();
+        }
+      } catch {
+        // ignore
+      }
+    });
+
+    return () => sub.remove();
+  }, []);
+
+  // Poll for pending screenshots
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+
+    let mounted = true;
+    let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+    const checkPending = async () => {
+      if (!mounted) return;
+      try {
+        const screenshotPath = await consumePendingScreenshot();
+        if (screenshotPath && navigationRef.current) {
+          // Found a pending screenshot — navigate to analysis
+          overlayEnabled.current = true; // keep tracking so it restores later
+          navigationRef.current.navigate("Analyzing", {
+            type: "image",
+            input: "快速掃描擷取",
+            imageUri: "file://" + screenshotPath,
+          });
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    pollTimer = setInterval(checkPending, 1500);
+    setTimeout(checkPending, 800);
+
+    return () => {
+      mounted = false;
+      if (pollTimer) clearInterval(pollTimer);
+    };
+  }, [navigationRef]);
+
+  return null;
+}
+
 export default function AppNavigator() {
+  const navigationRef = useRef<any>(null);
+
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking} ref={navigationRef}>
+      <QuickScanIntentHandler navigationRef={navigationRef} />
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
@@ -270,6 +406,10 @@ export default function AppNavigator() {
         <Stack.Screen
           name="SettingsAndroid"
           component={SettingsAndroidScreen}
+        />
+        <Stack.Screen
+          name="QuickScanSettings"
+          component={QuickScanSettingsScreen}
         />
       </Stack.Navigator>
     </NavigationContainer>

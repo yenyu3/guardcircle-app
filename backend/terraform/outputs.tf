@@ -31,6 +31,8 @@ output "lambda_names" {
     aws_lambda_function.user_event.function_name,
     aws_lambda_function.families_feed.function_name,
     aws_lambda_function.auth_login.function_name,
+    aws_lambda_function.scan_events_notify_status.function_name,
+    aws_lambda_function.uploads_presign.function_name,
   ]
 }
 
@@ -43,4 +45,16 @@ output "image_uris" {
     for k, m in module.docker_image :
     k => m.image_uri
   }
+}
+
+output "uploads_bucket_name" {
+  value = aws_s3_bucket.uploads.bucket
+}
+
+output "uploads_bucket_arn" {
+  value = aws_s3_bucket.uploads.arn
+}
+
+output "uploads_bucket_url" {
+  value = "https://s3.${var.aws_region}.amazonaws.com/${aws_s3_bucket.uploads.bucket}"
 }
