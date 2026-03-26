@@ -45,3 +45,34 @@ variable "lambda_architecture" {
   type        = string
   default     = "arm64"
 }
+
+variable "whoscall_api_key" {
+  description = "Whoscall API key for external scam-check APIs"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "whoscall_base_url" {
+  description = "Whoscall API base URL"
+  type        = string
+  default     = ""
+}
+
+variable "bedrock_model_id" {
+  description = "Bedrock model ID for scam analysis (defaults to Claude Sonnet 4 in Go code)"
+  type        = string
+  default     = ""
+}
+
+variable "bedrock_kb_id" {
+  description = "AWS Bedrock Knowledge Base ID for similar scam retrieval"
+  type        = string
+  default     = ""
+}
+
+variable "transcribe_s3_bucket" {
+  description = "S3 bucket for temporary Transcribe media uploads"
+  type        = string
+  default     = ""
+}
