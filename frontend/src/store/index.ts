@@ -255,7 +255,7 @@ export const useAppStore = create<AppState>((set) => ({
     if (!familyId) return;
     const [feedRes, scanRes] = await Promise.all([
       API.getFamilyFeed(familyId),
-      API.getFamilyScanEvents(familyId, { limit: 1 }),
+      API.getFamilyScanEvents(familyId),
     ]);
     const members: import('../types').FamilyMember[] = feedRes.members_status.map((m) => ({
       id: m.user_id,
@@ -266,8 +266,28 @@ export const useAppStore = create<AppState>((set) => ({
         : 'safe',
       lastActive: m.last_event?.created_at ?? '',
     }));
+    const events: import('../types').DetectEvent[] = scanRes.events.map((e) => {
+      const existing = useAppStore.getState().events.find((ev) => ev.id === e.event_id);
+      // 若本地已 resolve，保留本地狀態不被後端覆蓋
+      if (existing?.resolvedAt) return existing;
+      return {
+        id: e.event_id,
+        userId: e.user_id,
+        userNickname: e.user_nickname,
+        type: e.input_type,
+        input: e.input_content,
+        riskLevel: API.mapRiskLevel(e.risk_level),
+        riskScore: e.risk_score,
+        scamType: e.input_type,
+        summary: e.reason,
+        riskFactors: [],
+        createdAt: e.created_at,
+        status: e.risk_level === 'high' ? 'high_risk' : e.risk_level === 'medium' ? 'pending' : 'safe',
+      };
+    });
     set((s) => ({
       family: { ...s.family, id: familyId, name: scanRes.family_name || s.family.name, members },
+      events,
     }));
   },
 

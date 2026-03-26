@@ -37,7 +37,7 @@ const DS = {
 
 export default function FamilyJoinScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const { joinFamily, currentUser, saveAccount, registeredAccounts, apiJoinFamily, apiCreateFamily } = useAppStore();
+  const { currentUser, saveAccount, registeredAccounts, apiJoinFamily, apiCreateFamily, joinFamily } = useAppStore();
   const password = registeredAccounts.find(a => a.phone === currentUser.phone)?.password ?? '';
   const role = currentUser?.role;
   const [digits, setDigits] = useState(["", "", "", "", "", ""]);
@@ -75,18 +75,16 @@ export default function FamilyJoinScreen() {
       Alert.alert("請輸入完整的 6 位數代碼");
       return;
     }
-    const code = digits.join('');
     setLoading(true);
     try {
-      await apiJoinFamily(code);
+      await apiJoinFamily(digits.join(''));
+      saveAccount(password);
+      navigation.replace("Main");
     } catch {
-      // 後端不可用時使用本地模式
-      joinFamily();
+      Alert.alert("加入失敗", "邀請碼無效或已過期，請確認後再試");
     } finally {
       setLoading(false);
     }
-    saveAccount(password);
-    navigation.replace("Main");
   };
 
   const handleSendToFamily = async () => {

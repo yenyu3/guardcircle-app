@@ -787,9 +787,7 @@ function GatekeeperHome({
         </Text>
         <Text style={styles.gkBriefBody}>
           日本近期出現結合 AI
-          的銀行詐騙，透過語音釣魚結合假客服與釣魚郵件，誘導受害者登入仿冒網銀網站並竊取帳密進行資金轉移。由於
-          AI
-          讓語音與對話更加自然且具互動性，受害者更容易降低警戒，導致詐騙成功率明顯提升。
+          的銀行詐騙，透過語音釣魚結合假客服與釣魚郵件，誘導受害者登入仿冒網銀網站並竊取帳密進行資金轉移。
         </Text>
         <Pressable
           onPress={() => navigation.navigate("ScamBrief")}
@@ -1002,7 +1000,7 @@ function SolverHome({
 // ── Main Export ────────────────────────────────────────────────
 export default function HomeScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const { currentUser, hasFamilyCircle } = useAppStore();
+  const { currentUser, hasFamilyCircle, apiFetchFamily } = useAppStore();
   const scrollRef = useRef<ScrollView>(null);
   const { register } = useScrollRef();
 
@@ -1010,7 +1008,8 @@ export default function HomeScreen() {
     React.useCallback(() => {
       register("Home", scrollRef);
       scrollRef.current?.scrollTo({ y: 0, animated: false });
-    }, []),
+      if (hasFamilyCircle) apiFetchFamily().catch(() => {});
+    }, [hasFamilyCircle]),
   );
 
   return (
