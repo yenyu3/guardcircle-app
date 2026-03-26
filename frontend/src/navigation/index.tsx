@@ -197,8 +197,15 @@ const tabStyles = StyleSheet.create({
 });
 
 function MainTabs() {
-  const { currentUser } = useAppStore();
+  const { currentUser, hasFamilyCircle, apiFetchFamily } = useAppStore();
   const isGuardian = currentUser.role === 'guardian';
+
+  React.useEffect(() => {
+    if (!hasFamilyCircle) return;
+    apiFetchFamily().catch(() => {});
+    const id = setInterval(() => apiFetchFamily().catch(() => {}), 15000);
+    return () => clearInterval(id);
+  }, [hasFamilyCircle]);
 
   return (
     <ScrollRefProvider>

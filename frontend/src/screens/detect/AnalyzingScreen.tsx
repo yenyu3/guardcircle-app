@@ -88,9 +88,9 @@ export default function AnalyzingScreen() {
           const result = {
             riskLevel,
             riskScore: apiResult.risk_score,
-            scamType: apiResult.top_signals?.[0] ?? '無詳細資訊',
-            summary: apiResult.reason,
-            riskFactors: apiResult.top_signals ?? [],
+            scamType: apiResult.scam_type ?? apiResult.top_signals?.[0] ?? '無詳細資訊',
+            summary: apiResult.summary ?? apiResult.reason,
+            riskFactors: apiResult.risk_factors ?? apiResult.top_signals ?? [],
             reason: apiResult.reason,
           };
           const now = new Date()

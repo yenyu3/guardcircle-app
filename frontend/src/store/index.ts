@@ -9,6 +9,7 @@ import {
   User,
 } from "../types";
 import * as API from "../api";
+import { resolveAvatar } from "../components/NpcAvatar";
 
 interface RegisteredAccount {
   phone: string;
@@ -85,6 +86,17 @@ interface AppState {
   toggleElderMode: () => void;
   blacklistKeywords: string[];
   setBlacklistKeywords: (keywords: string[]) => void;
+}
+
+export function formatDate(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -215,6 +227,12 @@ export const useAppStore = create<AppState>((set) => ({
       hasFamilyCircle: !!d.family_id,
       currentUser: { ...s.currentUser, nickname: d.nickname, phone, role },
     }));
+    // 補抓 gender 以還原頭貼
+    try {
+      const userRes = await API.getUser(d.user_id);
+      const g = userRes.data.gender as 'male' | 'female' | 'other' | undefined;
+      set((s) => ({ currentUser: { ...s.currentUser, gender: g } }));
+    } catch {}
   },
 
   apiRegister: async ({ phone, password, nickname, gender, birthday, role, contact_phone }) => {
@@ -257,14 +275,16 @@ export const useAppStore = create<AppState>((set) => ({
       API.getFamilyFeed(familyId),
       API.getFamilyScanEvents(familyId),
     ]);
+
     const members: import('../types').FamilyMember[] = feedRes.members_status.map((m) => ({
       id: m.user_id,
       nickname: m.nickname,
       role: API.mapRole(m.role),
+      avatar: resolveAvatar(API.mapRole(m.role), m.user_id),
       status: m.last_event
         ? (m.last_event.risk_level === 'high' ? 'high_risk' : m.last_event.risk_level === 'medium' ? 'pending' : 'safe')
         : 'safe',
-      lastActive: m.last_event?.created_at ?? '',
+      lastActive: m.last_event ? formatDate(m.last_event.created_at) : '',
     }));
     const events: import('../types').DetectEvent[] = scanRes.events.map((e) => {
       const existing = useAppStore.getState().events.find((ev) => ev.id === e.event_id);
@@ -278,10 +298,10 @@ export const useAppStore = create<AppState>((set) => ({
         input: e.input_content,
         riskLevel: API.mapRiskLevel(e.risk_level),
         riskScore: e.risk_score,
-        scamType: e.input_type,
-        summary: e.reason,
-        riskFactors: [],
-        createdAt: e.created_at,
+        scamType: e.scam_type,
+        summary: e.summary,
+        riskFactors: e.risk_factors ?? [],
+        createdAt: formatDate(e.created_at),
         status: e.risk_level === 'high' ? 'high_risk' : e.risk_level === 'medium' ? 'pending' : 'safe',
       };
     });
@@ -294,7 +314,7 @@ export const useAppStore = create<AppState>((set) => ({
   apiAnalyze: async ({ input_type, content }) => {
     const { userId } = useAppStore.getState();
     if (!userId) throw new Error('not logged in');
-    const res = await API.analyze({ user_id: userId, input_type, content });
+    const res = await API.analyze({ user_id: userId, input_type: [input_type], input_content: content });
     return res.data;
   },
 
@@ -302,7 +322,13 @@ export const useAppStore = create<AppState>((set) => ({
     const { userId } = useAppStore.getState();
     if (!userId) throw new Error('not logged in');
     const res = await API.patchUser(userId, body);
-    set((s) => ({ currentUser: { ...s.currentUser, nickname: res.data.nickname } }));
+    set((s) => ({
+      currentUser: {
+        ...s.currentUser,
+        nickname: res.data.nickname,
+        role: API.mapRole(res.data.role),
+      },
+    }));
   },
 
   logout: () => set({ isLoggedIn: false, hasFamilyCircle: false, userId: null, familyId: null }),
@@ -322,9 +348,7 @@ export const useAppStore = create<AppState>((set) => ({
     })),
 
   resolveEvent: (eventId, gatekeeperResponse) => {
-    const now = new Date()
-      .toLocaleString("zh-TW", { hour12: false })
-      .slice(0, 15);
+    const now = formatDate(new Date().toISOString());
     set((s) => {
       const targetEvent = s.events.find((e) => e.id === eventId);
       const updatedMembers = targetEvent

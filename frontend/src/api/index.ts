@@ -97,7 +97,11 @@ export interface FamilyScanEvent {
   input_content: string;
   risk_level: BackendRiskLevel;
   risk_score: number;
+  scam_type: string;
+  summary: string;
   reason: string;
+  risk_factors: string[];
+  top_signals: string[];
   notify_status: string;
   created_at: string;
 }
@@ -123,10 +127,10 @@ export const getFamilyScanEvents = (
 
 export interface AnalysisReq {
   user_id: string;
-  input_type: 'text' | 'image' | 'url' | 'phone';
-  content: string;
-  image_url?: string | null;
-  metadata?: { source?: string; timestamp?: string };
+  input_type: ('text' | 'image' | 'url' | 'phone')[];
+  input_content: string;
+  file_ext?: string;
+  region?: string;
 }
 
 export interface AnalysisRes {
@@ -138,7 +142,10 @@ export interface AnalysisRes {
     input_content: string;
     risk_level: BackendRiskLevel;
     risk_score: number;
+    scam_type: string;
+    summary: string;
     reason: string;
+    risk_factors: string[];
     top_signals: string[];
     notify_status: string;
     created_at: string;
@@ -158,7 +165,10 @@ export interface GetUserEventRes {
     input_content: string;
     risk_level: BackendRiskLevel;
     risk_score: number;
+    scam_type: string;
+    summary: string;
     reason: string;
+    risk_factors: string[];
     top_signals: string[];
     raw_result?: Record<string, unknown>;
     notify_status: string;
@@ -176,11 +186,12 @@ export interface PatchUserReq {
   contact_phone?: string;
   gender?: 'male' | 'female' | 'other' | 'unknown';
   birthday?: string;
+  role?: BackendRole;
 }
 
 export interface PatchUserRes {
   message: string;
-  data: { user_id: string; nickname: string; updated_at: string };
+  data: { user_id: string; nickname: string; role: BackendRole; updated_at: string };
 }
 
 export const patchUser = (userId: string, body: PatchUserReq) =>

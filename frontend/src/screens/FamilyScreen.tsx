@@ -26,7 +26,7 @@ const STATUS_LABEL: Record<string, string> = {
 const ROLE_LABEL: Record<string, string> = {
   guardian: '守護者',
   gatekeeper: '守門人',
-  solver: '解析者',
+  solver: '識破者',
 };
 
 export default function FamilyScreen() {

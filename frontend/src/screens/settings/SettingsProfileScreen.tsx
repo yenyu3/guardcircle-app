@@ -21,6 +21,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Header from "../../components/Header";
 import { useAppStore } from "../../store";
+import * as API from "../../api";
 import { Colors, Radius, Shadow } from "../../theme";
 import { Role } from "../../types";
 
@@ -196,11 +197,13 @@ export default function SettingsProfileScreen() {
     });
     // 嘗試同步到後端
     try {
+      const backendRole: API.BackendRole = pendingRole === 'solver' ? 'youth' : pendingRole;
       await apiPatchUser({
         nickname,
         contact_phone: stripPhone(emergencyPhone) || undefined,
         gender: genderMapped,
         birthday,
+        role: backendRole,
       });
     } catch {
       // 後端不可用時僅更新本地，不影響使用者

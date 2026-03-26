@@ -195,6 +195,46 @@ export default function FamilyJoinScreen() {
           </View>
         )}
 
+        {/* Card: Guardian join with code */}
+        {role === "guardian" && (
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="people-outline" size={26} color={DS.primary} />
+              <Text style={styles.cardTitle}>輸入家庭圈 ID 加入</Text>
+            </View>
+            <Text style={styles.cardDesc}>輸入家人提供的 6 位家庭圈 ID</Text>
+            <View style={styles.digitRow}>
+              {digits.map((d, i) => (
+                <TextInput
+                  key={i}
+                  ref={(r) => { inputRefs.current[i] = r; }}
+                  style={[styles.digitBox, d && styles.digitBoxFilled]}
+                  value={d}
+                  onChangeText={(v) => handleDigit(v, i)}
+                  onKeyPress={(e) => handleKeyPress(e, i)}
+                  keyboardType="default"
+                  autoCapitalize="characters"
+                  maxLength={1}
+                  textAlign="center"
+                />
+              ))}
+            </View>
+            <Pressable
+              onPress={handleJoin}
+              style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }, !codeComplete && styles.solidBtnDisabled]}
+            >
+              <LinearGradient
+                colors={[DS.primary, DS.primaryContainer]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.gradientBtn}
+              >
+                <Text style={styles.solidBtnText}>送出加入申請</Text>
+              </LinearGradient>
+            </Pressable>
+          </View>
+        )}
+
         {/* Card 2: Join with code */}
         {showJoin && (
           <View style={styles.card}>

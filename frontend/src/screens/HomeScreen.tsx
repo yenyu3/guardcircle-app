@@ -414,7 +414,7 @@ function GuardianHome({
           全部 ({guardians.length})
         </Text>
       </View>
-      <View style={styles.familyRow}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.familyRow}>
         {guardians.map((m) => (
           <View key={m.id} style={styles.familyMember}>
             <View style={styles.familyAvatarWrap}>
@@ -434,7 +434,7 @@ function GuardianHome({
             </Text>
           </View>
         ))}
-      </View>
+      </ScrollView>
 
       {/* 今日詐騙快報 */}
       <View style={styles.gkBriefCard}>
@@ -708,9 +708,7 @@ function GatekeeperHome({
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.gkMemberName}>{m.nickname}</Text>
-                <Text style={styles.gkMemberTime}>
-                  最後活動：{m.lastActive}
-                </Text>
+                <Text style={styles.gkMemberTime}>{m.lastActive}</Text>
               </View>
               <View style={[styles.gkStatusPill, { backgroundColor: cfg.bg }]}>
                 <Text style={[styles.gkStatusPillText, { color: cfg.color }]}>
@@ -1096,9 +1094,8 @@ const styles = StyleSheet.create({
   familyTitle: { fontSize: 22, fontWeight: "800", color: Colors.text },
   familyAll: { fontSize: 14, fontWeight: "700", color: Colors.primaryDark },
   familyRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
+    paddingBottom: 8,
+    gap: 20,
     marginBottom: 28,
   },
   familyMember: { alignItems: "center", gap: 8 },

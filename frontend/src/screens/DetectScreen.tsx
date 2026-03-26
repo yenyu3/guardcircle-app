@@ -40,15 +40,17 @@ interface Attachment {
   name: string;
 }
 
-function detectInputType(text: string): "url" | "phone" | "text" {
+function detectInputTypes(text: string): string[] {
   const trimmed = text.trim();
-  if (
-    /^https?:\/\//i.test(trimmed) ||
-    /(www\.|\.com|\.tw|\.net|\.org)/i.test(trimmed)
-  )
-    return "url";
-  if (/^[\+]?[\d\s\-\(\)]{7,15}$/.test(trimmed)) return "phone";
-  return "text";
+  const types: string[] = [];
+  const hasUrl = /https?:\/\/\S+/i.test(trimmed) || /(www\.\S+|\.com|\.tw|\.net|\.org)/i.test(trimmed);
+  const hasPhone = /[\+]?[\d][\d\s\-\(\)]{6,14}[\d]/.test(trimmed);
+  const isPureUrl = hasUrl && !hasPhone && /^https?:\/\/\S+$/i.test(trimmed);
+  const isPurePhone = hasPhone && !hasUrl && /^[\+]?[\d\s\-\(\)]{7,15}$/.test(trimmed);
+  if (hasUrl) types.push("url");
+  if (hasPhone) types.push("phone");
+  if (!isPureUrl && !isPurePhone) types.push("text");
+  return types;
 }
 
 const RISK_META: Record<RiskLevel, { color: string; label: string }> = {
@@ -255,10 +257,13 @@ export default function DetectScreen() {
     }, [])
   );
 
-  const detectedType = text.trim() ? detectInputType(text) : null;
-  const activeBadgeType: string | null =
-    detectedType ?? (attachments.length > 0 ? attachments[0].type : null);
-  const typeInfo = activeBadgeType ? INPUT_TYPE_LABEL[activeBadgeType] : null;
+  const detectedTypes = text.trim() ? detectInputTypes(text) : [];
+  const activeBadgeTypes: string[] =
+    detectedTypes.length > 0
+      ? detectedTypes
+      : attachments.length > 0
+      ? [attachments[0].type]
+      : [];
 
   const handlePickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -315,7 +320,7 @@ export default function DetectScreen() {
     const type =
       attachments.length > 0 && !text.trim()
         ? firstAttachment.type
-        : (detectedType ?? "text");
+        : (detectedTypes[0] ?? "text");
     const input = text.trim() || firstAttachment?.name || "";
     const imageUri = hasImage ? firstAttachment.uri : undefined;
     const attachmentUri = !hasImage && firstAttachment ? firstAttachment.uri : undefined;
@@ -358,22 +363,24 @@ export default function DetectScreen() {
 
           {/* Input card */}
           <View style={[styles.inputCard, Shadow.card]}>
-            {typeInfo && (
-              <View
-                style={[
-                  styles.typeBadge,
-                  { backgroundColor: typeInfo.color + "22" },
-                ]}
-              >
-                <Ionicons
-                  name={typeInfo.icon as any}
-                  size={13}
-                  color={typeInfo.color}
-                />
-                <Text style={[styles.typeBadgeText, { color: typeInfo.color }]}>
-                  {typeInfo.label}
-                </Text>
-              </View>
+            {activeBadgeTypes.length > 0 && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ flexDirection: "row", gap: 6 }}>
+                {activeBadgeTypes.map((t) => {
+                  const info = INPUT_TYPE_LABEL[t];
+                  if (!info) return null;
+                  return (
+                    <View
+                      key={t}
+                      style={[styles.typeBadge, { backgroundColor: info.color + "22" }]}
+                    >
+                      <Ionicons name={info.icon as any} size={13} color={info.color} />
+                      <Text style={[styles.typeBadgeText, { color: info.color }]}>
+                        {info.label}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </ScrollView>
             )}
 
             {attachments.length > 0 && (
