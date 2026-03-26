@@ -1,0 +1,20 @@
+{
+  "enabled": true,
+  "name": "Security Check New Files",
+  "description": "Review newly created files for common security vulnerabilities and sensitive data exposure",
+  "version": "1",
+  "when": {
+    "type": "fileCreated",
+    "patterns": [
+      "*.ts",
+      "*.js",
+      "*.py",
+      "*.go",
+      "*.java"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Check the newly created file for security issues like hardcoded credentials, SQL injection risks, or exposed sensitive data"
+  }
+}

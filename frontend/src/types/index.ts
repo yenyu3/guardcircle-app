@@ -12,7 +12,7 @@ export interface User {
   birthYear?: number;
   birthMonth?: string;
   birthDay?: string;
-  gender?: 'male' | 'female' | 'other';
+  gender?: "male" | "female" | "other";
   emergencyPhone?: string;
   avatar?: string;
   familyIds: string[];

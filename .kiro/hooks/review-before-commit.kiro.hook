@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Review Before Commit",
+  "description": "Review code changes and suggest improvements before committing to ensure code quality",
+  "version": "1",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Review the current git diff and provide feedback on code quality, potential bugs, and best practices"
+  }
+}
