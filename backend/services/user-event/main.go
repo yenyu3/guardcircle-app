@@ -11,10 +11,17 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-var db *sql.DB
+var (
+	db            *sql.DB
+	s3Presigner   *s3.PresignClient
+	uploadsBucket string
+)
 
 func init() {
 	host := os.Getenv("DB_HOST")
@@ -35,6 +42,14 @@ func init() {
 	conn.SetMaxOpenConns(5)
 	conn.SetConnMaxLifetime(5 * time.Minute)
 	db = conn
+
+	uploadsBucket = os.Getenv("UPLOADS_BUCKET")
+	if uploadsBucket != "" {
+		cfg, err := awsconfig.LoadDefaultConfig(context.Background())
+		if err == nil {
+			s3Presigner = s3.NewPresignClient(s3.NewFromConfig(cfg))
+		}
+	}
 }
 
 func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
@@ -55,11 +70,13 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 	var riskScore sql.NullInt32
 	var riskFactors sql.NullString
 	var topSignals sql.NullString
+	var s3Key sql.NullString
 
 	err := db.QueryRowContext(ctx, `
-		SELECT 
+		SELECT
 			input_type,
 			input_content,
+			COALESCE(s3_key, ''),
 			risk_level,
 			risk_score,
 			scam_type,
@@ -72,7 +89,7 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 			to_char(created_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
 		FROM scan_events
 		WHERE user_id = $1 AND event_id = $2
-	`, userID, eventID).Scan(&inputType, &inputContent, &riskLevel, &riskScore, &scamType, &summary, &consequence, &reason, &riskFactors, &topSignals, &notifyStatus, &createdAt)
+	`, userID, eventID).Scan(&inputType, &inputContent, &s3Key, &riskLevel, &riskScore, &scamType, &summary, &consequence, &reason, &riskFactors, &topSignals, &notifyStatus, &createdAt)
 	if err == sql.ErrNoRows {
 		return jsonResp(http.StatusNotFound, map[string]string{"error": "event not found"})
 	}
@@ -118,8 +135,30 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 	if topSignalsVal != nil {
 		data["top_signals"] = topSignalsVal
 	}
+	if s3Key.Valid && s3Key.String != "" {
+		data["s3_key"] = s3Key.String
+		if url := presignGetURL(ctx, s3Key.String); url != "" {
+			data["media_url"] = url
+		}
+	}
 
 	return jsonResp(http.StatusOK, map[string]interface{}{"data": data})
+}
+
+func presignGetURL(ctx context.Context, key string) string {
+	if s3Presigner == nil || uploadsBucket == "" {
+		return ""
+	}
+	out, err := s3Presigner.PresignGetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(uploadsBucket),
+		Key:    aws.String(key),
+	}, func(opts *s3.PresignOptions) {
+		opts.Expires = 1 * time.Hour
+	})
+	if err != nil {
+		return ""
+	}
+	return out.URL
 }
 
 func jsonResp(status int, body interface{}) (events.APIGatewayV2HTTPResponse, error) {
