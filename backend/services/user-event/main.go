@@ -51,14 +51,14 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	var inputType, inputContent, riskLevel, scamType, summary, consequence, reason, notifyStatus, createdAt string
+	var inputTypeJSON, inputContent, riskLevel, scamType, summary, consequence, reason, notifyStatus, createdAt string
 	var riskScore sql.NullInt32
 	var riskFactors sql.NullString
 	var topSignals sql.NullString
 
 	err := db.QueryRowContext(ctx, `
 		SELECT 
-			input_type,
+			input_type::text,
 			input_content,
 			risk_level,
 			risk_score,
@@ -72,12 +72,17 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 			to_char(created_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
 		FROM scan_events
 		WHERE user_id = $1 AND event_id = $2
-	`, userID, eventID).Scan(&inputType, &inputContent, &riskLevel, &riskScore, &scamType, &summary, &consequence, &reason, &riskFactors, &topSignals, &notifyStatus, &createdAt)
+	`, userID, eventID).Scan(&inputTypeJSON, &inputContent, &riskLevel, &riskScore, &scamType, &summary, &consequence, &reason, &riskFactors, &topSignals, &notifyStatus, &createdAt)
 	if err == sql.ErrNoRows {
 		return jsonResp(http.StatusNotFound, map[string]string{"error": "event not found"})
 	}
 	if err != nil {
 		return jsonResp(http.StatusInternalServerError, map[string]string{"error": "failed to fetch event"})
+	}
+
+	var inputTypeParsed []string
+	if inputTypeJSON != "" {
+		_ = json.Unmarshal([]byte(inputTypeJSON), &inputTypeParsed)
 	}
 
 	var topSignalsVal interface{}
@@ -98,7 +103,7 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 	data := map[string]interface{}{
 		"event_id":      eventID,
 		"user_id":       userID,
-		"input_type":    inputType,
+		"input_type":    inputTypeParsed,
 		"input_content": inputContent,
 		"risk_level":    riskLevel,
 		"scam_type":     scamType,

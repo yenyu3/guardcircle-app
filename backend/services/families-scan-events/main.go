@@ -80,7 +80,7 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 			se.event_id::text,
 			se.user_id::text,
 			u.nickname,
-			se.input_type,
+			se.input_type::text,
 			se.input_content,
 			se.risk_level,
 			se.risk_score,
@@ -105,18 +105,22 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 
 	eventsList := make([]map[string]interface{}, 0)
 	for rows.Next() {
-		var eventID, userID, nickname, inputType, inputContent, riskLevel, scamType, summary, consequence, reason, notifyStatus, createdAt string
+		var eventID, userID, nickname, inputTypeJSON, inputContent, riskLevel, scamType, summary, consequence, reason, notifyStatus, createdAt string
 		var riskScore sql.NullInt32
 		var riskFactors sql.NullString
 		var topSignals sql.NullString
-		if err := rows.Scan(&eventID, &userID, &nickname, &inputType, &inputContent, &riskLevel, &riskScore, &scamType, &summary, &consequence, &reason, &riskFactors, &topSignals, &notifyStatus, &createdAt); err != nil {
+		if err := rows.Scan(&eventID, &userID, &nickname, &inputTypeJSON, &inputContent, &riskLevel, &riskScore, &scamType, &summary, &consequence, &reason, &riskFactors, &topSignals, &notifyStatus, &createdAt); err != nil {
 			return jsonResp(http.StatusInternalServerError, map[string]string{"error": "failed to read events"})
+		}
+		var inputTypeParsed []string
+		if inputTypeJSON != "" {
+			_ = json.Unmarshal([]byte(inputTypeJSON), &inputTypeParsed)
 		}
 		item := map[string]interface{}{
 			"event_id":      eventID,
 			"user_id":       userID,
 			"user_nickname": nickname,
-			"input_type":    inputType,
+			"input_type":    inputTypeParsed,
 			"input_content": inputContent,
 			"risk_level":    riskLevel,
 			"scam_type":     scamType,
