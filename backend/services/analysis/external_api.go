@@ -8,7 +8,9 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -101,7 +103,10 @@ func callContentCheck(ctx context.Context, base64Image, region, apiKey, baseURL 
 		"image":  base64Image,
 	})
 
-	submitReq, _ := http.NewRequestWithContext(ctx, "POST", baseURL+"/content-check", bytes.NewReader(reqBody))
+	submitReq, err := http.NewRequestWithContext(ctx, "POST", baseURL+"/content-check", bytes.NewReader(reqBody))
+	if err != nil {
+		return nil, fmt.Errorf("content-check build request: %w", err)
+	}
 	submitReq.Header.Set("x-api-key", apiKey)
 	submitReq.Header.Set("Content-Type", "application/json")
 	submitReq.Header.Set("Accept-Language", "zh-TW")
@@ -136,7 +141,11 @@ func callContentCheck(ctx context.Context, base64Image, region, apiKey, baseURL 
 		case <-time.After(3 * time.Second):
 		}
 
-		pollReq, _ := http.NewRequestWithContext(ctx, "GET", pollURL, nil)
+		pollReq, err := http.NewRequestWithContext(ctx, "GET", pollURL, nil)
+		if err != nil {
+			log.Printf("content-check poll build request error (attempt %d): %v", i+1, err)
+			continue
+		}
 		pollReq.Header.Set("x-api-key", apiKey)
 		pollReq.Header.Set("Accept-Language", "zh-TW")
 
@@ -173,12 +182,16 @@ func callContentCheck(ctx context.Context, base64Image, region, apiKey, baseURL 
 // ── Number Check (Phone) ────────────────────────────────────────
 
 func callNumberCheck(ctx context.Context, number, country, apiKey, baseURL string) (*ExternalAPIResult, error) {
+	number = strings.TrimSpace(number)
 	if country == "" {
 		country = "TW"
 	}
 
-	url := fmt.Sprintf("%s/number-check/%s/%s", baseURL, country, number)
-	req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
+	endpoint := fmt.Sprintf("%s/number-check/%s/%s", baseURL, url.PathEscape(country), url.PathEscape(number))
+	req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("number-check build request: %w", err)
+	}
 	req.Header.Set("x-api-key", apiKey)
 
 	client := &http.Client{Timeout: 10 * time.Second}
@@ -204,6 +217,7 @@ func callNumberCheck(ctx context.Context, number, country, apiKey, baseURL strin
 // ── URL Check ───────────────────────────────────────────────────
 
 func callURLCheck(ctx context.Context, targetURL, apiKey, baseURL string) (*ExternalAPIResult, error) {
+	targetURL = strings.TrimSpace(targetURL)
 	// Try cache first
 	result, err := doURLCheck(ctx, baseURL+"/url-check-cache", targetURL, apiKey)
 	if err == nil {
@@ -216,7 +230,10 @@ func callURLCheck(ctx context.Context, targetURL, apiKey, baseURL string) (*Exte
 
 func doURLCheck(ctx context.Context, endpoint, targetURL, apiKey string) (*ExternalAPIResult, error) {
 	reqBody, _ := json.Marshal(map[string]string{"url": targetURL})
-	req, _ := http.NewRequestWithContext(ctx, "POST", endpoint, bytes.NewReader(reqBody))
+	req, err := http.NewRequestWithContext(ctx, "POST", endpoint, bytes.NewReader(reqBody))
+	if err != nil {
+		return nil, fmt.Errorf("url-check build request: %w", err)
+	}
 	req.Header.Set("x-api-key", apiKey)
 	req.Header.Set("Content-Type", "application/json")
 
