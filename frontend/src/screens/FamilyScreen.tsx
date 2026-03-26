@@ -52,8 +52,7 @@ export default function FamilyScreen() {
   events.forEach((e) => {
     activities.push({ kind: 'detect', event: e, time: e.createdAt });
     if (e.gatekeeperResponseAt && e.gatekeeperResponse) {
-      const resolverNickname = e.gatekeeperResponse.split('已')[0] ?? '守門人';
-      activities.push({ kind: 'resolve', event: e, resolverNickname, time: e.gatekeeperResponseAt });
+      activities.push({ kind: 'resolve', event: e, resolverNickname: e.gatekeeperResponse, time: e.gatekeeperResponseAt });
     }
   });
   const timelineActivities = activities
@@ -164,7 +163,7 @@ export default function FamilyScreen() {
                         <Text style={styles.timelineTitle}>{item.resolverNickname} · 協助處理事件</Text>
                         <Text style={styles.timelineTime}>{e.gatekeeperResponseAt}</Text>
                       </View>
-                      <Text style={styles.timelineDesc}>{e.gatekeeperResponse?.slice(0, 40)}…</Text>
+                      <Text style={styles.timelineDesc}>{e.summary.slice(0, 40)}…</Text>
                     </View>
                   </TouchableOpacity>
                 );

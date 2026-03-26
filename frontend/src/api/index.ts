@@ -93,8 +93,10 @@ export interface FamilyScanEvent {
   event_id: string;
   user_id: string;
   user_nickname: string;
-  input_type: 'text' | 'image' | 'url' | 'phone';
+  input_type: string; // JSON 字串如 "[\"video\"]" 或 "[\"text\",\"phone\"]"
   input_content: string;
+  s3_key?: string;
+  media_url?: string;
   risk_level: BackendRiskLevel;
   risk_score: number;
   scam_type: string;
@@ -104,6 +106,8 @@ export interface FamilyScanEvent {
   risk_factors: string[];
   top_signals: string[];
   notify_status: string;
+  updated_by?: string;
+  updated_at?: string;
   created_at: string;
 }
 
@@ -128,10 +132,12 @@ export const getFamilyScanEvents = (
 
 export interface AnalysisReq {
   user_id: string;
-  input_type: ('text' | 'image' | 'url' | 'phone')[];
+  input_type: ('text' | 'image' | 'url' | 'phone' | 'video' | 'audio' | 'file')[];
   input_content: string;
+  s3_key?: string;
   file_ext?: string;
   region?: string;
+  poll?: boolean;
 }
 
 export interface AnalysisRes {
@@ -155,7 +161,28 @@ export interface AnalysisRes {
 }
 
 export const analyze = (body: AnalysisReq) =>
-  api.post<AnalysisRes>('/analysis', body);
+  api.post<AnalysisRes & { data?: AnalysisRes['data']; error?: string }>('/analysis', body);
+
+// ── 5.12 取得檔案預簽名網址 (S3 Presign) ────────────────────
+
+export interface PresignReq {
+  file_name: string;
+  content_type: string;
+  file_size: number;
+  purpose: 'analysis';
+}
+
+export interface PresignRes {
+  upload_url: string;
+  object_key: string;
+  bucket: string;
+  expires_in: number;
+  method: 'PUT';
+  headers: Record<string, string>;
+}
+
+export const presignUpload = (body: PresignReq) =>
+  api.post<PresignRes>('/uploads/presign', body);
 
 // ── 5.7 查詢單筆事件詳情 ─────────────────────────────────────
 
@@ -165,6 +192,8 @@ export interface GetUserEventRes {
     user_id: string;
     input_type: string;
     input_content: string;
+    s3_key?: string;
+    media_url?: string;
     risk_level: BackendRiskLevel;
     risk_score: number;
     scam_type: string;
@@ -175,6 +204,8 @@ export interface GetUserEventRes {
     top_signals: string[];
     raw_result?: Record<string, unknown>;
     notify_status: string;
+    updated_by?: string;
+    updated_at?: string;
     created_at: string;
   };
 }
@@ -199,6 +230,21 @@ export interface PatchUserRes {
 
 export const patchUser = (userId: string, body: PatchUserReq) =>
   api.patch<PatchUserRes>(`/users/${userId}`, body);
+
+// ── 5.11 更新通知狀態 ────────────────────────────────────────
+
+export interface PatchNotifyStatusReq {
+  notify_status: 'pending' | 'sent' | 'not_required' | 'failed';
+  updated_by: string;
+}
+
+export interface PatchNotifyStatusRes {
+  message: string;
+  data: { event_id: string; notify_status: string; updated_by: string; updated_at: string };
+}
+
+export const patchNotifyStatus = (eventId: string, body: PatchNotifyStatusReq) =>
+  api.patch<PatchNotifyStatusRes>(`/scan-events/${eventId}/notify-status`, body);
 
 // ── 5.9 家庭圈近況 Feed ──────────────────────────────────────
 

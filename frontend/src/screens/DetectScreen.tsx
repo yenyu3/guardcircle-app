@@ -300,7 +300,7 @@ export default function DetectScreen() {
     });
     if (!result.canceled) {
       const newItems: Attachment[] = result.assets.map((a) => ({
-        type: a.mimeType?.startsWith("video") ? "video" : "file",
+        type: a.mimeType?.startsWith("video") ? "video" : a.mimeType?.startsWith("audio") ? "audio" : "file",
         uri: a.uri,
         name: a.name,
       }));
@@ -327,8 +327,23 @@ export default function DetectScreen() {
         : detectedTypes.length > 0 ? detectedTypes : ["text"];
     const input = text.trim() || firstAttachment?.name || "";
     const imageUri = hasImage ? firstAttachment.uri : undefined;
-    const attachmentUri = !hasImage && firstAttachment ? firstAttachment.uri : undefined;
-    navigation.navigate("Analyzing", { type, types, input, imageUri, attachmentUri });
+    const isMediaAttachment = firstAttachment && !hasImage;
+    const attachmentUri = isMediaAttachment ? firstAttachment.uri : undefined;
+    const attachmentName = isMediaAttachment ? firstAttachment.name : undefined;
+    const mimeType = isMediaAttachment
+      ? (() => {
+          if (firstAttachment.type === 'video') return 'video/mp4';
+          if (firstAttachment.type === 'audio') return 'audio/m4a';
+          // file 類型：從副檔名推導
+          const ext = firstAttachment.name.split('.').pop()?.toLowerCase();
+          if (ext === 'pdf') return 'application/pdf';
+          if (ext === 'mp4' || ext === 'mov') return 'video/mp4';
+          if (ext === 'mp3') return 'audio/mpeg';
+          if (ext === 'm4a') return 'audio/m4a';
+          return 'application/octet-stream';
+        })()
+      : undefined;
+    navigation.navigate("Analyzing", { type, types, input, imageUri, attachmentUri, attachmentName, mimeType });
   };
 
   return (

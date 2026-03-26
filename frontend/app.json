@@ -3,70 +3,30 @@
     "name": "GuardCircle",
     "slug": "GuardCircle",
     "version": "1.0.0",
+    "sdkVersion": "54.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#FFF5E6"
     },
     "ios": {
-      "supportsTablet": true,
-<<<<<<< HEAD
-      "bundleIdentifier": "com.angelal1iii.guardcircle"
-=======
-      "bundleIdentifier": "com.angelaliii.guardcircle",
-      "infoPlist": {
-        "CFBundleURLTypes": [
-          {
-            "CFBundleURLSchemes": ["guardcircle"]
-          }
-        ]
-      }
->>>>>>> a1ed8f020ce8c95a14535eaf9705ebb92be11aa2
+      "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/icon.png"
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "package": "com.angelaliii.guardcircle",
-      "permissions": [
-        "RECEIVE_SMS",
-        "READ_SMS",
-        "POST_NOTIFICATIONS",
-        "INTERNET",
-        "FOREGROUND_SERVICE",
-        "FOREGROUND_SERVICE_SPECIAL_USE",
-        "FOREGROUND_SERVICE_MEDIA_PROJECTION",
-        "SYSTEM_ALERT_WINDOW"
-      ],
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [
-      "expo-dev-client",
-      "expo-notifications",
-      "./plugins/withSmsInterceptor",
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "toolsReplace": {
-              "android:allowBackup": "true"
-            }
-          }
-        }
-      ]
-    ],
-    "extra": {
-      "eas": {
-        "projectId": "400d1584-8901-4655-aa8f-11470331d22d"
-      }
-    }
+    "plugins": []
   }
 }

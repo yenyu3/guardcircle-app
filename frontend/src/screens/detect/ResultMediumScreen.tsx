@@ -6,8 +6,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { RootStackParamList } from "../../navigation";
 import { useAppStore } from "../../store";
-import { DetectEvent } from "../../types";
 import { useElderStyle } from "../../hooks/useElderStyle";
+import * as API from "../../api";
 
 const THEME = {
   bg: "#D4A455",
@@ -23,10 +23,9 @@ const THEME = {
 export default function ResultMediumScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "ResultMedium">>();
-  const { scamType, riskScore, riskFactors, summary, reason, readonly, originalInput, imageUri, attachmentUri } = route.params;
-  const { currentUser, addEvent, addReport, setMemberStatus } = useAppStore();
+  const { scamType, riskScore, riskFactors, summary, reason, readonly, originalInput, imageUri, attachmentUri, eventId } = route.params;
+  const { currentUser, addReport, setMemberStatus } = useAppStore();
   const s = useElderStyle();
-  const eventIdRef = useRef(`e_${Date.now()}`);
   const pulse = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -38,43 +37,21 @@ export default function ResultMediumScreen() {
     ).start();
   }, []);
 
-  function buildEvent(status: "pending" | "safe"): DetectEvent {
-    return {
-      id: eventIdRef.current,
-      userId: currentUser.id,
-      userNickname: currentUser.nickname,
-      type: "text",
-      input: originalInput ?? summary,
-      imageUri,
-      attachmentUri,
-      riskLevel: "medium",
-      riskScore,
-      scamType,
-      summary,
-      riskFactors,
-      createdAt: new Date().toLocaleString("zh-TW", { hour12: false }).slice(0, 15),
-      status,
-      resolvedAt: status === "safe"
-        ? new Date().toLocaleString("zh-TW", { hour12: false }).slice(0, 15)
-        : undefined,
-    };
-  }
-
   function handleSendNotification() {
-    if (!readonly) {
-      addEvent(buildEvent("pending"));
-      setMemberStatus(currentUser.id, "pending");
-    }
+    // 後端事件已存在且 notify_status 預設為 pending，不需要額外操作
+    // apiFetchFamily polling 會自動把這筆事件帶進守門人的未處理列表
+    if (!readonly) setMemberStatus(currentUser.id, "pending");
     Alert.alert("已傳送通知", "守門人收到通知後會盡快回覆你", [
       { text: "確定", onPress: () => navigation.navigate("Main") },
     ]);
   }
 
   function handleCall165() {
-    if (!readonly) {
-      addEvent(buildEvent("safe"));
-      setMemberStatus(currentUser.id, "safe");
+    if (!readonly && eventId) {
+      // 標記為不需要守門人介入，讓這筆事件不出現在未處理列表
+      API.patchNotifyStatus(eventId, { notify_status: 'not_required', updated_by: currentUser.nickname }).catch(() => {});
     }
+    if (!readonly) setMemberStatus(currentUser.id, "safe");
     if (!readonly && currentUser.role === "solver") addReport();
     Linking.openURL("tel:165").catch(() =>
       Alert.alert("無法撥打電話", "請確認裝置支援撥話功能")

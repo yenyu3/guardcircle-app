@@ -29,7 +29,7 @@ const STEPS = [
 export default function AnalyzingScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "Analyzing">>();
-  const { type, types, input, imageUri, attachmentUri } = route.params;
+  const { type, types, input, imageUri, attachmentUri, attachmentName, mimeType } = route.params;
   const { currentUser, addEvent, addContributionPoints, apiAnalyze } = useAppStore();
   const elder = useElderStyle();
   const [step, setStep] = useState(0);
@@ -38,6 +38,7 @@ export default function AnalyzingScreen() {
   const glowOpacity = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
+    console.log('[Analyzing] params:', { type, types, input, hasImageUri: !!imageUri, hasAttachmentUri: !!attachmentUri, attachmentName, mimeType });
     Animated.loop(
       Animated.timing(spin, {
         toValue: 1,
@@ -91,12 +92,15 @@ export default function AnalyzingScreen() {
             let binary = '';
             bytes.forEach((b) => { binary += String.fromCharCode(b); });
             const base64 = btoa(binary);
-            content = `data:image/${ext};base64,${base64}`;
+            content = base64;
           }
           const apiResult = await apiAnalyze({
             input_type: (types ?? [type]) as any,
             content,
             file_ext,
+            attachmentUri: attachmentUri ?? undefined,
+            mimeType: mimeType ?? undefined,
+            fileName: attachmentName ?? undefined,
           });
           const { mapRiskLevel } = await import('../../api');
           const riskLevel = mapRiskLevel(apiResult.risk_level);
@@ -142,6 +146,7 @@ export default function AnalyzingScreen() {
             });
           } else {
             navigation.replace("ResultMedium", {
+              eventId: apiResult.event_id,
               scamType: result.scamType,
               riskScore: result.riskScore,
               riskFactors: result.riskFactors,

@@ -1,6 +1,6 @@
 export type Role = "guardian" | "gatekeeper" | "solver";
 export type RiskLevel = "safe" | "medium" | "high";
-export type DetectType = "text" | "url" | "phone" | "image" | "video" | "file";
+export type DetectType = "text" | "url" | "phone" | "image" | "video" | "audio" | "file";
 // safe: 常態 | high_risk: 等待守門人救援 | pending: 已發出協助請求
 export type EventStatus = "safe" | "high_risk" | "pending";
 
@@ -12,7 +12,7 @@ export interface User {
   birthYear?: number;
   birthMonth?: string;
   birthDay?: string;
-  gender?: "male" | "female" | "other";
+  gender?: 'male' | 'female' | 'other';
   emergencyPhone?: string;
   avatar?: string;
   familyIds: string[];

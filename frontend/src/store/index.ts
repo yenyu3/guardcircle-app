@@ -58,8 +58,12 @@ interface AppState {
   apiJoinFamily: (inviteCode: string) => Promise<void>;
   // 真實 API 拉取家庭圈成員
   apiFetchFamily: () => Promise<void>;
+  // Polling
+  startFamilyPolling: () => void;
+  stopFamilyPolling: () => void;
+  _pollingTimer: ReturnType<typeof setInterval> | null;
   // 真實 API 分析
-  apiAnalyze: (params: { input_type: 'text' | 'image' | 'url' | 'phone' | ('text' | 'image' | 'url' | 'phone')[]; content: string; file_ext?: string }) => Promise<API.AnalysisRes['data']>;
+  apiAnalyze: (params: { input_type: 'text' | 'image' | 'url' | 'phone' | 'video' | 'audio' | 'file' | ('text' | 'image' | 'url' | 'phone' | 'video' | 'audio' | 'file')[]; content: string; file_ext?: string; attachmentUri?: string; mimeType?: string; fileName?: string }) => Promise<API.AnalysisRes['data']>;
   // 真實 API 更新個人資料
   apiPatchUser: (body: API.PatchUserReq) => Promise<void>;
   logout: () => void;
@@ -70,7 +74,7 @@ interface AppState {
     status: EventStatus,
     extra?: Partial<DetectEvent>,
   ) => void;
-  resolveEvent: (eventId: string, gatekeeperResponse: string) => void;
+  resolveEvent: (eventId: string, gatekeeperResponse: string) => Promise<void>;
   setMemberStatus: (
     userId: string,
     status: "safe" | "pending" | "high_risk",
@@ -126,6 +130,7 @@ export const useAppStore = create<AppState>((set) => ({
   registeredAccounts: [],
   userId: null,
   familyId: null,
+  _pollingTimer: null,
 
   setRole: (role) => set((s) => ({ currentUser: { ...s.currentUser, role } })),
 
@@ -231,9 +236,11 @@ export const useAppStore = create<AppState>((set) => ({
       hasFamilyCircle: !!d.family_id,
       currentUser: { ...s.currentUser, id: d.user_id, nickname: d.nickname, phone, role },
     }));
-    // 補抓完整個人資料
+    // 補抓完整個人資料 + 家庭圈資料（並行）
     try {
-      const userRes = await API.getUser(d.user_id);
+      const fetches: Promise<unknown>[] = [API.getUser(d.user_id)];
+      if (d.family_id) fetches.push(useAppStore.getState().apiFetchFamily());
+      const [userRes] = await Promise.all(fetches) as [Awaited<ReturnType<typeof API.getUser>>, ...unknown[]];
       const u = userRes.data;
       const g = u.gender as 'male' | 'female' | 'other' | undefined;
       const [by, bm, bd] = u.birthday ? u.birthday.split('-') : [];
@@ -286,10 +293,21 @@ export const useAppStore = create<AppState>((set) => ({
   apiFetchFamily: async () => {
     const { familyId } = useAppStore.getState();
     if (!familyId) return;
-    const [feedRes, scanRes] = await Promise.all([
-      API.getFamilyFeed(familyId),
-      API.getFamilyScanEvents(familyId),
-    ]);
+
+    // 分頁全量拉取所有揃描事件
+    const PAGE = 100;
+    let offset = 0;
+    let allEvents: API.FamilyScanEvent[] = [];
+    let familyName = '';
+    while (true) {
+      const res = await API.getFamilyScanEvents(familyId, { limit: PAGE, offset });
+      familyName = res.family_name;
+      allEvents = allEvents.concat(res.events);
+      if (res.events.length < PAGE) break;
+      offset += PAGE;
+    }
+
+    const feedRes = await API.getFamilyFeed(familyId);
 
     const members: import('../types').FamilyMember[] = feedRes.members_status.map((m) => ({
       id: m.user_id,
@@ -301,16 +319,24 @@ export const useAppStore = create<AppState>((set) => ({
         : 'safe',
       lastActive: m.last_event ? formatDate(m.last_event.created_at) : '',
     }));
-    const events: import('../types').DetectEvent[] = scanRes.events.map((e) => {
-      const existing = useAppStore.getState().events.find((ev) => ev.id === e.event_id);
-      // 若本地已 resolve，保留本地狀態不被後端覆蓋
-      if (existing?.resolvedAt) return existing;
+    const events: import('../types').DetectEvent[] = allEvents.map((e) => {
+      // input_type 後端回傳 JSON 字串如 "[\"video\"]"，解析取第一個
+      let parsedType: import('../types').DetectType = 'text';
+      try {
+        const arr = JSON.parse(e.input_type);
+        if (Array.isArray(arr) && arr.length > 0) parsedType = arr[0] as import('../types').DetectType;
+      } catch {
+        parsedType = e.input_type as import('../types').DetectType;
+      }
+      // media_url 含 \u0026 編碼，decodeURIComponent 轉換
+      const mediaUrl = e.media_url ? decodeURIComponent(e.media_url.replace(/\\u0026/g, '&')) : undefined;
       return {
         id: e.event_id,
         userId: e.user_id,
         userNickname: e.user_nickname,
-        type: e.input_type,
+        type: parsedType,
         input: e.input_content,
+        attachmentUri: mediaUrl,
         riskLevel: API.mapRiskLevel(e.risk_level),
         riskScore: e.risk_score,
         scamType: e.scam_type,
@@ -320,20 +346,96 @@ export const useAppStore = create<AppState>((set) => ({
         riskFactors: e.risk_factors ?? [],
         topSignals: e.top_signals ?? [],
         createdAt: formatDate(e.created_at),
-        status: e.risk_level === 'high' ? 'high_risk' : e.risk_level === 'medium' ? 'pending' : 'safe',
+        status: (e.notify_status === 'sent' || e.notify_status === 'not_required')
+          ? 'safe'
+          : e.risk_level === 'high' ? 'high_risk' : e.risk_level === 'medium' ? 'pending' : 'safe',
+        gatekeeperResponse: e.updated_by || undefined,
+        gatekeeperResponseAt: e.updated_at ? formatDate(e.updated_at) : undefined,
       };
     });
     set((s) => ({
-      family: { ...s.family, id: familyId, name: scanRes.family_name || s.family.name, members },
+      family: { ...s.family, id: familyId, name: familyName || s.family.name, members },
       events,
     }));
   },
 
-  apiAnalyze: async ({ input_type, content, file_ext }) => {
+  apiAnalyze: async ({ input_type, content, file_ext, attachmentUri, mimeType, fileName }) => {
     const { userId } = useAppStore.getState();
     if (!userId) throw new Error('not logged in');
-    const res = await API.analyze({ user_id: userId, input_type: Array.isArray(input_type) ? input_type : [input_type], input_content: content, file_ext });
-    return res.data;
+
+    const types = Array.isArray(input_type) ? input_type : [input_type];
+    const needsS3 = types.some((t) => t === 'video' || t === 'audio' || t === 'file');
+
+    console.log('[apiAnalyze] entry:', { types, needsS3, hasAttachmentUri: !!attachmentUri, fileName, mimeType });
+
+    let s3Key: string | undefined;
+    let resolvedExt = file_ext;
+    if (needsS3 && attachmentUri && fileName) {
+      resolvedExt = fileName.split('.').pop()?.toLowerCase() ?? file_ext ?? '';
+      const resolvedMime = mimeType ?? 'application/octet-stream';
+
+      console.log('[S3] presign request:', { fileName, resolvedMime, resolvedExt, attachmentUri });
+
+      // 1. 取得 presign URL
+      const presign = await API.presignUpload({
+        file_name: fileName,
+        content_type: resolvedMime,
+        file_size: 0,
+        purpose: 'analysis',
+      });
+      console.log('[S3] presign response:', presign);
+
+      // 2. 上傳檔案到 S3（直接用 fetch PUT，不走 API Gateway）
+      const uploadRes = await fetch(presign.upload_url, {
+        method: 'PUT',
+        headers: { 'Content-Type': resolvedMime },
+        body: await (await fetch(attachmentUri)).blob(),
+      });
+      console.log('[S3] upload status:', uploadRes.status);
+      if (!uploadRes.ok) throw new Error(`S3 upload failed: ${uploadRes.status}`);
+      s3Key = presign.object_key;
+    }
+
+    const payload: API.AnalysisReq = {
+      user_id: userId,
+      input_type: types as API.AnalysisReq['input_type'],
+      input_content: s3Key ? 'presigned' : content,
+      ...(s3Key && { s3_key: s3Key }),
+      ...(resolvedExt && { file_ext: resolvedExt }),
+    };
+
+    console.log('[Analysis] payload:', payload);
+
+    // 3. 呼叫分析 API，遇 503/202 則 retry（video 最多 5 分鐘）
+    const MAX_WAIT_MS = 5 * 60 * 1000;
+    const INITIAL_DELAY_MS = needsS3 ? 10_000 : 0;
+    const RETRY_INTERVAL_MS = 10_000;
+
+    if (INITIAL_DELAY_MS > 0) {
+      await new Promise((r) => setTimeout(r, INITIAL_DELAY_MS));
+    }
+
+    const startTime = Date.now();
+    let isPoll = false;
+    while (true) {
+      try {
+        const res = await API.analyze({ ...payload, ...(isPoll && { poll: true }) });
+        console.log('[Analysis] response message:', res.message, 'error:', res.error);
+        const stillInProgress =
+          res.message === 'Service Unavailable' ||
+          !!(res.error ?? '').toLowerCase().includes('in progress') ||
+          !res.data;
+        if (!stillInProgress) {
+          return res.data!;
+        }
+      } catch (e) {
+        // network error 也當作 in-progress 處理，繼續 retry
+        console.log('[Analysis] fetch error, will retry:', e);
+      }
+      if (Date.now() - startTime >= MAX_WAIT_MS) throw new Error('Analysis timed out');
+      isPoll = true;
+      await new Promise((r) => setTimeout(r, RETRY_INTERVAL_MS));
+    }
   },
 
   apiPatchUser: async (body) => {
@@ -353,7 +455,34 @@ export const useAppStore = create<AppState>((set) => ({
     }));
   },
 
-  logout: () => set({ isLoggedIn: false, hasFamilyCircle: false, userId: null, familyId: null }),
+  startFamilyPolling: () => {
+    const state = useAppStore.getState();
+    if (state._pollingTimer || !state.familyId) return;
+    const timer = setInterval(() => {
+      useAppStore.getState().apiFetchFamily().catch(() => {});
+    }, 30_000);
+    set({ _pollingTimer: timer });
+  },
+
+  stopFamilyPolling: () => {
+    const { _pollingTimer } = useAppStore.getState();
+    if (_pollingTimer) clearInterval(_pollingTimer);
+    set({ _pollingTimer: null });
+  },
+
+  logout: () => {
+    const { _pollingTimer } = useAppStore.getState();
+    if (_pollingTimer) clearInterval(_pollingTimer);
+    set({
+      isLoggedIn: false,
+      hasFamilyCircle: false,
+      userId: null,
+      familyId: null,
+      _pollingTimer: null,
+      events: [],
+      family: { id: '', name: '', code: '', members: [], createdAt: '' },
+    });
+  },
 
   joinFamily: () => set({ hasFamilyCircle: true }),
 
@@ -369,30 +498,33 @@ export const useAppStore = create<AppState>((set) => ({
       ),
     })),
 
-  resolveEvent: (eventId, gatekeeperResponse) => {
+  resolveEvent: async (eventId, gatekeeperResponse) => {
     const now = formatDate(new Date().toISOString());
+    const { currentUser, events } = useAppStore.getState();
+    // 先更新本地，讓 UI 即時反映
     set((s) => {
       const targetEvent = s.events.find((e) => e.id === eventId);
       const updatedMembers = targetEvent
         ? s.family.members.map((m) =>
-            m.id === targetEvent.userId ? { ...m, status: "safe" as const } : m,
+            m.id === targetEvent.userId ? { ...m, status: 'safe' as const } : m,
           )
         : s.family.members;
       return {
         events: s.events.map((e) =>
           e.id === eventId
-            ? {
-                ...e,
-                status: "safe",
-                resolvedAt: now,
-                gatekeeperResponse,
-                gatekeeperResponseAt: now,
-              }
+            ? { ...e, status: 'safe', resolvedAt: now, gatekeeperResponse, gatekeeperResponseAt: now }
             : e,
         ),
         family: { ...s.family, members: updatedMembers },
       };
     });
+    // 寫回後端，讓其他守門人的 polling 能同步到
+    try {
+      await API.patchNotifyStatus(eventId, {
+        notify_status: 'sent',
+        updated_by: currentUser.nickname,
+      });
+    } catch {}
   },
 
   setMemberStatus: (userId, status) =>

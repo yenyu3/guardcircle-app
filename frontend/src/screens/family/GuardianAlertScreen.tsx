@@ -72,10 +72,11 @@ export default function GuardianAlertScreen() {
     resolveEvent(
       event.id,
       `${useAppStore.getState().currentUser.nickname} 已確認：這是詐騙，請勿理會`,
-    );
-    Alert.alert("已協助阻止", `${event.userNickname} 的狀態已恢復安全。`, [
-      { text: "確定", onPress: () => navigation.goBack() },
-    ]);
+    ).then(() => {
+      Alert.alert('已協助阻止', `${event.userNickname} 的狀態已恢復安全。`, [
+        { text: '確定', onPress: () => navigation.goBack() },
+      ]);
+    });
   }
 
   function handleCall() {
