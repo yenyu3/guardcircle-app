@@ -70,3 +70,11 @@ output "frontend_bucket_url" {
 output "frontend_website_url" {
   value = aws_s3_bucket_website_configuration.frontend.website_endpoint
 }
+
+output "cloudfront_domain_name" {
+  value = aws_cloudfront_distribution.frontend.domain_name
+}
+
+output "cloudfront_url" {
+  value = "https://${aws_cloudfront_distribution.frontend.domain_name}"
+}
