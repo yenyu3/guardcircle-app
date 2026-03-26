@@ -23,6 +23,7 @@ type AnalysisRequest struct {
 	S3Key        string   `json:"s3_key,omitempty"`  // S3 object key for video/audio/file (uploaded via presigned URL)
 	FileExt      string   `json:"file_ext,omitempty"` // file extension for video/audio/file (e.g. "mp4", "m4a", "pdf")
 	Region       string   `json:"region,omitempty"`
+	Poll         bool     `json:"poll,omitempty"` // if true, skip analysis and poll DB for recent result
 }
 
 type AnalysisResponse struct {
@@ -35,6 +36,7 @@ type EventData struct {
 	UserID       string   `json:"user_id"`
 	InputType    []string `json:"input_type"`
 	InputContent string   `json:"input_content"`
+	S3Key        string   `json:"s3_key,omitempty"`
 	RiskLevel    string   `json:"risk_level"`
 	RiskScore    int      `json:"risk_score"`
 	ScamType     string   `json:"scam_type"`
@@ -78,6 +80,12 @@ func handleAnalysis(ctx context.Context, req events.APIGatewayV2HTTPRequest, d *
 	}
 
 	cfg := d.Config
+
+	// Poll mode: skip analysis, wait for a recent result in DB
+	if ar.Poll {
+		log.Printf("[POLL] user_id=%s input_type=%v — polling for recent result", ar.UserID, ar.InputType)
+		return handlePoll(ctx, &ar, d)
+	}
 
 	log.Printf("[PIPELINE] user_id=%s input_type=%v region=%s", ar.UserID, ar.InputType, ar.Region)
 
@@ -258,6 +266,7 @@ func handleAnalysis(ctx context.Context, req events.APIGatewayV2HTTPRequest, d *
 		UserID:       ar.UserID,
 		InputType:    ar.InputType,
 		InputContent: truncateContent(ar.InputContent, 500),
+		S3Key:        ar.S3Key,
 		RiskLevel:    analysis.RiskLevel,
 		RiskScore:    analysis.RiskScore,
 		ScamType:     analysis.ScamType,
@@ -286,6 +295,44 @@ func handleAnalysis(ctx context.Context, req events.APIGatewayV2HTTPRequest, d *
 		Headers:    map[string]string{"content-type": "application/json"},
 		Body:       string(b),
 	}, nil
+}
+
+// ── Poll mode ───────────────────────────────────────────────────
+
+// handlePoll waits for a recent scan_event matching user_id + input_type.
+// Checks every 5 seconds, up to 25 seconds (to stay under API Gateway 30s timeout).
+func handlePoll(ctx context.Context, ar *AnalysisRequest, d *Dependencies) (events.APIGatewayV2HTTPResponse, error) {
+	for i := 0; i < 5; i++ {
+		event, err := d.DB.FindRecentScanEvent(ctx, ar.UserID, ar.InputType, ar.InputContent, ar.S3Key)
+		if err != nil {
+			log.Printf("[POLL] db query error: %v", err)
+		}
+		if event != nil {
+			log.Printf("[POLL] found result event_id=%s", event.EventID)
+			resp := AnalysisResponse{
+				Message: "analysis completed",
+				Data:    event,
+			}
+			b, _ := json.Marshal(resp)
+			return events.APIGatewayV2HTTPResponse{
+				StatusCode: 200,
+				Headers:    map[string]string{"content-type": "application/json"},
+				Body:       string(b),
+			}, nil
+		}
+
+		if i < 4 {
+			select {
+			case <-ctx.Done():
+				return errorResponse(504, "Poll cancelled"), nil
+			case <-time.After(5 * time.Second):
+			}
+		}
+	}
+
+	// Not found after 25 seconds — tell frontend to keep trying
+	log.Printf("[POLL] no result found after 25s")
+	return errorResponse(202, "Analysis still in progress, please retry"), nil
 }
 
 // ── Helpers ─────────────────────────────────────────────────────

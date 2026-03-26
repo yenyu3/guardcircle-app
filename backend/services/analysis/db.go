@@ -9,6 +9,8 @@ import (
 	"strings"
 	"sync"
 
+	"time"
+
 	_ "github.com/lib/pq"
 )
 
@@ -57,12 +59,13 @@ func writeScanEvent(ctx context.Context, e *EventData) error {
 	topSignalsJSON, _ := json.Marshal(e.TopSignals)
 
 	_, err = conn.ExecContext(ctx,
-		`INSERT INTO scan_events (event_id, user_id, input_type, input_content, risk_level, risk_score, scam_type, summary, consequence, reason, risk_factors, top_signals, notify_status)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+		`INSERT INTO scan_events (event_id, user_id, input_type, input_content, s3_key, risk_level, risk_score, scam_type, summary, consequence, reason, risk_factors, top_signals, notify_status)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
 		e.EventID,
 		e.UserID,
 		strings.Join(e.InputType, ","),
 		e.InputContent,
+		e.S3Key,
 		e.RiskLevel,
 		e.RiskScore,
 		e.ScamType,
@@ -78,4 +81,82 @@ func writeScanEvent(ctx context.Context, e *EventData) error {
 	}
 
 	return nil
+}
+
+// findRecentScanEvent looks for a scan_event created within the last 5 minutes.
+// For text/url/phone/image: matches by user_id + input_type + input_content prefix (200 chars).
+// For video/audio/file: matches by user_id + input_type + s3_key.
+func findRecentScanEvent(ctx context.Context, userID string, inputType []string, inputContent, s3Key string) (*EventData, error) {
+	conn, err := getDB()
+	if err != nil {
+		return nil, fmt.Errorf("get db: %w", err)
+	}
+
+	cutoff := time.Now().UTC().Add(-5 * time.Minute)
+	inputTypeStr := strings.Join(inputType, ",")
+
+	var query string
+	var args []interface{}
+
+	if s3Key != "" {
+		// video/audio/file: match by s3_key
+		query = `SELECT event_id, user_id, input_type, input_content, risk_level, risk_score,
+		                scam_type, summary, consequence, reason, risk_factors, top_signals,
+		                notify_status, created_at
+		         FROM scan_events
+		         WHERE user_id = $1 AND input_type = $2 AND s3_key = $3 AND created_at >= $4
+		         ORDER BY created_at DESC
+		         LIMIT 1`
+		args = []interface{}{userID, inputTypeStr, s3Key, cutoff}
+	} else {
+		// text/url/phone/image: match by input_content prefix
+		contentPrefix := truncateRunes(inputContent, 200)
+		query = `SELECT event_id, user_id, input_type, input_content, risk_level, risk_score,
+		                scam_type, summary, consequence, reason, risk_factors, top_signals,
+		                notify_status, created_at
+		         FROM scan_events
+		         WHERE user_id = $1 AND input_type = $2 AND input_content LIKE $3 AND created_at >= $4
+		         ORDER BY created_at DESC
+		         LIMIT 1`
+		args = []interface{}{userID, inputTypeStr, contentPrefix + "%", cutoff}
+	}
+
+	var e EventData
+	var inputTypeDB string
+	var riskFactorsJSON, topSignalsJSON []byte
+	var createdAt time.Time
+
+	err = conn.QueryRowContext(ctx, query, args...).Scan(
+		&e.EventID, &e.UserID, &inputTypeDB, &e.InputContent,
+		&e.RiskLevel, &e.RiskScore, &e.ScamType, &e.Summary,
+		&e.Consequence, &e.Reason, &riskFactorsJSON, &topSignalsJSON,
+		&e.NotifyStatus, &createdAt,
+	)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("query scan_event: %w", err)
+	}
+
+	e.InputType = strings.Split(inputTypeDB, ",")
+	e.CreatedAt = createdAt.Format(time.RFC3339)
+	_ = json.Unmarshal(riskFactorsJSON, &e.RiskFactors)
+	_ = json.Unmarshal(topSignalsJSON, &e.TopSignals)
+	if e.RiskFactors == nil {
+		e.RiskFactors = []string{}
+	}
+	if e.TopSignals == nil {
+		e.TopSignals = []string{}
+	}
+
+	return &e, nil
+}
+
+func truncateRunes(s string, max int) string {
+	runes := []rune(s)
+	if len(runes) > max {
+		return string(runes[:max])
+	}
+	return s
 }

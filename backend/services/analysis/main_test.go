@@ -123,15 +123,21 @@ func (m *mockVideoAnalyzer) Analyze(ctx context.Context, bucket, s3Key string) (
 // ── Mock DB ─────────────────────────────────────────────────────
 
 type mockDB struct {
-	err       error
-	called    bool
-	lastEvent *EventData
+	err        error
+	called     bool
+	lastEvent  *EventData
+	findResult *EventData
+	findErr    error
 }
 
 func (m *mockDB) WriteScanEvent(ctx context.Context, e *EventData) error {
 	m.called = true
 	m.lastEvent = e
 	return m.err
+}
+
+func (m *mockDB) FindRecentScanEvent(ctx context.Context, userID string, inputType []string, inputContent, s3Key string) (*EventData, error) {
+	return m.findResult, m.findErr
 }
 
 // ── Helper: build mock deps ─────────────────────────────────────
@@ -984,6 +990,55 @@ func TestPipeline_FileExtractionError(t *testing.T) {
 
 	if resp.StatusCode != 500 {
 		t.Errorf("expected 500 for extraction error, got %d", resp.StatusCode)
+	}
+}
+
+func TestPipeline_PollMode_Found(t *testing.T) {
+	deps, _, _, _, _, _, _, mdb := newMockDeps()
+	mdb.findResult = &EventData{
+		EventID:      "existing-event-id",
+		UserID:       "user-poll",
+		InputType:    []string{"text"},
+		InputContent: "test content",
+		RiskLevel:    "high",
+		RiskScore:    85,
+		ScamType:     "投資詐騙",
+		Summary:      "test summary",
+		RiskFactors:  []string{"f1"},
+		TopSignals:   []string{"s1"},
+		NotifyStatus: "pending",
+		CreatedAt:    "2026-03-26T10:00:00Z",
+	}
+
+	req := makeRequest(map[string]interface{}{
+		"user_id": "user-poll", "input_type": []string{"text"},
+		"input_content": "test", "poll": true,
+	})
+	resp, _ := handleAnalysis(context.Background(), req, deps)
+	if resp.StatusCode != 200 {
+		t.Fatalf("expected 200, got %d: %s", resp.StatusCode, resp.Body)
+	}
+	var ar AnalysisResponse
+	json.Unmarshal([]byte(resp.Body), &ar)
+	if ar.Data.EventID != "existing-event-id" {
+		t.Errorf("expected event_id=existing-event-id, got %s", ar.Data.EventID)
+	}
+	if ar.Data.RiskLevel != "high" {
+		t.Errorf("expected risk_level=high, got %s", ar.Data.RiskLevel)
+	}
+}
+
+func TestPipeline_PollMode_NotFound(t *testing.T) {
+	deps, _, _, _, _, _, _, mdb := newMockDeps()
+	mdb.findResult = nil // not found
+
+	req := makeRequest(map[string]interface{}{
+		"user_id": "user-poll", "input_type": []string{"text"},
+		"input_content": "test", "poll": true,
+	})
+	resp, _ := handleAnalysis(context.Background(), req, deps)
+	if resp.StatusCode != 202 {
+		t.Fatalf("expected 202, got %d: %s", resp.StatusCode, resp.Body)
 	}
 }
 

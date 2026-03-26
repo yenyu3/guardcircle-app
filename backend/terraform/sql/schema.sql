@@ -62,5 +62,7 @@ ADD COLUMN IF NOT EXISTS scam_type VARCHAR(100),
     ADD COLUMN IF NOT EXISTS top_signals JSONB,
     ADD COLUMN IF NOT EXISTS updated_by VARCHAR(100),
     ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE scan_events
+ADD COLUMN IF NOT EXISTS s3_key TEXT;
 CREATE INDEX IF NOT EXISTS idx_scan_events_user_id_created_at ON scan_events(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_scan_events_risk_level ON scan_events(risk_level);

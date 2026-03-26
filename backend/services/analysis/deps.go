@@ -67,9 +67,10 @@ type VideoAnalyzerClient interface {
 	Analyze(ctx context.Context, bucket, s3Key string) (*VideoAnalysisResult, error)
 }
 
-// DBClient writes scan events to the database.
+// DBClient writes and reads scan events from the database.
 type DBClient interface {
 	WriteScanEvent(ctx context.Context, e *EventData) error
+	FindRecentScanEvent(ctx context.Context, userID string, inputType []string, inputContent, s3Key string) (*EventData, error)
 }
 
 // ── Real implementations ────────────────────────────────────────
@@ -130,6 +131,10 @@ type realDB struct{}
 
 func (r *realDB) WriteScanEvent(ctx context.Context, e *EventData) error {
 	return writeScanEvent(ctx, e)
+}
+
+func (r *realDB) FindRecentScanEvent(ctx context.Context, userID string, inputType []string, inputContent, s3Key string) (*EventData, error) {
+	return findRecentScanEvent(ctx, userID, inputType, inputContent, s3Key)
 }
 
 // loadConfig reads all configuration from environment variables.
