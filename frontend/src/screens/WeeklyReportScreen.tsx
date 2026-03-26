@@ -22,7 +22,6 @@ import Svg, {
 } from "react-native-svg";
 import { Colors, Radius, Shadow } from "../theme";
 import { useAppStore } from "../store";
-import { mockEvents } from "../mock";
 import { useElderStyle } from "../hooks/useElderStyle";
 
 const DS = {
@@ -231,16 +230,22 @@ export default function WeeklyReportScreen() {
     ...v,
   }));
 
-  // 最常見詐騙類型
+  // 最常見詐騙類型 & 趨勢（從 events 動態計算）
   const scamTypeCounts: Record<string, number> = {};
   events
     .filter((e) => e.scamType && e.scamType !== "無")
     .forEach((e) => {
       scamTypeCounts[e.scamType] = (scamTypeCounts[e.scamType] ?? 0) + 1;
     });
-  const topScamType =
-    Object.entries(scamTypeCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ??
-    "無詐騙記錄";
+  const sortedScamTypes = Object.entries(scamTypeCounts).sort((a, b) => b[1] - a[1]);
+  const topScamType = sortedScamTypes[0]?.[0] ?? "無詐騙記錄";
+  const totalScamEvents = sortedScamTypes.reduce((s, [, c]) => s + c, 0);
+  const trendData = sortedScamTypes.slice(0, 3).map(([label, count], i) => ({
+    label,
+    count,
+    pct: totalScamEvents > 0 ? Math.round((count / totalScamEvents) * 100) : 0,
+    up: i < 2,
+  }));
 
   // 雷達圖資料
   const activeMembers = family.members.filter((m) =>
@@ -272,19 +277,15 @@ export default function WeeklyReportScreen() {
       )
       .join('');
 
-    const trendRows = [
-      { label: '假冒銀行客服', change: '+34%', up: true },
-      { label: '投資詐騙', change: '+18%', up: true },
-      { label: '網路購物詐騙', change: '-5%', up: false },
-    ]
+    const trendRows = trendData
       .map(
         (t) =>
           `<tr>
             <td>${t.label}</td>
-            <td style="text-align:right;font-weight:700;color:${t.up ? '#dc2626' : '#16a34a'}">${t.change}</td>
+            <td style="text-align:right;font-weight:700;color:${t.up ? '#dc2626' : '#16a34a'}">${t.pct}%</td>
           </tr>`,
       )
-      .join('');
+      .join('') || `<tr><td colspan="2">本週尚無詐騙記錄</td></tr>`;
 
     const solverSection =
       role === 'solver'
@@ -543,11 +544,9 @@ export default function WeeklyReportScreen() {
 
             <SectionHeader title="本週詐騙趨勢" />
             <View style={styles.trendCard}>
-              {[
-                { label: "假冒銀行客服", change: "+34%", up: true },
-                { label: "投資詐騙", change: "+18%", up: true },
-                { label: "網路購物詐騙", change: "-5%", up: false },
-              ].map((t) => (
+              {trendData.length === 0 ? (
+                <Text style={styles.trendLabel}>本週尚無詐騙記錄</Text>
+              ) : trendData.map((t) => (
                 <View key={t.label} style={styles.trendRow}>
                   <Ionicons
                     name={t.up ? "trending-up" : "trending-down"}
@@ -555,13 +554,8 @@ export default function WeeklyReportScreen() {
                     color={t.up ? Colors.danger : Colors.safe}
                   />
                   <Text style={styles.trendLabel}>{t.label}</Text>
-                  <Text
-                    style={[
-                      styles.trendChange,
-                      { color: t.up ? Colors.danger : Colors.safe },
-                    ]}
-                  >
-                    {t.change}
+                  <Text style={[styles.trendChange, { color: t.up ? Colors.danger : Colors.safe }]}>
+                    {t.pct}%
                   </Text>
                 </View>
               ))}
@@ -594,11 +588,9 @@ export default function WeeklyReportScreen() {
 
             <SectionHeader title="本週詐騙趨勢" />
             <View style={styles.trendCard}>
-              {[
-                { label: "假冒銀行客服", change: "+34%", up: true },
-                { label: "投資詐騙", change: "+18%", up: true },
-                { label: "網路購物詐騙", change: "-5%", up: false },
-              ].map((t) => (
+              {trendData.length === 0 ? (
+                <Text style={styles.trendLabel}>本週尚無詐騙記錄</Text>
+              ) : trendData.map((t) => (
                 <View key={t.label} style={styles.trendRow}>
                   <Ionicons
                     name={t.up ? "trending-up" : "trending-down"}
@@ -606,13 +598,8 @@ export default function WeeklyReportScreen() {
                     color={t.up ? Colors.danger : Colors.safe}
                   />
                   <Text style={styles.trendLabel}>{t.label}</Text>
-                  <Text
-                    style={[
-                      styles.trendChange,
-                      { color: t.up ? Colors.danger : Colors.safe },
-                    ]}
-                  >
-                    {t.change}
+                  <Text style={[styles.trendChange, { color: t.up ? Colors.danger : Colors.safe }]}>
+                    {t.pct}%
                   </Text>
                 </View>
               ))}

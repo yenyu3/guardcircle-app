@@ -26,12 +26,12 @@ const STATUS_LABEL: Record<string, string> = {
 const ROLE_LABEL: Record<string, string> = {
   guardian: '守護者',
   gatekeeper: '守門人',
-  solver: '解析者',
+  solver: '識破者',
 };
 
 export default function FamilyScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const { events, family } = useAppStore();
+  const { events, family, apiFetchFamily } = useAppStore();
   const members = family.members;
   const scrollRef = useRef<ScrollView>(null);
   const { register } = useScrollRef();
@@ -40,6 +40,7 @@ export default function FamilyScreen() {
     React.useCallback(() => {
       register('Family', scrollRef);
       scrollRef.current?.scrollTo({ y: 0, animated: false });
+      apiFetchFamily().catch(() => {});
     }, [])
   );
 

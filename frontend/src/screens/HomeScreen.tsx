@@ -21,7 +21,12 @@ import { useScrollRef } from "../navigation/ScrollRefContext";
 import { useAppStore } from "../store";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { Colors, Radius, Shadow } from "../theme";
-import Svg, { Path, Defs, LinearGradient as SvgLinearGradient, Stop } from "react-native-svg";
+import Svg, {
+  Path,
+  Defs,
+  LinearGradient as SvgLinearGradient,
+  Stop,
+} from "react-native-svg";
 import { useElderStyle } from "../hooks/useElderStyle";
 
 function getGreeting() {
@@ -58,7 +63,10 @@ function WeeklyReportCard({ onPress }: { onPress: () => void }) {
     { label: "查詢量", value: Math.min(totalScans / 20, 1) },
     { label: "攔截率", value: blockPct / 100 },
     { label: "安全率", value: safePct / 100 },
-    { label: "成員活躍", value: Math.min(activeMembers / Math.max(family.members.length, 1), 1) },
+    {
+      label: "成員活躍",
+      value: Math.min(activeMembers / Math.max(family.members.length, 1), 1),
+    },
     { label: "處理速度", value: resolveRate },
   ];
   const SIZE = 130;
@@ -70,31 +78,54 @@ function WeeklyReportCard({ onPress }: { onPress: () => void }) {
 
   function point(i: number, ratio: number) {
     const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
-    return { x: cx + R * ratio * Math.cos(angle), y: cy + R * ratio * Math.sin(angle) };
+    return {
+      x: cx + R * ratio * Math.cos(angle),
+      y: cy + R * ratio * Math.sin(angle),
+    };
   }
 
   function labelPoint(i: number) {
     const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
-    return { x: cx + LABEL_R * Math.cos(angle), y: cy + LABEL_R * Math.sin(angle) };
+    return {
+      x: cx + LABEL_R * Math.cos(angle),
+      y: cy + LABEL_R * Math.sin(angle),
+    };
   }
 
   function toPath(pts: { x: number; y: number }[]) {
-    return pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ") + " Z";
+    return (
+      pts
+        .map(
+          (p, i) =>
+            `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`,
+        )
+        .join(" ") + " Z"
+    );
   }
 
   const gridLevels = [0.33, 0.66, 1];
   const dataPoints = axes.map((a, i) => point(i, Math.max(a.value, 0.08)));
-  const gridPaths = gridLevels.map((lvl) => toPath(axes.map((_, i) => point(i, lvl))));
+  const gridPaths = gridLevels.map((lvl) =>
+    toPath(axes.map((_, i) => point(i, lvl))),
+  );
   const dataPath = toPath(dataPoints);
 
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [styles.wrCard, { opacity: pressed ? 0.92 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}
+      style={({ pressed }) => [
+        styles.wrCard,
+        {
+          opacity: pressed ? 0.92 : 1,
+          transform: [{ scale: pressed ? 0.98 : 1 }],
+        },
+      ]}
     >
       {/* 標題列 */}
       <View style={styles.wrHeader}>
-        <Text style={[styles.wrTitle, s.active && { fontSize: 22 * s.f }]}>本週報告</Text>
+        <Text style={[styles.wrTitle, s.active && { fontSize: 22 * s.f }]}>
+          本週報告
+        </Text>
         <View style={styles.wrBadge}>
           <Text style={styles.wrBadgeText}>WEEKLY</Text>
         </View>
@@ -105,7 +136,7 @@ function WeeklyReportCard({ onPress }: { onPress: () => void }) {
       <View style={styles.wrBody}>
         {/* 雷達圖 + 標籤 */}
         <View style={{ width: SIZE, height: SIZE }}>
-          <Svg width={SIZE} height={SIZE} style={{ position: 'absolute' }}>
+          <Svg width={SIZE} height={SIZE} style={{ position: "absolute" }}>
             <Defs>
               <SvgLinearGradient id="radarFill" x1="0" y1="0" x2="1" y2="1">
                 <Stop offset="0" stopColor="#89502e" stopOpacity="0.35" />
@@ -113,15 +144,38 @@ function WeeklyReportCard({ onPress }: { onPress: () => void }) {
               </SvgLinearGradient>
             </Defs>
             {gridPaths.map((d, i) => (
-              <Path key={i} d={d} stroke="#d7c2b960" strokeWidth={1} fill="none" />
+              <Path
+                key={i}
+                d={d}
+                stroke="#d7c2b960"
+                strokeWidth={1}
+                fill="none"
+              />
             ))}
             {axes.map((_, i) => {
               const to = point(i, 1);
-              return <Path key={i} d={`M ${cx} ${cy} L ${to.x.toFixed(1)} ${to.y.toFixed(1)}`} stroke="#d7c2b980" strokeWidth={1} fill="none" />;
+              return (
+                <Path
+                  key={i}
+                  d={`M ${cx} ${cy} L ${to.x.toFixed(1)} ${to.y.toFixed(1)}`}
+                  stroke="#d7c2b980"
+                  strokeWidth={1}
+                  fill="none"
+                />
+              );
             })}
-            <Path d={dataPath} fill="url(#radarFill)" stroke="#89502e" strokeWidth={1.5} />
+            <Path
+              d={dataPath}
+              fill="url(#radarFill)"
+              stroke="#89502e"
+              strokeWidth={1.5}
+            />
             {dataPoints.map((p, i) => (
-              <Path key={i} d={`M ${p.x} ${p.y} m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0`} fill="#89502e" />
+              <Path
+                key={i}
+                d={`M ${p.x} ${p.y} m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0`}
+                fill="#89502e"
+              />
             ))}
           </Svg>
           {axes.map((a, i) => {
@@ -129,7 +183,16 @@ function WeeklyReportCard({ onPress }: { onPress: () => void }) {
             return (
               <Text
                 key={i}
-                style={[styles.wrAxisLabel, { position: 'absolute', left: lp.x - 18, top: lp.y - 8, width: 36, textAlign: 'center' }]}
+                style={[
+                  styles.wrAxisLabel,
+                  {
+                    position: "absolute",
+                    left: lp.x - 18,
+                    top: lp.y - 8,
+                    width: 36,
+                    textAlign: "center",
+                  },
+                ]}
               >
                 {a.label}
               </Text>
@@ -140,36 +203,87 @@ function WeeklyReportCard({ onPress }: { onPress: () => void }) {
         {/* 右側數字統計 */}
         <View style={styles.wrStats}>
           <View style={styles.wrStatRow}>
-            <Text style={[styles.wrStatNum, s.active && { fontSize: 18 * s.f }]}>{totalScans}</Text>
-            <Text style={[styles.wrStatLabel, s.active && { fontSize: 12 * s.f }]}>總查詢</Text>
+            <Text
+              style={[styles.wrStatNum, s.active && { fontSize: 18 * s.f }]}
+            >
+              {totalScans}
+            </Text>
+            <Text
+              style={[styles.wrStatLabel, s.active && { fontSize: 12 * s.f }]}
+            >
+              總查詢
+            </Text>
           </View>
           <View style={styles.wrDivider} />
           <View style={styles.wrStatRow}>
-            <Text style={[styles.wrStatNum, { color: Colors.safe }, s.active && { fontSize: 18 * s.f }]}>{blocked}</Text>
-            <Text style={[styles.wrStatLabel, s.active && { fontSize: 12 * s.f }]}>攔截</Text>
+            <Text
+              style={[
+                styles.wrStatNum,
+                { color: Colors.safe },
+                s.active && { fontSize: 18 * s.f },
+              ]}
+            >
+              {blocked}
+            </Text>
+            <Text
+              style={[styles.wrStatLabel, s.active && { fontSize: 12 * s.f }]}
+            >
+              攔截
+            </Text>
           </View>
           <View style={styles.wrDivider} />
           <View style={styles.wrStatRow}>
-            <Text style={[styles.wrStatNum, { color: Colors.danger }, s.active && { fontSize: 18 * s.f }]}>{highRisk}</Text>
-            <Text style={[styles.wrStatLabel, s.active && { fontSize: 12 * s.f }]}>高風險</Text>
+            <Text
+              style={[
+                styles.wrStatNum,
+                { color: Colors.danger },
+                s.active && { fontSize: 18 * s.f },
+              ]}
+            >
+              {highRisk}
+            </Text>
+            <Text
+              style={[styles.wrStatLabel, s.active && { fontSize: 12 * s.f }]}
+            >
+              高風險
+            </Text>
           </View>
           <View style={styles.wrDivider} />
           <View style={styles.wrStatRow}>
-            <Text style={[styles.wrStatNum, { color: "#89502e" }, s.active && { fontSize: 18 * s.f }]}>{safePct}%</Text>
-            <Text style={[styles.wrStatLabel, s.active && { fontSize: 12 * s.f }]}>安全率</Text>
+            <Text
+              style={[
+                styles.wrStatNum,
+                { color: "#89502e" },
+                s.active && { fontSize: 18 * s.f },
+              ]}
+            >
+              {safePct}%
+            </Text>
+            <Text
+              style={[styles.wrStatLabel, s.active && { fontSize: 12 * s.f }]}
+            >
+              安全率
+            </Text>
           </View>
         </View>
       </View>
 
       {/* 按鈕 */}
-      <Pressable onPress={onPress} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1, alignSelf: 'flex-start' }]}>
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => [
+          { opacity: pressed ? 0.85 : 1, alignSelf: "flex-start" },
+        ]}
+      >
         <LinearGradient
           colors={["#89502e", "#ffb38a"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.wrBtn}
         >
-          <Text style={[styles.wrBtnText, s.active && { fontSize: 15 * s.f }]}>查看完整報告</Text>
+          <Text style={[styles.wrBtnText, s.active && { fontSize: 15 * s.f }]}>
+            查看完整報告
+          </Text>
         </LinearGradient>
       </Pressable>
     </Pressable>
@@ -187,7 +301,9 @@ function GuardianHome({
   const s = useElderStyle();
   const guardians = family.members
     .filter((m) => m.role !== "guardian")
-    .map((m) => m.id === currentUser.id ? { ...m, nickname: currentUser.nickname } : m);
+    .map((m) =>
+      m.id === currentUser.id ? { ...m, nickname: currentUser.nickname } : m,
+    );
 
   const glow = useRef(new Animated.Value(0)).current;
   const iconScale = useRef(new Animated.Value(1)).current;
@@ -240,7 +356,9 @@ function GuardianHome({
       <Text style={[styles.gGreeting, s.active && { fontSize: 34 * s.f }]}>
         {getGreeting()}，{currentUser.nickname}
       </Text>
-      <Text style={[styles.gSubtitle, s.active && { fontSize: 16 * s.f }]}>今天天氣晴朗，記得多喝水。</Text>
+      <Text style={[styles.gSubtitle, s.active && { fontSize: 16 * s.f }]}>
+        今天天氣晴朗，記得多喝水。
+      </Text>
 
       {/* Large Square CTA */}
       <Pressable
@@ -276,17 +394,27 @@ function GuardianHome({
             </Animated.View>
           </View>
           <View style={styles.gCtaTextWrap}>
-            <Text style={[styles.gCtaTitle, s.active && { fontSize: 28 * s.f }]}>我收到可疑訊息</Text>
-            <Text style={[styles.gCtaSub, s.active && { fontSize: 16 * s.f }]}>讓我們幫您檢查，確保安全</Text>
+            <Text
+              style={[styles.gCtaTitle, s.active && { fontSize: 28 * s.f }]}
+            >
+              我收到可疑訊息
+            </Text>
+            <Text style={[styles.gCtaSub, s.active && { fontSize: 16 * s.f }]}>
+              讓我們幫您檢查，確保安全
+            </Text>
           </View>
         </LinearGradient>
       </Pressable>
 
       <View style={[styles.familyHeader, { marginTop: 32 }]}>
-        <Text style={[styles.familyTitle, s.active && { fontSize: 22 * s.f }]}>守護你的人</Text>
-        <Text style={[styles.familyAll, s.active && { fontSize: 14 * s.f }]}>全部 ({guardians.length})</Text>
+        <Text style={[styles.familyTitle, s.active && { fontSize: 22 * s.f }]}>
+          守護你的人
+        </Text>
+        <Text style={[styles.familyAll, s.active && { fontSize: 14 * s.f }]}>
+          全部 ({guardians.length})
+        </Text>
       </View>
-      <View style={styles.familyRow}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.familyRow}>
         {guardians.map((m) => (
           <View key={m.id} style={styles.familyMember}>
             <View style={styles.familyAvatarWrap}>
@@ -299,10 +427,14 @@ function GuardianHome({
                 borderWidth={2}
               />
             </View>
-            <Text style={[styles.familyName, s.active && { fontSize: 15 * s.f }]}>{m.nickname}</Text>
+            <Text
+              style={[styles.familyName, s.active && { fontSize: 15 * s.f }]}
+            >
+              {m.nickname}
+            </Text>
           </View>
         ))}
-      </View>
+      </ScrollView>
 
       {/* 今日詐騙快報 */}
       <View style={styles.gkBriefCard}>
@@ -312,10 +444,20 @@ function GuardianHome({
         <Text style={styles.gkBriefDate}>
           {new Date().toLocaleDateString("sv")}
         </Text>
-        <Text style={[styles.gkBriefTitle, s.active && { fontSize: 22 * s.f, lineHeight: 30 * s.f }]}>
+        <Text
+          style={[
+            styles.gkBriefTitle,
+            s.active && { fontSize: 22 * s.f, lineHeight: 30 * s.f },
+          ]}
+        >
           AI 語音變聲詐騙急升：假冒子女求救，要求匯款至不明帳戶
         </Text>
-        <Text style={[styles.gkBriefBody, s.active && { fontSize: 15 * s.f, lineHeight: 24 * s.f }]}>
+        <Text
+          style={[
+            styles.gkBriefBody,
+            s.active && { fontSize: 15 * s.f, lineHeight: 24 * s.f },
+          ]}
+        >
           近期詐騙集團利用生成式 AI
           技術，模擬親友音色。若接獲要求匯款的電話，請務必先與本人確認。
         </Text>
@@ -327,9 +469,22 @@ function GuardianHome({
             colors={["#89502e", "#ffb38a"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={[styles.gkBriefBtn, s.active && { paddingVertical: 14 * s.p, paddingHorizontal: 24 * s.p }]}
+            style={[
+              styles.gkBriefBtn,
+              s.active && {
+                paddingVertical: 14 * s.p,
+                paddingHorizontal: 24 * s.p,
+              },
+            ]}
           >
-            <Text style={[styles.gkBriefBtnText, s.active && { fontSize: 14 * s.f }]}>立即閱讀</Text>
+            <Text
+              style={[
+                styles.gkBriefBtnText,
+                s.active && { fontSize: 14 * s.f },
+              ]}
+            >
+              立即閱讀
+            </Text>
           </LinearGradient>
         </Pressable>
       </View>
@@ -362,27 +517,56 @@ function GaugeChart({ pct }: { pct: number }) {
   const endDeg = 180 + Math.max(pct / 100, 0.01) * 180;
 
   return (
-    <View style={{ width: size, height: size / 2 + stroke, alignItems: "center", justifyContent: "flex-end" }}>
-      <Svg width={size} height={size / 2 + stroke} style={{ position: "absolute", top: 0 }}>
+    <View
+      style={{
+        width: size,
+        height: size / 2 + stroke,
+        alignItems: "center",
+        justifyContent: "flex-end",
+      }}
+    >
+      <Svg
+        width={size}
+        height={size / 2 + stroke}
+        style={{ position: "absolute", top: 0 }}
+      >
         <Defs>
           <SvgLinearGradient id="gaugeGrad" x1="0" y1="0" x2="1" y2="0">
             <Stop offset="0" stopColor="#89502e" />
             <Stop offset="1" stopColor="#ffb38a" />
           </SvgLinearGradient>
         </Defs>
-        <Path d={arcPath(180, 360)} stroke="#d7c2b960" strokeWidth={stroke} fill="none" strokeLinecap="round" />
-        <Path d={arcPath(180, endDeg)} stroke="url(#gaugeGrad)" strokeWidth={stroke} fill="none" strokeLinecap="round" />
+        <Path
+          d={arcPath(180, 360)}
+          stroke="#d7c2b960"
+          strokeWidth={stroke}
+          fill="none"
+          strokeLinecap="round"
+        />
+        <Path
+          d={arcPath(180, endDeg)}
+          stroke="url(#gaugeGrad)"
+          strokeWidth={stroke}
+          fill="none"
+          strokeLinecap="round"
+        />
       </Svg>
       <MaskedView
         maskElement={
           <Text style={styles.gkGaugeNum}>
-            {pct}<Text style={styles.gkGaugeUnit}>%</Text>
+            {pct}
+            <Text style={styles.gkGaugeUnit}>%</Text>
           </Text>
         }
       >
-        <LinearGradient colors={["#89502e", "#ffb38a"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+        <LinearGradient
+          colors={["#89502e", "#ffb38a"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        >
           <Text style={[styles.gkGaugeNum, { opacity: 0 }]}>
-            {pct}<Text style={styles.gkGaugeUnit}>%</Text>
+            {pct}
+            <Text style={styles.gkGaugeUnit}>%</Text>
           </Text>
         </LinearGradient>
       </MaskedView>
@@ -414,8 +598,11 @@ function GatekeeperHome({
   const { events, family } = useAppStore();
   const totalScans = events.length;
   const safeCount = events.filter((e) => e.status === "safe").length;
-  const threatBlockPct = totalScans > 0 ? Math.round((safeCount / totalScans) * 100) : 0;
-  const activeHighRisk = events.filter((e) => e.status === "high_risk" || e.status === "pending");
+  const threatBlockPct =
+    totalScans > 0 ? Math.round((safeCount / totalScans) * 100) : 0;
+  const activeHighRisk = events.filter(
+    (e) => e.status === "high_risk" || e.status === "pending",
+  );
   const guardianMembers = family.members.filter((m) => m.role === "guardian");
   const recentResolved = events
     .filter((e) => e.status === "safe" && e.riskLevel !== "safe")
@@ -465,12 +652,25 @@ function GatekeeperHome({
         <View style={styles.gkStatsInline}>
           <View style={styles.gkStatItem}>
             <View style={styles.gkStatNumRow}>
-              <MaskedView maskElement={<Text style={styles.gkStatNum}>{totalScans}</Text>}>
-                <LinearGradient colors={["#89502e", "#ffb38a"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-                  <Text style={[styles.gkStatNum, { opacity: 0 }]}>{totalScans}</Text>
+              <MaskedView
+                maskElement={<Text style={styles.gkStatNum}>{totalScans}</Text>}
+              >
+                <LinearGradient
+                  colors={["#89502e", "#ffb38a"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <Text style={[styles.gkStatNum, { opacity: 0 }]}>
+                    {totalScans}
+                  </Text>
                 </LinearGradient>
               </MaskedView>
-              <Ionicons name="search" size={14} color={Colors.primaryDark} style={{ marginBottom: 6 }} />
+              <Ionicons
+                name="search"
+                size={14}
+                color={Colors.primaryDark}
+                style={{ marginBottom: 6 }}
+              />
             </View>
             <Text style={styles.gkStatLabel}>總查詢數</Text>
           </View>
@@ -508,9 +708,7 @@ function GatekeeperHome({
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.gkMemberName}>{m.nickname}</Text>
-                <Text style={styles.gkMemberTime}>
-                  最後活動：{m.lastActive}
-                </Text>
+                <Text style={styles.gkMemberTime}>{m.lastActive}</Text>
               </View>
               <View style={[styles.gkStatusPill, { backgroundColor: cfg.bg }]}>
                 <Text style={[styles.gkStatusPillText, { color: cfg.color }]}>
@@ -583,11 +781,11 @@ function GatekeeperHome({
           {new Date().toLocaleDateString("sv")}
         </Text>
         <Text style={styles.gkBriefTitle}>
-          AI 語音變聲詐騙急升：假冒子女求救，要求匯款至不明帳戶
+          日本爆發新型銀行詐騙！假客服結合AI語音釣魚　兩天逾百人受害
         </Text>
         <Text style={styles.gkBriefBody}>
-          近期詐騙集團利用生成式 AI
-          技術，模擬親友音色。若接獲要求匯款的電話，請務必先與本人確認。
+          日本近期出現結合 AI
+          的銀行詐騙，透過語音釣魚結合假客服與釣魚郵件，誘導受害者登入仿冒網銀網站並竊取帳密進行資金轉移。
         </Text>
         <Pressable
           onPress={() => navigation.navigate("ScamBrief")}
@@ -800,7 +998,7 @@ function SolverHome({
 // ── Main Export ────────────────────────────────────────────────
 export default function HomeScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const { currentUser, hasFamilyCircle } = useAppStore();
+  const { currentUser, hasFamilyCircle, apiFetchFamily } = useAppStore();
   const scrollRef = useRef<ScrollView>(null);
   const { register } = useScrollRef();
 
@@ -808,7 +1006,8 @@ export default function HomeScreen() {
     React.useCallback(() => {
       register("Home", scrollRef);
       scrollRef.current?.scrollTo({ y: 0, animated: false });
-    }, []),
+      if (hasFamilyCircle) apiFetchFamily().catch(() => {});
+    }, [hasFamilyCircle]),
   );
 
   return (
@@ -895,9 +1094,8 @@ const styles = StyleSheet.create({
   familyTitle: { fontSize: 22, fontWeight: "800", color: Colors.text },
   familyAll: { fontSize: 14, fontWeight: "700", color: Colors.primaryDark },
   familyRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
+    paddingBottom: 8,
+    gap: 20,
     marginBottom: 28,
   },
   familyMember: { alignItems: "center", gap: 8 },
@@ -1414,20 +1612,34 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(137,80,46,0.25)",
   },
-  wrBadgeText: { fontSize: 11, fontWeight: "800", color: "#89502e", letterSpacing: 1 },
-  wrPeriod: {
-    fontSize: 11, fontWeight: '700', color: '#1f1b1266',
-    letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 16,
+  wrBadgeText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#89502e",
+    letterSpacing: 1,
   },
-  wrBody: { flexDirection: "row", alignItems: "center", marginBottom: 20, gap: 16 },
-  wrAxisLabel: { fontSize: 9, fontWeight: '700', color: '#89502e' },
+  wrPeriod: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#1f1b1266",
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
+    marginBottom: 16,
+  },
+  wrBody: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+    gap: 16,
+  },
+  wrAxisLabel: { fontSize: 9, fontWeight: "700", color: "#89502e" },
   wrStats: { flex: 1, paddingLeft: 16, gap: 4 },
   wrStatRow: { flexDirection: "row", alignItems: "baseline", gap: 6 },
   wrStatNum: { fontSize: 18, fontWeight: "900", color: Colors.text },
   wrStatLabel: { fontSize: 12, color: Colors.textMuted, fontWeight: "600" },
   wrDivider: { height: 1, backgroundColor: "#d7c2b950", marginVertical: 4 },
   wrBtn: {
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     borderRadius: Radius.full,
     paddingVertical: 14,
     paddingHorizontal: 24,

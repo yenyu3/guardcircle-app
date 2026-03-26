@@ -97,7 +97,7 @@ export default function RoleSelectScreen() {
   const { setRole, suggestedRole, saveAccount } = useAppStore();
   const password = useAppStore(
     (s) =>
-      s.registeredAccounts.find((a) => a.email === s.currentUser.email)
+      s.registeredAccounts.find((a) => a.phone === s.currentUser.phone)
         ?.password ?? "",
   );
   const [selected, setSelected] = useState<Role>(suggestedRole ?? "gatekeeper");

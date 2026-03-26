@@ -30,7 +30,6 @@ export default function HighRiskEventsScreen() {
   }
 
   function getTimeAgo(createdAt: string) {
-    // simple display — just return as-is for mock data
     return createdAt;
   }
 
