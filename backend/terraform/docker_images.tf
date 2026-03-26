@@ -38,6 +38,10 @@ locals {
       function_name = "${var.project_name}-families-feed"
       source_path   = "${path.root}/../services/families-feed"
     }
+    auth_login = {
+      function_name = "${var.project_name}-auth-login"
+      source_path   = "${path.root}/../services/auth-login"
+    }
   }
 
   service_dir_sha = {

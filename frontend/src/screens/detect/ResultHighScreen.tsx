@@ -5,6 +5,7 @@ import { StackNavigationProp } from "@react-navigation/stack";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import * as Speech from "expo-speech";
 import { RootStackParamList } from "../../navigation";
 import { useAppStore } from "../../store";
 import { DetectEvent } from "../../types";
@@ -31,7 +32,7 @@ export default function ResultHighScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "ResultHigh">>();
   const { scamType, riskScore, riskFactors, summary, reason, readonly, originalInput, imageUri, attachmentUri } = route.params;
-  const { currentUser, addEvent, setMemberStatus } = useAppStore();
+  const { currentUser, addEvent, setMemberStatus, elderMode } = useAppStore();
   const s = useElderStyle();
   const eventIdRef = useRef(`e_${Date.now()}`);
   const pulse1 = useRef(new Animated.Value(1)).current;
@@ -56,6 +57,9 @@ export default function ResultHighScreen() {
     setTimeout(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error), 800);
     setTimeout(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error), 1200);
     setTimeout(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error), 1600);
+    if (elderMode && currentUser.role === "guardian") {
+      Speech.speak("高風險，建議不要點擊", { language: "zh-TW" });
+    }
     if (readonly) return;
     const newEvent: DetectEvent = {
       id: eventIdRef.current,

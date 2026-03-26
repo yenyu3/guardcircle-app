@@ -13,16 +13,16 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"golang.org/x/crypto/bcrypt"
+
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 var db *sql.DB
 
-type updateUserRequest struct {
-	Nickname     *string `json:"nickname"`
-	ContactPhone *string `json:"contact_phone"`
-	Gender       *string `json:"gender"`
-	Birthday     *string `json:"birthday"`
+type loginRequest struct {
+	Phone    string `json:"phone"`
+	Password string `json:"password"`
 }
 
 func init() {
@@ -51,11 +51,6 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 		return jsonResp(http.StatusInternalServerError, map[string]string{"error": "database not configured"})
 	}
 
-	userID := req.PathParameters["user_id"]
-	if userID == "" {
-		return jsonResp(http.StatusBadRequest, map[string]string{"error": "missing user_id"})
-	}
-
 	rawBody := req.Body
 	if req.IsBase64Encoded {
 		decoded, err := base64.StdEncoding.DecodeString(req.Body)
@@ -65,68 +60,56 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 		rawBody = string(decoded)
 	}
 
-	var input updateUserRequest
+	var input loginRequest
 	if err := json.NewDecoder(strings.NewReader(rawBody)).Decode(&input); err != nil {
 		return jsonResp(http.StatusBadRequest, map[string]string{"error": "invalid json"})
 	}
-
-	sets := make([]string, 0)
-	args := make([]interface{}, 0)
-	idx := 1
-
-	if input.Nickname != nil {
-		sets = append(sets, fmt.Sprintf("nickname = $%d", idx))
-		args = append(args, *input.Nickname)
-		idx++
+	if input.Phone == "" || input.Password == "" {
+		return jsonResp(http.StatusBadRequest, map[string]string{"error": "missing required fields"})
 	}
-	if input.ContactPhone != nil {
-		sets = append(sets, fmt.Sprintf("contact_phone = $%d", idx))
-		args = append(args, *input.ContactPhone)
-		idx++
-	}
-	if input.Gender != nil {
-		sets = append(sets, fmt.Sprintf("gender = $%d", idx))
-		args = append(args, *input.Gender)
-		idx++
-	}
-	if input.Birthday != nil {
-		sets = append(sets, fmt.Sprintf("birthday = NULLIF($%d, '')::date", idx))
-		args = append(args, *input.Birthday)
-		idx++
-	}
-
-	if len(sets) == 0 {
-		return jsonResp(http.StatusBadRequest, map[string]string{"error": "no fields to update"})
-	}
-
-	sets = append(sets, "updated_at = CURRENT_TIMESTAMP")
-	args = append(args, userID)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	query := fmt.Sprintf(`
-		UPDATE users
-		SET %s
-		WHERE user_id = $%d
-		RETURNING nickname, to_char(updated_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
-	`, strings.Join(sets, ", "), idx)
-
-	var nickname, updatedAt string
-	err := db.QueryRowContext(ctx, query, args...).Scan(&nickname, &updatedAt)
+	var userID, nickname, role, phone, passwordHash string
+	var familyID sql.NullString
+	err := db.QueryRowContext(ctx, `
+		SELECT user_id::text, family_id::text, nickname, role, phone, password_hash
+		FROM users
+		WHERE phone = $1
+	`, input.Phone).Scan(&userID, &familyID, &nickname, &role, &phone, &passwordHash)
 	if err == sql.ErrNoRows {
-		return jsonResp(http.StatusNotFound, map[string]string{"error": "user not found"})
+		return invalidCredentials()
 	}
 	if err != nil {
-		return jsonResp(http.StatusInternalServerError, map[string]string{"error": "failed to update user"})
+		return jsonResp(http.StatusInternalServerError, map[string]string{"error": "failed to fetch user"})
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(input.Password)); err != nil {
+		return invalidCredentials()
+	}
+
+	data := map[string]interface{}{
+		"user_id":  userID,
+		"nickname": nickname,
+		"role":     role,
+		"phone":    phone,
+	}
+	if familyID.Valid {
+		data["family_id"] = familyID.String
 	}
 
 	return jsonResp(http.StatusOK, map[string]interface{}{
-		"message": "User profile updated successfully",
-		"data": map[string]interface{}{
-			"user_id":    userID,
-			"nickname":   nickname,
-			"updated_at": updatedAt,
+		"message": "Login successful",
+		"data":    data,
+	})
+}
+
+func invalidCredentials() (events.APIGatewayV2HTTPResponse, error) {
+	return jsonResp(http.StatusUnauthorized, map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":    "INVALID_CREDENTIALS",
+			"message": "手機號碼或密碼錯誤",
 		},
 	})
 }

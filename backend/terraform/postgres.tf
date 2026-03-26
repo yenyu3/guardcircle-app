@@ -29,17 +29,18 @@ with open(file_path, "r", encoding="utf-8") as f:
 
 stmts = [s.strip() for s in sql.split(";") if s.strip()]
 for stmt in stmts:
-    subprocess.run(
-        [
-            "aws", "rds-data", "execute-statement",
-            "--resource-arn", cluster_arn,
-            "--secret-arn", secret_arn,
-            "--database", db_name,
-            "--sql", stmt,
-        ],
-        check=True,
-        stdout=subprocess.DEVNULL,
-    )
+      subprocess.run(
+          [
+              "aws", "rds-data", "execute-statement",
+              "--region", "us-east-1",
+              "--resource-arn", cluster_arn,
+              "--secret-arn", secret_arn,
+              "--database", db_name,
+              "--sql", stmt,
+          ],
+          check=True,
+          stdout=subprocess.DEVNULL,
+      )
 PY
     EOT
 
