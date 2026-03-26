@@ -82,3 +82,9 @@ variable "uploads_bucket_name" {
   type        = string
   default     = "guardcircle-upload"
 }
+
+variable "frontend_bucket_name" {
+  description = "S3 bucket name for frontend static website hosting"
+  type        = string
+  default     = "guardcircle-frontend"
+}

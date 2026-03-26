@@ -58,3 +58,15 @@ output "uploads_bucket_arn" {
 output "uploads_bucket_url" {
   value = "https://s3.${var.aws_region}.amazonaws.com/${aws_s3_bucket.uploads.bucket}"
 }
+
+output "frontend_bucket_name" {
+  value = aws_s3_bucket.frontend.bucket
+}
+
+output "frontend_bucket_url" {
+  value = "https://s3.${var.aws_region}.amazonaws.com/${aws_s3_bucket.frontend.bucket}"
+}
+
+output "frontend_website_url" {
+  value = aws_s3_bucket_website_configuration.frontend.website_endpoint
+}
