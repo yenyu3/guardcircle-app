@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -18,7 +19,8 @@ import (
 type AnalysisRequest struct {
 	UserID       string   `json:"user_id"`
 	InputType    []string `json:"input_type"`    // ["text"] | ["text","url"] | ["image"] etc.
-	InputContent string   `json:"input_content"` // raw text, URL, phone number, or base64 encoded media
+	InputContent string   `json:"input_content"` // raw text, URL, phone number, base64 image, or S3 key for media
+	S3Key        string   `json:"s3_key,omitempty"`  // S3 object key for video/audio/file (uploaded via presigned URL)
 	FileExt      string   `json:"file_ext,omitempty"` // file extension for video/audio/file (e.g. "mp4", "m4a", "pdf")
 	Region       string   `json:"region,omitempty"`
 }
@@ -79,22 +81,103 @@ func handleAnalysis(ctx context.Context, req events.APIGatewayV2HTTPRequest, d *
 
 	log.Printf("[PIPELINE] user_id=%s input_type=%v region=%s", ar.UserID, ar.InputType, ar.Region)
 
-	// 2. For video/audio/file: transcribe to text first
+	// 2. Route media/file types to appropriate handler
 	needsTranscribe := false
+	needsFileExtract := false
+	isVideo := false
 	for _, t := range ar.InputType {
-		if t == "video" || t == "audio" || t == "file" {
+		if t == "video" || t == "audio" {
 			needsTranscribe = true
-			break
+		}
+		if t == "file" {
+			if isDocumentFile(ar.FileExt) {
+				needsFileExtract = true
+			} else {
+				needsTranscribe = true
+			}
+		}
+		if t == "video" {
+			isVideo = true
 		}
 	}
+
+	var rekognitionContext string
+
+	// 2a. File extraction (PDF, text/code files)
+	if needsFileExtract {
+		if cfg.TranscribeS3Bucket == "" {
+			return errorResponse(500, "TRANSCRIBE_S3_BUCKET not configured"), nil
+		}
+		if ar.S3Key == "" {
+			return errorResponse(400, "s3_key is required for file upload"), nil
+		}
+		log.Printf("[FILE_EXTRACT] extracting text from s3 key=%s ext=%s", ar.S3Key, ar.FileExt)
+		extractedText, err := d.FileExtractor.Extract(ctx, cfg.TranscribeS3Bucket, ar.S3Key, ar.FileExt)
+		if err != nil {
+			log.Printf("[FILE_EXTRACT] error: %v", err)
+			return errorResponse(500, "File text extraction failed"), nil
+		}
+		if extractedText == "" {
+			extractedText = "(無法擷取檔案文字內容)"
+		}
+		log.Printf("[FILE_EXTRACT] extracted %d chars", len([]rune(extractedText)))
+		ar.InputContent = extractedText
+	}
+
+	// 2b. Transcribe (video/audio, or non-document files)
 	if needsTranscribe {
 		if cfg.TranscribeS3Bucket == "" {
 			return errorResponse(500, "TRANSCRIBE_S3_BUCKET not configured"), nil
 		}
-		transcribedText, err := d.Transcriber.Transcribe(ctx, cfg.BedrockRegion, cfg.TranscribeS3Bucket, ar.InputContent, ar.FileExt)
-		if err != nil {
-			log.Printf("transcribe error: %v", err)
-			return errorResponse(500, "Media transcription failed"), nil
+
+		var transcribedText string
+		var transcribeErr error
+
+		if isVideo && ar.S3Key != "" {
+			// Video with S3 key: run Transcribe + Rekognition in parallel
+			log.Printf("[TRANSCRIBE] using S3 key: %s", ar.S3Key)
+			log.Printf("[REKOGNITION] starting video analysis: %s", ar.S3Key)
+
+			var wg sync.WaitGroup
+			var rekResult *VideoAnalysisResult
+			var rekErr error
+
+			wg.Add(2)
+			go func() {
+				defer wg.Done()
+				transcribedText, transcribeErr = d.Transcriber.TranscribeFromS3(ctx, cfg.BedrockRegion, cfg.TranscribeS3Bucket, ar.S3Key, ar.FileExt)
+			}()
+			go func() {
+				defer wg.Done()
+				rekResult, rekErr = d.VideoAnalyzer.Analyze(ctx, cfg.TranscribeS3Bucket, ar.S3Key)
+			}()
+			wg.Wait()
+
+			if rekErr != nil {
+				log.Printf("[REKOGNITION] error (non-fatal): %v", rekErr)
+			} else if rekResult != nil {
+				rekognitionContext = formatRekognitionContext(rekResult)
+				log.Printf("[REKOGNITION] results:\n%s", rekognitionContext)
+			}
+		} else if ar.S3Key != "" {
+			// Audio/file with S3 key
+			log.Printf("[TRANSCRIBE] using S3 key: %s", ar.S3Key)
+			transcribedText, transcribeErr = d.Transcriber.TranscribeFromS3(ctx, cfg.BedrockRegion, cfg.TranscribeS3Bucket, ar.S3Key, ar.FileExt)
+		} else {
+			// Legacy: base64 encoded content
+			log.Printf("[TRANSCRIBE] using base64 content (legacy)")
+			transcribedText, transcribeErr = d.Transcriber.Transcribe(ctx, cfg.BedrockRegion, cfg.TranscribeS3Bucket, ar.InputContent, ar.FileExt)
+		}
+
+		if transcribeErr != nil {
+			if isVideo {
+				// Video: Transcribe failure is non-fatal (e.g. no audio track in screen recordings)
+				// Pipeline continues with Rekognition visual analysis and/or placeholder text
+				log.Printf("[TRANSCRIBE] error (non-fatal for video): %v", transcribeErr)
+			} else {
+				log.Printf("[TRANSCRIBE] error: %v", transcribeErr)
+				return errorResponse(500, "Media transcription failed"), nil
+			}
 		}
 		if transcribedText == "" {
 			transcribedText = "(無法辨識語音內容)"
@@ -143,7 +226,15 @@ func handleAnalysis(ctx context.Context, req events.APIGatewayV2HTTPRequest, d *
 		log.Printf("[KB] skipped (BEDROCK_KB_ID not set)")
 	}
 
-	// 5. Send everything to Bedrock Claude Sonnet for analysis
+	// 5. Append Rekognition context (if any) to KB context
+	if rekognitionContext != "" {
+		if kbContext != "" {
+			kbContext += "\n\n"
+		}
+		kbContext += rekognitionContext
+	}
+
+	// 6. Send everything to Bedrock Claude Sonnet for analysis
 	log.Printf("[BEDROCK] analyzing with model=%s", cfg.BedrockModelID)
 	analysis, err := d.Analyzer.Analyze(ctx, cfg.BedrockRegion, cfg.BedrockModelID, &ar, apiResults, kbContext)
 	if err != nil {

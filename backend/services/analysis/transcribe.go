@@ -103,6 +103,67 @@ func transcribeMedia(ctx context.Context, s3Client *s3.Client, txClient *transcr
 	return "", fmt.Errorf("transcription job %s timed out", jobName)
 }
 
+// transcribeFromS3Key runs Amazon Transcribe on a file already in S3 (uploaded via presigned URL).
+func transcribeFromS3Key(ctx context.Context, s3Client *s3.Client, txClient *transcribe.Client, bucket, s3Key, fileExt string) (string, error) {
+	jobName := fmt.Sprintf("gc-%s", uuid.New().String())
+	mediaURI := fmt.Sprintf("s3://%s/%s", bucket, s3Key)
+
+	_, err := txClient.StartTranscriptionJob(ctx, &transcribe.StartTranscriptionJobInput{
+		TranscriptionJobName: aws.String(jobName),
+		LanguageCode:         transcribetypes.LanguageCodeZhTw,
+		Media: &transcribetypes.Media{
+			MediaFileUri: aws.String(mediaURI),
+		},
+		MediaFormat: resolveMediaFormat(fileExt),
+	})
+	if err != nil {
+		return "", fmt.Errorf("start transcription: %w", err)
+	}
+
+	// Poll for completion (max 120s, every 5s)
+	for i := 0; i < 24; i++ {
+		select {
+		case <-ctx.Done():
+			return "", ctx.Err()
+		case <-time.After(5 * time.Second):
+		}
+
+		status, err := txClient.GetTranscriptionJob(ctx, &transcribe.GetTranscriptionJobInput{
+			TranscriptionJobName: aws.String(jobName),
+		})
+		if err != nil {
+			continue
+		}
+
+		job := status.TranscriptionJob
+		if job.TranscriptionJobStatus == transcribetypes.TranscriptionJobStatusCompleted {
+			if job.Transcript != nil && job.Transcript.TranscriptFileUri != nil {
+				text, err := fetchTranscriptText(ctx, *job.Transcript.TranscriptFileUri)
+				if err != nil {
+					return "", fmt.Errorf("fetch transcript: %w", err)
+				}
+				// Cleanup uploaded file (best effort)
+				if _, delErr := s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+					Bucket: aws.String(bucket),
+					Key:    aws.String(s3Key),
+				}); delErr != nil {
+					fmt.Printf("s3 cleanup warning: %v\n", delErr)
+				}
+				return text, nil
+			}
+		}
+		if job.TranscriptionJobStatus == transcribetypes.TranscriptionJobStatusFailed {
+			reason := ""
+			if job.FailureReason != nil {
+				reason = *job.FailureReason
+			}
+			return "", fmt.Errorf("transcription failed: %s", reason)
+		}
+	}
+
+	return "", fmt.Errorf("transcription job %s timed out", jobName)
+}
+
 func resolveMediaFormat(ext string) transcribetypes.MediaFormat {
 	ext = strings.ToLower(strings.TrimPrefix(ext, "."))
 	switch ext {
