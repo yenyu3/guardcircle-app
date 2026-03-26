@@ -1,13 +1,13 @@
 export type Role = "guardian" | "gatekeeper" | "solver";
 export type RiskLevel = "safe" | "medium" | "high";
-export type DetectType = "text" | "url" | "phone" | "image";
+export type DetectType = "text" | "url" | "phone" | "image" | "video" | "file";
 // safe: 常態 | high_risk: 等待守門人救援 | pending: 已發出協助請求
 export type EventStatus = "safe" | "high_risk" | "pending";
 
 export interface User {
   id: string;
   nickname: string;
-  email: string;
+  phone: string;
   role: Role;
   birthYear?: number;
   birthMonth?: string;

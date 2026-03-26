@@ -27,12 +27,12 @@ const DS = {
 
 const BRIEF = {
   tag: "緊急快報",
-  date: new Date().toLocaleDateString('sv'),
-  source: "新聞來源：內政部警政署 165 全民防詐騙網",
-  title: "AI 語音變聲詐騙急升：假冒子女求救，要求匯款至不明帳戶",
+  date: new Date().toLocaleDateString("sv"),
+  source: "新聞來源：ETtoday新聞雲",
+  title: "日本爆發新型銀行詐騙！假客服結合AI語音釣魚　兩天逾百人受害",
   summary:
-    "近期詐騙集團利用先進的 AI 語音複製技術（Voice Cloning），僅需數秒的錄音即可完美模擬特定親友的音色與說話習慣。歹徒常假借發生重大車禍、醫療緊急需求或突發財務危機等「求救情境」，使長輩在極度焦慮下放低戒心。由於變聲後的語音極其逼真，語氣與親人幾乎無異，受害者往往在未經查證的情況下，便依照指示匯款至指定不明帳戶。",
-  keywords: ["AI 語音變聲", "匯款", "財務危機"],
+    "日本近期出現結合 AI 技術的新型銀行詐騙，透過語音釣魚（voice phishing）快速擴散，短時間內即造成大量通報案例。詐騙集團主要鎖定中小企業的總機或第一線接聽人員，利用其負責轉接電話的特性作為突破口。整體手法為高度擬真的複合式詐騙流程：先以假冒銀行的自動語音通知網銀需更新資料，再轉接至真人或 AI 模擬的客服人員建立信任，接著誘導提供電子郵件並寄送含惡意連結的釣魚信件，引導受害者登入仿冒網銀網站，最終竊取帳號密碼並進行資金轉移。與過去單一釣魚郵件不同，此類詐騙加入即時互動，使受害者在對話過程中逐步降低警戒。另一方面，AI 技術大幅提升語音與文字的自然度與真實性，使傳統透過語氣、用詞錯誤辨識詐騙的方式逐漸失效，進一步提高詐騙成功率與危害性。",
+  keywords: ["AI 語音", "語音釣魚", "銀行客服"],
 };
 
 export default function ScamBriefScreen() {
@@ -41,7 +41,7 @@ export default function ScamBriefScreen() {
   const handleShare = async () => {
     await Share.share({
       title: BRIEF.title,
-      message: `【今日詐騙快報】${BRIEF.date}\n\n${BRIEF.title}\n\n${BRIEF.source}\n\n${BRIEF.summary}\n\n⚠️ 三大注意關鍵字：\n${BRIEF.keywords.map((kw, i) => `${i + 1}. ${kw}`).join('\n')}`,
+      message: `【今日詐騙快報】${BRIEF.date}\n\n${BRIEF.title}\n\n${BRIEF.source}\n\n${BRIEF.summary}\n\n⚠️ 三大注意關鍵字：\n${BRIEF.keywords.map((kw, i) => `${i + 1}. ${kw}`).join("\n")}`,
     });
   };
 
@@ -167,7 +167,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(137,80,46,0.25)",
   },
-  tagText: { fontSize: 11, fontWeight: "800", color: DS.primary, letterSpacing: 1 },
+  tagText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: DS.primary,
+    letterSpacing: 1,
+  },
   metaDate: { fontSize: 13, fontWeight: "500", color: DS.onSurfaceVariant },
   metaDot: {
     width: 4,

@@ -8,7 +8,21 @@ const npcImages: Record<string, any> = {
   npc_m3: require('../public/npc_m3.png'),
   npc_w1: require('../public/npc_w1.png'),
   npc_w2: require('../public/npc_w2.png'),
+  guardian_m: require('../public/guardian_m.png'),
+  guardian_w: require('../public/guardian_w.png'),
+  gatekeeper_m: require('../public/gatekeeper_m.png'),
+  gatekeeper_w: require('../public/gatekeeper_w.png'),
+  solver_m: require('../public/solver_m.png'),
+  solver_w: require('../public/solver_w.png'),
 };
+
+/** 依 role + userId hash 自動分配 NPC 頭貼 key */
+export function resolveAvatar(role: string, userId: string): string {
+  const hash = userId.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  const suffix = hash % 2 === 0 ? 'm' : 'w';
+  const base = role === 'guardian' ? 'guardian' : role === 'gatekeeper' ? 'gatekeeper' : 'solver';
+  return `${base}_${suffix}`;
+}
 
 interface Props {
   avatar?: string;

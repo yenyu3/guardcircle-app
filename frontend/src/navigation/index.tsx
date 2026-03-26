@@ -49,6 +49,7 @@ import SettingsPrivacyScreen from "../screens/settings/SettingsPrivacyScreen";
 import SettingsProfileScreen from "../screens/settings/SettingsProfileScreen";
 
 import ScamBriefScreen from '../screens/ScamBriefScreen';
+import KnowledgeCardScreen from '../screens/KnowledgeCardScreen';
 
 // Other
 import DailyChallengeScreen from "../screens/DailyChallengeScreen";
@@ -101,6 +102,7 @@ export type RootStackParamList = {
   FamilyInvite: undefined;
   GuardianAlert: { eventId: string };
   HighRiskEvents: undefined;
+  KnowledgeCard: { cardId: string };
   ScamBrief: undefined;
   WeeklyReport: undefined;
   DailyChallenge: undefined;
@@ -195,8 +197,15 @@ const tabStyles = StyleSheet.create({
 });
 
 function MainTabs() {
-  const { currentUser } = useAppStore();
+  const { currentUser, hasFamilyCircle, apiFetchFamily } = useAppStore();
   const isGuardian = currentUser.role === 'guardian';
+
+  React.useEffect(() => {
+    if (!hasFamilyCircle) return;
+    apiFetchFamily().catch(() => {});
+    const id = setInterval(() => apiFetchFamily().catch(() => {}), 15000);
+    return () => clearInterval(id);
+  }, [hasFamilyCircle]);
 
   return (
     <ScrollRefProvider>
@@ -242,6 +251,7 @@ export default function AppNavigator() {
         <Stack.Screen name="FamilyInvite" component={FamilyInviteScreen} />
         <Stack.Screen name="GuardianAlert" component={GuardianAlertScreen} />
         <Stack.Screen name="HighRiskEvents" component={HighRiskEventsScreen} />
+        <Stack.Screen name="KnowledgeCard" component={KnowledgeCardScreen} />
         <Stack.Screen name="ScamBrief" component={ScamBriefScreen} />
         <Stack.Screen name="WeeklyReport" component={WeeklyReportScreen} />
         <Stack.Screen name="DailyChallenge" component={DailyChallengeScreen} />

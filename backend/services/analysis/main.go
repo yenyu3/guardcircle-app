@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -36,6 +37,7 @@ type EventData struct {
 	RiskScore    int      `json:"risk_score"`
 	ScamType     string   `json:"scam_type"`
 	Summary      string   `json:"summary"`
+	Consequence  string   `json:"consequence"`
 	Reason       string   `json:"reason"`
 	RiskFactors  []string `json:"risk_factors"`
 	TopSignals   []string `json:"top_signals"`
@@ -75,6 +77,8 @@ func handleAnalysis(ctx context.Context, req events.APIGatewayV2HTTPRequest, d *
 
 	cfg := d.Config
 
+	log.Printf("[PIPELINE] user_id=%s input_type=%v region=%s", ar.UserID, ar.InputType, ar.Region)
+
 	// 2. For video/audio/file: transcribe to text first
 	needsTranscribe := false
 	for _, t := range ar.InputType {
@@ -101,13 +105,17 @@ func handleAnalysis(ctx context.Context, req events.APIGatewayV2HTTPRequest, d *
 	// 3. Call external API for each input type
 	var apiResults []*ExternalAPIResult
 	for _, inputType := range ar.InputType {
+		log.Printf("[EXTERNAL_API] calling type=%s", inputType)
 		result, err := d.ExternalAPI.Call(ctx, inputType, ar.InputContent, ar.Region, cfg.WhoscallAPIKey, cfg.WhoscallBaseURL)
 		if err != nil {
-			log.Printf("external API error for %s (non-fatal): %v", inputType, err)
+			log.Printf("[EXTERNAL_API] error type=%s: %v", inputType, err)
 			result = &ExternalAPIResult{
 				Source: inputType,
 				Error:  err.Error(),
 			}
+		} else {
+			resultJSON, _ := json.MarshalIndent(result, "", "  ")
+			log.Printf("[EXTERNAL_API] result type=%s:\n%s", inputType, string(resultJSON))
 		}
 		apiResults = append(apiResults, result)
 	}
@@ -119,21 +127,31 @@ func handleAnalysis(ctx context.Context, req events.APIGatewayV2HTTPRequest, d *
 		if isImageRequest(ar.InputType) {
 			kbQuery = extractImageKBQuery(apiResults)
 		} else {
-			kbQuery = buildKBQuery(ar.InputType[0], ar.InputContent)
+			kbQuery = buildKBQuery(ar.InputType, ar.InputContent)
 		}
+		log.Printf("[KB] querying kb_id=%s query=%q", cfg.BedrockKBID, kbQuery)
 		var kbErr error
 		kbContext, kbErr = d.KnowledgeBase.Query(ctx, cfg.BedrockRegion, cfg.BedrockKBID, kbQuery)
 		if kbErr != nil {
-			log.Printf("knowledge base query error (non-fatal): %v", kbErr)
+			log.Printf("[KB] error: %v", kbErr)
+		} else if kbContext == "" {
+			log.Printf("[KB] no matching results")
+		} else {
+			log.Printf("[KB] found results:\n%s", kbContext)
 		}
+	} else {
+		log.Printf("[KB] skipped (BEDROCK_KB_ID not set)")
 	}
 
 	// 5. Send everything to Bedrock Claude Sonnet for analysis
+	log.Printf("[BEDROCK] analyzing with model=%s", cfg.BedrockModelID)
 	analysis, err := d.Analyzer.Analyze(ctx, cfg.BedrockRegion, cfg.BedrockModelID, &ar, apiResults, kbContext)
 	if err != nil {
-		log.Printf("bedrock analysis error: %v", err)
+		log.Printf("[BEDROCK] error: %v", err)
 		return errorResponse(500, "AI analysis failed"), nil
 	}
+	analysisJSON, _ := json.MarshalIndent(analysis, "", "  ")
+	log.Printf("[BEDROCK] analysis result:\n%s", string(analysisJSON))
 
 	// 6. Build event data
 	now := time.Now().UTC()
@@ -153,6 +171,7 @@ func handleAnalysis(ctx context.Context, req events.APIGatewayV2HTTPRequest, d *
 		RiskScore:    analysis.RiskScore,
 		ScamType:     analysis.ScamType,
 		Summary:      analysis.Summary,
+		Consequence:  analysis.Consequence,
 		Reason:       analysis.Reason,
 		RiskFactors:  analysis.RiskFactors,
 		TopSignals:   analysis.TopSignals,
@@ -222,21 +241,40 @@ func truncateContent(s string, max int) string {
 	return s
 }
 
-func buildKBQuery(inputType, content string) string {
-	switch inputType {
-	case "text", "video", "audio", "file":
+func buildKBQuery(inputTypes []string, content string) string {
+	var parts []string
+	typeSet := make(map[string]bool)
+	for _, t := range inputTypes {
+		typeSet[t] = true
+	}
+
+	// Text content (truncated)
+	if typeSet["text"] || typeSet["video"] || typeSet["audio"] || typeSet["file"] {
+		r := []rune(content)
+		if len(r) > 200 {
+			parts = append(parts, string(r[:200]))
+		} else {
+			parts = append(parts, content)
+		}
+	}
+
+	if typeSet["url"] {
+		parts = append(parts, "詐騙網址 "+content)
+	}
+	if typeSet["phone"] {
+		parts = append(parts, "詐騙電話號碼 "+content)
+	}
+	if typeSet["image"] {
+		parts = append(parts, "詐騙截圖分析")
+	}
+
+	if len(parts) == 0 {
 		r := []rune(content)
 		if len(r) > 200 {
 			return string(r[:200])
 		}
 		return content
-	case "url":
-		return "詐騙網址 " + content
-	case "phone":
-		return "詐騙電話號碼 " + content
-	case "image":
-		return "詐騙截圖分析"
-	default:
-		return content
 	}
+
+	return strings.Join(parts, " ")
 }

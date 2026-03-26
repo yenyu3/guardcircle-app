@@ -37,13 +37,14 @@ const DS = {
 
 export default function FamilyJoinScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const { joinFamily, currentUser, saveAccount, registeredAccounts } = useAppStore();
-  const password = registeredAccounts.find(a => a.email === currentUser.email)?.password ?? '';
+  const { currentUser, saveAccount, registeredAccounts, apiJoinFamily, apiCreateFamily, joinFamily } = useAppStore();
+  const password = registeredAccounts.find(a => a.phone === currentUser.phone)?.password ?? '';
   const role = currentUser?.role;
   const [digits, setDigits] = useState(["", "", "", "", "", ""]);
   const [familyName, setFamilyName] = useState("");
   const [showQR, setShowQR] = useState(false);
   const [showPairingModal, setShowPairingModal] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [pairingCode] = useState(() =>
     String(Math.floor(1000 + Math.random() * 9000))
   );
@@ -69,14 +70,21 @@ export default function FamilyJoinScreen() {
 
   const codeComplete = digits.every((d) => d !== "");
 
-  const handleJoin = () => {
+  const handleJoin = async () => {
     if (!codeComplete) {
       Alert.alert("請輸入完整的 6 位數代碼");
       return;
     }
-    joinFamily();
-    saveAccount(password);
-    navigation.replace("Main");
+    setLoading(true);
+    try {
+      await apiJoinFamily(digits.join(''));
+      saveAccount(password);
+      navigation.replace("Main");
+    } catch {
+      Alert.alert("加入失敗", "邀請碼無效或已過期，請確認後再試");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSendToFamily = async () => {
@@ -91,12 +99,19 @@ export default function FamilyJoinScreen() {
     });
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!familyName) {
       Alert.alert("請輸入家庭名稱");
       return;
     }
-    joinFamily();
+    setLoading(true);
+    try {
+      await apiCreateFamily(familyName, circleId);
+    } catch {
+      joinFamily();
+    } finally {
+      setLoading(false);
+    }
     saveAccount(password);
     navigation.replace("Main");
   };
@@ -175,6 +190,46 @@ export default function FamilyJoinScreen() {
               >
                 <Ionicons name="share-outline" size={18} color="#fff" />
                 <Text style={styles.solidBtnText}>傳送給家人</Text>
+              </LinearGradient>
+            </Pressable>
+          </View>
+        )}
+
+        {/* Card: Guardian join with code */}
+        {role === "guardian" && (
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="people-outline" size={26} color={DS.primary} />
+              <Text style={styles.cardTitle}>輸入家庭圈 ID 加入</Text>
+            </View>
+            <Text style={styles.cardDesc}>輸入家人提供的 6 位家庭圈 ID</Text>
+            <View style={styles.digitRow}>
+              {digits.map((d, i) => (
+                <TextInput
+                  key={i}
+                  ref={(r) => { inputRefs.current[i] = r; }}
+                  style={[styles.digitBox, d && styles.digitBoxFilled]}
+                  value={d}
+                  onChangeText={(v) => handleDigit(v, i)}
+                  onKeyPress={(e) => handleKeyPress(e, i)}
+                  keyboardType="default"
+                  autoCapitalize="characters"
+                  maxLength={1}
+                  textAlign="center"
+                />
+              ))}
+            </View>
+            <Pressable
+              onPress={handleJoin}
+              style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }, !codeComplete && styles.solidBtnDisabled]}
+            >
+              <LinearGradient
+                colors={[DS.primary, DS.primaryContainer]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.gradientBtn}
+              >
+                <Text style={styles.solidBtnText}>送出加入申請</Text>
               </LinearGradient>
             </Pressable>
           </View>

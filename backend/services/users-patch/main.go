@@ -23,6 +23,7 @@ type updateUserRequest struct {
 	ContactPhone *string `json:"contact_phone"`
 	Gender       *string `json:"gender"`
 	Birthday     *string `json:"birthday"`
+	Role         *string `json:"role"`
 }
 
 func init() {
@@ -94,6 +95,11 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 		args = append(args, *input.Birthday)
 		idx++
 	}
+	if input.Role != nil {
+		sets = append(sets, fmt.Sprintf("role = $%d", idx))
+		args = append(args, *input.Role)
+		idx++
+	}
 
 	if len(sets) == 0 {
 		return jsonResp(http.StatusBadRequest, map[string]string{"error": "no fields to update"})
@@ -109,11 +115,11 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 		UPDATE users
 		SET %s
 		WHERE user_id = $%d
-		RETURNING nickname, to_char(updated_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+		RETURNING nickname, role, to_char(updated_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
 	`, strings.Join(sets, ", "), idx)
 
-	var nickname, updatedAt string
-	err := db.QueryRowContext(ctx, query, args...).Scan(&nickname, &updatedAt)
+	var nickname, role, updatedAt string
+	err := db.QueryRowContext(ctx, query, args...).Scan(&nickname, &role, &updatedAt)
 	if err == sql.ErrNoRows {
 		return jsonResp(http.StatusNotFound, map[string]string{"error": "user not found"})
 	}
@@ -126,6 +132,7 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 		"data": map[string]interface{}{
 			"user_id":    userID,
 			"nickname":   nickname,
+			"role":       role,
 			"updated_at": updatedAt,
 		},
 	})
