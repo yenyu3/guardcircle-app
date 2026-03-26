@@ -51,7 +51,7 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	var inputTypeJSON, inputContent, riskLevel, scamType, summary, consequence, reason, notifyStatus, createdAt string
+	var inputTypeJSON, inputContent, riskLevel, scamType, summary, consequence, reason, notifyStatus, updatedBy, updatedAt, createdAt string
 	var riskScore sql.NullInt32
 	var riskFactors sql.NullString
 	var topSignals sql.NullString
@@ -69,10 +69,12 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 			risk_factors::text,
 			top_signals::text,
 			notify_status,
+			COALESCE(updated_by, ''),
+			COALESCE(to_char(updated_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), ''),
 			to_char(created_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
 		FROM scan_events
 		WHERE user_id = $1 AND event_id = $2
-	`, userID, eventID).Scan(&inputTypeJSON, &inputContent, &riskLevel, &riskScore, &scamType, &summary, &consequence, &reason, &riskFactors, &topSignals, &notifyStatus, &createdAt)
+	`, userID, eventID).Scan(&inputTypeJSON, &inputContent, &riskLevel, &riskScore, &scamType, &summary, &consequence, &reason, &riskFactors, &topSignals, &notifyStatus, &updatedBy, &updatedAt, &createdAt)
 	if err == sql.ErrNoRows {
 		return jsonResp(http.StatusNotFound, map[string]string{"error": "event not found"})
 	}
@@ -111,6 +113,8 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 		"consequence":   consequence,
 		"reason":        reason,
 		"notify_status": notifyStatus,
+		"updated_by":    updatedBy,
+		"updated_at":    updatedAt,
 		"created_at":    createdAt,
 		"raw_result":    nil,
 	}

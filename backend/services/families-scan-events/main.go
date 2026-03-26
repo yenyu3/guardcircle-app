@@ -91,6 +91,8 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 			se.risk_factors::text,
 			se.top_signals::text,
 			se.notify_status,
+			COALESCE(se.updated_by, ''),
+			COALESCE(to_char(se.updated_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), ''),
 			to_char(se.created_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
 		FROM scan_events se
 		JOIN users u ON u.user_id = se.user_id
@@ -105,11 +107,11 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 
 	eventsList := make([]map[string]interface{}, 0)
 	for rows.Next() {
-		var eventID, userID, nickname, inputTypeJSON, inputContent, riskLevel, scamType, summary, consequence, reason, notifyStatus, createdAt string
+		var eventID, userID, nickname, inputTypeJSON, inputContent, riskLevel, scamType, summary, consequence, reason, notifyStatus, updatedBy, updatedAt, createdAt string
 		var riskScore sql.NullInt32
 		var riskFactors sql.NullString
 		var topSignals sql.NullString
-		if err := rows.Scan(&eventID, &userID, &nickname, &inputTypeJSON, &inputContent, &riskLevel, &riskScore, &scamType, &summary, &consequence, &reason, &riskFactors, &topSignals, &notifyStatus, &createdAt); err != nil {
+		if err := rows.Scan(&eventID, &userID, &nickname, &inputTypeJSON, &inputContent, &riskLevel, &riskScore, &scamType, &summary, &consequence, &reason, &riskFactors, &topSignals, &notifyStatus, &updatedBy, &updatedAt, &createdAt); err != nil {
 			return jsonResp(http.StatusInternalServerError, map[string]string{"error": "failed to read events"})
 		}
 		var inputTypeParsed []string
@@ -128,6 +130,8 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 			"consequence":   consequence,
 			"reason":        reason,
 			"notify_status": notifyStatus,
+			"updated_by":    updatedBy,
+			"updated_at":    updatedAt,
 			"created_at":    createdAt,
 		}
 		if riskScore.Valid {
