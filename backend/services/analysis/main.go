@@ -115,8 +115,14 @@ func handleAnalysis(ctx context.Context, req events.APIGatewayV2HTTPRequest, d *
 	// 4. Query Bedrock Knowledge Base for similar scam cases
 	var kbContext string
 	if cfg.BedrockKBID != "" {
+		var kbQuery string
+		if isImageRequest(ar.InputType) {
+			kbQuery = extractImageKBQuery(apiResults)
+		} else {
+			kbQuery = buildKBQuery(ar.InputType[0], ar.InputContent)
+		}
 		var kbErr error
-		kbContext, kbErr = d.KnowledgeBase.Query(ctx, cfg.BedrockRegion, cfg.BedrockKBID, buildKBQuery(ar.InputType[0], ar.InputContent))
+		kbContext, kbErr = d.KnowledgeBase.Query(ctx, cfg.BedrockRegion, cfg.BedrockKBID, kbQuery)
 		if kbErr != nil {
 			log.Printf("knowledge base query error (non-fatal): %v", kbErr)
 		}

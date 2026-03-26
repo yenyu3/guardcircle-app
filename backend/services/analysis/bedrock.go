@@ -59,13 +59,39 @@ func queryKnowledgeBase(ctx context.Context, client *bedrockagentruntime.Client,
 func analyzeWithBedrock(ctx context.Context, client *bedrockruntime.Client, modelID string, req *AnalysisRequest, apiResults []*ExternalAPIResult, kbContext string) (*BedrockAnalysis, error) {
 	prompt := buildPrompt(req, apiResults, kbContext)
 
+	// Build message content: multimodal for image, text-only otherwise
+	var contentBlocks []map[string]interface{}
+
+	if isImageRequest(req.InputType) && req.InputContent != "" {
+		// Add image as vision content block
+		mediaType := detectImageMediaType(req.InputContent)
+		contentBlocks = append(contentBlocks, map[string]interface{}{
+			"type": "image",
+			"source": map[string]interface{}{
+				"type":         "base64",
+				"media_type":   mediaType,
+				"data":         req.InputContent,
+			},
+		})
+		// Add text prompt after image
+		contentBlocks = append(contentBlocks, map[string]interface{}{
+			"type": "text",
+			"text": prompt,
+		})
+	} else {
+		contentBlocks = append(contentBlocks, map[string]interface{}{
+			"type": "text",
+			"text": prompt,
+		})
+	}
+
 	payload := map[string]interface{}{
 		"anthropic_version": "bedrock-2023-05-31",
 		"max_tokens":        2048,
 		"messages": []map[string]interface{}{
 			{
 				"role":    "user",
-				"content": prompt,
+				"content": contentBlocks,
 			},
 		},
 		"system": systemPrompt(),
@@ -151,7 +177,11 @@ func systemPrompt() string {
 func buildPrompt(req *AnalysisRequest, apiResults []*ExternalAPIResult, kbContext string) string {
 	var sb strings.Builder
 
-	sb.WriteString(fmt.Sprintf("## 使用者提交內容\n- 類型：%s\n- 內容：%s\n\n", strings.Join(req.InputType, ", "), truncateForPrompt(req.InputContent, 2000)))
+	if isImageRequest(req.InputType) {
+		sb.WriteString(fmt.Sprintf("## 使用者提交內容\n- 類型：%s\n- 圖片已附在上方，請直接分析圖片內容\n\n", strings.Join(req.InputType, ", ")))
+	} else {
+		sb.WriteString(fmt.Sprintf("## 使用者提交內容\n- 類型：%s\n- 內容：%s\n\n", strings.Join(req.InputType, ", "), truncateForPrompt(req.InputContent, 2000)))
+	}
 
 	for _, apiResult := range apiResults {
 		if apiResult != nil && apiResult.RawData != nil {
@@ -201,4 +231,76 @@ func extractJSON(text string) string {
 		}
 	}
 	return text
+}
+
+// isImageRequest checks if input types contain "image".
+func isImageRequest(inputTypes []string) bool {
+	for _, t := range inputTypes {
+		if t == "image" {
+			return true
+		}
+	}
+	return false
+}
+
+// detectImageMediaType guesses media type from base64 header magic bytes.
+func detectImageMediaType(base64Data string) string {
+	if len(base64Data) < 4 {
+		return "image/png"
+	}
+	// Check common base64 prefixes
+	switch {
+	case strings.HasPrefix(base64Data, "/9j/"):
+		return "image/jpeg"
+	case strings.HasPrefix(base64Data, "iVBOR"):
+		return "image/png"
+	case strings.HasPrefix(base64Data, "R0lGOD"):
+		return "image/gif"
+	case strings.HasPrefix(base64Data, "UklGR"):
+		return "image/webp"
+	default:
+		return "image/png"
+	}
+}
+
+// extractImageKBQuery builds a KB query from Whoscall content-check results for images.
+func extractImageKBQuery(apiResults []*ExternalAPIResult) string {
+	for _, r := range apiResults {
+		if r == nil || r.Source != "content-check" || r.RawData == nil {
+			continue
+		}
+		// Try to extract meaningful text from content-check result
+		raw, err := json.Marshal(r.RawData)
+		if err != nil {
+			continue
+		}
+		var result map[string]interface{}
+		if err := json.Unmarshal(raw, &result); err != nil {
+			continue
+		}
+
+		var parts []string
+		// Extract category/label if present
+		if cat, ok := result["category"].(string); ok && cat != "" {
+			parts = append(parts, cat)
+		}
+		if label, ok := result["label"].(string); ok && label != "" {
+			parts = append(parts, label)
+		}
+		if desc, ok := result["description"].(string); ok && desc != "" {
+			parts = append(parts, desc)
+		}
+		// Extract tags array if present
+		if tags, ok := result["tags"].([]interface{}); ok {
+			for _, tag := range tags {
+				if s, ok := tag.(string); ok {
+					parts = append(parts, s)
+				}
+			}
+		}
+		if len(parts) > 0 {
+			return "詐騙圖片分析 " + strings.Join(parts, " ")
+		}
+	}
+	return "詐騙截圖分析"
 }
