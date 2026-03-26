@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -31,7 +30,7 @@ type AnalysisResponse struct {
 type EventData struct {
 	EventID      string   `json:"event_id"`
 	UserID       string   `json:"user_id"`
-	InputType    string   `json:"input_type"`
+	InputType    []string `json:"input_type"`
 	InputContent string   `json:"input_content"`
 	RiskLevel    string   `json:"risk_level"`
 	RiskScore    int      `json:"risk_score"`
@@ -142,7 +141,7 @@ func handleAnalysis(ctx context.Context, req events.APIGatewayV2HTTPRequest, d *
 	eventData := &EventData{
 		EventID:      eventID,
 		UserID:       ar.UserID,
-		InputType:    strings.Join(ar.InputType, ","),
+		InputType:    ar.InputType,
 		InputContent: truncateContent(ar.InputContent, 500),
 		RiskLevel:    analysis.RiskLevel,
 		RiskScore:    analysis.RiskScore,
