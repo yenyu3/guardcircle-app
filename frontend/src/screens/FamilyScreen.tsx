@@ -26,12 +26,12 @@ const STATUS_LABEL: Record<string, string> = {
 const ROLE_LABEL: Record<string, string> = {
   guardian: '守護者',
   gatekeeper: '守門人',
-  solver: '解析者',
+  solver: '識破者',
 };
 
 export default function FamilyScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const { events, family } = useAppStore();
+  const { events, family, apiFetchFamily } = useAppStore();
   const members = family.members;
   const scrollRef = useRef<ScrollView>(null);
   const { register } = useScrollRef();
@@ -40,6 +40,7 @@ export default function FamilyScreen() {
     React.useCallback(() => {
       register('Family', scrollRef);
       scrollRef.current?.scrollTo({ y: 0, animated: false });
+      apiFetchFamily().catch(() => {});
     }, [])
   );
 
@@ -202,8 +203,8 @@ const styles = StyleSheet.create({
   timelineRow: { flexDirection: 'row', gap: 14, alignItems: 'flex-start' },
   timelineIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', zIndex: 1 },
   timelineCard: { flex: 1, backgroundColor: '#fff', borderRadius: Radius.lg, padding: 14, ...Shadow.card, borderWidth: 1, borderColor: Colors.primary + '0D' },
-  timelineCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 },
-  timelineTitle: { fontSize: 13, fontWeight: '700', color: Colors.text, flex: 1, marginRight: 8 },
+  timelineCardHeader: { flexDirection: 'column', marginBottom: 4 },
+  timelineTitle: { fontSize: 13, fontWeight: '700', color: Colors.text, marginBottom: 2 },
   timelineTime: { fontSize: 11, color: Colors.textMuted },
   emptyTimeline: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 16, paddingLeft: 8 },
   emptyTimelineText: { fontSize: 14, color: Colors.safe, fontWeight: '600' },

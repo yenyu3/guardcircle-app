@@ -14,7 +14,7 @@ export default function ResultScreen() {
     } else if (riskLevel === 'medium') {
       navigation.replace('ResultMedium', { riskFactors, summary, scamType, riskScore, reason });
     } else {
-      navigation.replace('ResultSafe', { reason });
+      navigation.replace('ResultSafe', { summary: reason });
     }
   }, []);
 

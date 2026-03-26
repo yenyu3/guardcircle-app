@@ -21,6 +21,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Header from "../../components/Header";
 import { useAppStore } from "../../store";
+import * as API from "../../api";
 import { Colors, Radius, Shadow } from "../../theme";
 import { Role } from "../../types";
 
@@ -141,7 +142,7 @@ function stripPhone(formatted: string): string {
 
 export default function SettingsProfileScreen() {
   const navigation = useNavigation();
-  const { currentUser, setUser, setRole } = useAppStore();
+  const { currentUser, setUser, setRole, apiPatchUser, saveAccount } = useAppStore();
 
   const [nickname, setNickname] = useState(currentUser.nickname);
   const [emergencyPhone, setEmergencyPhone] = useState(
@@ -179,9 +180,13 @@ export default function SettingsProfileScreen() {
   const avatarKey = genderKey ? `${currentUser.role}_${genderKey}` : null;
   const avatarSrc = avatarKey ? avatarMap[avatarKey] : null;
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const genderMapped =
       gender === "男" ? "male" : gender === "女" ? "female" : gender === "其他" ? "other" : undefined;
+    const birthday = birthYear && birthMonth && birthDay
+      ? `${birthYear}-${birthMonth.padStart(2,'0')}-${birthDay.padStart(2,'0')}`
+      : undefined;
+    // 先更新本地 store
     setUser({
       nickname,
       emergencyPhone: stripPhone(emergencyPhone) || undefined,
@@ -190,6 +195,20 @@ export default function SettingsProfileScreen() {
       birthDay: birthDay || undefined,
       gender: genderMapped,
     });
+    saveAccount();
+    // 嘗試同步到後端
+    try {
+      const backendRole: API.BackendRole = pendingRole === 'solver' ? 'youth' : pendingRole;
+      await apiPatchUser({
+        nickname,
+        contact_phone: stripPhone(emergencyPhone) || undefined,
+        gender: genderMapped,
+        birthday,
+        role: backendRole,
+      });
+    } catch {
+      // 後端不可用時僅更新本地，不影響使用者
+    }
     Alert.alert("已儲存");
     navigation.goBack();
   };
@@ -284,7 +303,7 @@ export default function SettingsProfileScreen() {
           {/* 手機號碼（唯讀） */}
           <Text style={styles.label}>手機號碼</Text>
           <View style={styles.readonlyRow}>
-            <Text style={styles.readonlyText}>{currentUser.email || "—"}</Text>
+            <Text style={styles.readonlyText}>{currentUser.phone || "—"}</Text>
           </View>
 
           {/* 緊急連絡人手機號碼 */}

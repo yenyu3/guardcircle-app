@@ -5,7 +5,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius } from '../../theme';
 import { useAppStore } from '../../store';
-import { mockFamily } from '../../mock';
 import Header from '../../components/Header';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
@@ -13,7 +12,7 @@ import Avatar from '../../components/Avatar';
 
 export default function SettingsFamilyScreen() {
   const navigation = useNavigation();
-  const { currentUser, family } = useAppStore();
+  const { currentUser, family, blacklistKeywords } = useAppStore();
   const isGatekeeper = currentUser.role === 'gatekeeper';
   const [threshold, setThreshold] = useState<'60' | '70' | '80'>('70');
 
@@ -62,18 +61,22 @@ export default function SettingsFamilyScreen() {
               <Text style={styles.settingLabel}>關鍵字黑名單</Text>
               <Text style={styles.settingHint}>偵測到以下關鍵字時立即通知守門人</Text>
               <View style={styles.keywords}>
-                {['匯款', '轉帳', '提款機', '解除分期', '保管費'].map((k) => (
-                  <View key={k} style={styles.keyword}>
-                    <Text style={styles.keywordText}>{k}</Text>
-                  </View>
-                ))}
+                {blacklistKeywords.length === 0 ? (
+                  <Text style={styles.settingHint}>尚未設定關鍵字</Text>
+                ) : (
+                  blacklistKeywords.map((k) => (
+                    <View key={k} style={styles.keyword}>
+                      <Text style={styles.keywordText}>{k}</Text>
+                    </View>
+                  ))
+                )}
               </View>
             </Card>
 
             <Card style={styles.section}>
               <Text style={styles.settingLabel}>靜默時段</Text>
               <Text style={styles.settingHint}>此時段不發送通知（緊急高風險除外）</Text>
-              <Text style={styles.settingValue}>23:00 – 07:00</Text>
+              <Text style={styles.settingValue}>尚未設定</Text>
             </Card>
           </>
         )}

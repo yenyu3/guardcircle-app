@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { mockEvents as initialEvents, mockFamily, mockUsers } from "../mock";
+import { mockDailyChallenges } from "../mock";
 import {
   DailyChallengeResult,
   DetectEvent,
@@ -8,9 +8,12 @@ import {
   Role,
   User,
 } from "../types";
+import * as API from "../api";
+import { resolveAvatar } from "../components/NpcAvatar";
 
 interface RegisteredAccount {
-  email: string;
+  id: string;
+  phone: string;
   password: string;
   nickname: string;
   birthYear?: number;
@@ -34,10 +37,31 @@ interface AppState {
   hasFamilyCircle: boolean;
   suggestedRole: Role | null;
   registeredAccounts: RegisteredAccount[];
+  // 後端真實 ID
+  userId: string | null;
+  familyId: string | null;
   setRole: (role: Role) => void;
   setUser: (user: Partial<User>) => void;
-  login: (nickname: string, email: string, birthYear?: number, gender?: string, emergencyPhone?: string, birthMonth?: string, birthDay?: string) => void;
-  directLogin: (email: string, password: string) => boolean;
+  login: (nickname: string, phone: string, birthYear?: number, gender?: string, emergencyPhone?: string, birthMonth?: string, birthDay?: string) => void;
+  directLogin: (phone: string, password: string) => boolean;
+  // 真實 API 登入
+  apiLogin: (phone: string, password: string) => Promise<void>;
+  // 真實 API 註冊
+  apiRegister: (params: {
+    phone: string; password: string; nickname: string;
+    gender?: 'male' | 'female' | 'other' | 'unknown';
+    birthday?: string; role: API.BackendRole; contact_phone: string;
+  }) => Promise<void>;
+  // 真實 API 建立家庭圈
+  apiCreateFamily: (familyName: string, inviteCode: string) => Promise<{ family_id: string; invite_code: string }>;
+  // 真實 API 加入家庭圈
+  apiJoinFamily: (inviteCode: string) => Promise<void>;
+  // 真實 API 拉取家庭圈成員
+  apiFetchFamily: () => Promise<void>;
+  // 真實 API 分析
+  apiAnalyze: (params: { input_type: 'text' | 'image' | 'url' | 'phone' | ('text' | 'image' | 'url' | 'phone')[]; content: string; file_ext?: string }) => Promise<API.AnalysisRes['data']>;
+  // 真實 API 更新個人資料
+  apiPatchUser: (body: API.PatchUserReq) => Promise<void>;
   logout: () => void;
   joinFamily: () => void;
   addEvent: (event: DetectEvent) => void;
@@ -53,7 +77,7 @@ interface AppState {
   ) => void;
   generatePairingCode: () => string;
   bindGuardian: (pairingCode: string) => boolean;
-  saveAccount: (password: string) => void;
+  saveAccount: (password?: string) => void;
   addContributionPoints: (points: number) => void;
   addReport: () => void;
   submitDailyChallengeResult: (
@@ -65,23 +89,50 @@ interface AppState {
   setBlacklistKeywords: (keywords: string[]) => void;
 }
 
+export function formatDate(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+}
+
 export const useAppStore = create<AppState>((set) => ({
-  currentUser: mockUsers[1], // default gatekeeper
-  family: mockFamily,
-  events: initialEvents,
+  currentUser: {
+    id: "",
+    nickname: "",
+    phone: "",
+    role: "gatekeeper" as Role,
+    familyIds: [],
+    contributionPoints: 0,
+    reportCount: 0,
+  },
+  family: {
+    id: "",
+    name: "",
+    code: "",
+    members: [],
+    createdAt: "",
+  },
+  events: [],
   dailyChallengeResults: [],
   elderMode: true,
   isLoggedIn: false,
   hasFamilyCircle: false,
   suggestedRole: null,
   registeredAccounts: [],
+  userId: null,
+  familyId: null,
 
   setRole: (role) => set((s) => ({ currentUser: { ...s.currentUser, role } })),
 
   setUser: (user) =>
     set((s) => ({ currentUser: { ...s.currentUser, ...user } })),
 
-  login: (nickname, email, birthYear, gender, emergencyPhone, birthMonth, birthDay) => {
+  login: (nickname, phone, birthYear, gender, emergencyPhone, birthMonth, birthDay) => {
     let suggestedRole: Role | null = null;
     if (birthYear !== undefined) {
       const age = new Date().getFullYear() - birthYear;
@@ -99,20 +150,22 @@ export const useAppStore = create<AppState>((set) => ({
     set((s) => ({
       isLoggedIn: true,
       suggestedRole,
-      currentUser: { ...s.currentUser, nickname, email, birthYear, birthMonth, birthDay, gender: genderMapped, emergencyPhone, contributionPoints: 0, reportCount: 0 },
+      currentUser: { ...s.currentUser, nickname, phone, birthYear, birthMonth, birthDay, gender: genderMapped, emergencyPhone, contributionPoints: 0, reportCount: 0 },
     }));
   },
 
-  saveAccount: (password: string) =>
+  saveAccount: (password?: string) =>
     set((s) => {
       const existing = s.registeredAccounts.findIndex(
-        (a) => a.email === s.currentUser.email,
+        (a) => a.phone === s.currentUser.phone,
       );
       const memberStatuses: Record<string, "safe" | "pending" | "high_risk"> = {};
       s.family.members.forEach((m) => { memberStatuses[m.id] = m.status; });
+      const resolvedPassword = password ?? s.registeredAccounts[existing]?.password ?? '';
       const account: RegisteredAccount = {
-        email: s.currentUser.email,
-        password,
+        id: s.currentUser.id || s.currentUser.phone,
+        phone: s.currentUser.phone,
+        password: resolvedPassword,
         nickname: s.currentUser.nickname,
         birthYear: s.currentUser.birthYear,
         birthMonth: s.currentUser.birthMonth,
@@ -131,10 +184,10 @@ export const useAppStore = create<AppState>((set) => ({
       return { registeredAccounts: accounts };
     }),
 
-  directLogin: (email: string, password: string) => {
+  directLogin: (phone: string, password: string) => {
     const accounts = useAppStore.getState().registeredAccounts;
     const account = accounts.find(
-      (a) => a.email === email && a.password === password,
+      (a) => a.phone === phone && a.password === password,
     );
     if (!account) return false;
     set((s) => ({
@@ -142,8 +195,9 @@ export const useAppStore = create<AppState>((set) => ({
       hasFamilyCircle: account.hasFamilyCircle,
       currentUser: {
         ...s.currentUser,
+        id: account.id || account.phone,
         nickname: account.nickname,
-        email: account.email,
+        phone: account.phone,
         birthYear: account.birthYear,
         birthMonth: account.birthMonth,
         birthDay: account.birthDay,
@@ -166,7 +220,140 @@ export const useAppStore = create<AppState>((set) => ({
     return true;
   },
 
-  logout: () => set({ isLoggedIn: false, hasFamilyCircle: false }),
+  apiLogin: async (phone, password) => {
+    const res = await API.login({ phone, password });
+    const d = res.data;
+    const role = API.mapRole(d.role);
+    set((s) => ({
+      isLoggedIn: true,
+      userId: d.user_id,
+      familyId: d.family_id,
+      hasFamilyCircle: !!d.family_id,
+      currentUser: { ...s.currentUser, id: d.user_id, nickname: d.nickname, phone, role },
+    }));
+    // 補抓完整個人資料
+    try {
+      const userRes = await API.getUser(d.user_id);
+      const u = userRes.data;
+      const g = u.gender as 'male' | 'female' | 'other' | undefined;
+      const [by, bm, bd] = u.birthday ? u.birthday.split('-') : [];
+      set((s) => ({
+        currentUser: {
+          ...s.currentUser,
+          gender: g,
+          emergencyPhone: u.contact_phone || undefined,
+          birthYear: by ? parseInt(by, 10) : undefined,
+          birthMonth: bm || undefined,
+          birthDay: bd || undefined,
+        },
+      }));
+    } catch {}
+  },
+
+  apiRegister: async ({ phone, password, nickname, gender, birthday, role, contact_phone }) => {
+    const res = await API.createUser({ phone, password, nickname, gender, birthday, role, contact_phone });
+    const frontendRole = API.mapRole(res.data.role);
+    set((s) => ({
+      isLoggedIn: true,
+      userId: res.data.user_id,
+      currentUser: { ...s.currentUser, id: res.data.user_id, nickname, phone, role: frontendRole },
+    }));
+  },
+
+  apiCreateFamily: async (familyName, inviteCode) => {
+    const { userId } = useAppStore.getState();
+    if (!userId) throw new Error('not logged in');
+    const res = await API.createFamily({ family_name: familyName, invite_code: inviteCode, creator_id: userId });
+    set((s) => ({
+      familyId: res.data.family_id,
+      hasFamilyCircle: true,
+      family: { ...s.family, id: res.data.family_id, name: res.data.family_name, code: res.data.invite_code },
+    }));
+    return { family_id: res.data.family_id, invite_code: res.data.invite_code };
+  },
+
+  apiJoinFamily: async (inviteCode) => {
+    const { userId } = useAppStore.getState();
+    if (!userId) throw new Error('not logged in');
+    const res = await API.joinFamily({ user_id: userId, invite_code: inviteCode });
+    set((s) => ({
+      familyId: res.data.family_id,
+      hasFamilyCircle: true,
+      family: { ...s.family, id: res.data.family_id, name: res.data.family_name },
+    }));
+  },
+
+  apiFetchFamily: async () => {
+    const { familyId } = useAppStore.getState();
+    if (!familyId) return;
+    const [feedRes, scanRes] = await Promise.all([
+      API.getFamilyFeed(familyId),
+      API.getFamilyScanEvents(familyId),
+    ]);
+
+    const members: import('../types').FamilyMember[] = feedRes.members_status.map((m) => ({
+      id: m.user_id,
+      nickname: m.nickname,
+      role: API.mapRole(m.role),
+      avatar: resolveAvatar(API.mapRole(m.role), m.user_id),
+      status: m.last_event
+        ? (m.last_event.risk_level === 'high' ? 'high_risk' : m.last_event.risk_level === 'medium' ? 'pending' : 'safe')
+        : 'safe',
+      lastActive: m.last_event ? formatDate(m.last_event.created_at) : '',
+    }));
+    const events: import('../types').DetectEvent[] = scanRes.events.map((e) => {
+      const existing = useAppStore.getState().events.find((ev) => ev.id === e.event_id);
+      // 若本地已 resolve，保留本地狀態不被後端覆蓋
+      if (existing?.resolvedAt) return existing;
+      return {
+        id: e.event_id,
+        userId: e.user_id,
+        userNickname: e.user_nickname,
+        type: e.input_type,
+        input: e.input_content,
+        riskLevel: API.mapRiskLevel(e.risk_level),
+        riskScore: e.risk_score,
+        scamType: e.scam_type,
+        summary: e.summary,
+        reason: e.reason,
+        consequence: e.consequence,
+        riskFactors: e.risk_factors ?? [],
+        topSignals: e.top_signals ?? [],
+        createdAt: formatDate(e.created_at),
+        status: e.risk_level === 'high' ? 'high_risk' : e.risk_level === 'medium' ? 'pending' : 'safe',
+      };
+    });
+    set((s) => ({
+      family: { ...s.family, id: familyId, name: scanRes.family_name || s.family.name, members },
+      events,
+    }));
+  },
+
+  apiAnalyze: async ({ input_type, content, file_ext }) => {
+    const { userId } = useAppStore.getState();
+    if (!userId) throw new Error('not logged in');
+    const res = await API.analyze({ user_id: userId, input_type: Array.isArray(input_type) ? input_type : [input_type], input_content: content, file_ext });
+    return res.data;
+  },
+
+  apiPatchUser: async (body) => {
+    const { userId } = useAppStore.getState();
+    if (!userId) throw new Error('not logged in');
+    const res = await API.patchUser(userId, body);
+    const [by, bm, bd] = body.birthday ? body.birthday.split('-') : [];
+    set((s) => ({
+      currentUser: {
+        ...s.currentUser,
+        nickname: res.data.nickname,
+        role: API.mapRole(res.data.role),
+        ...(body.contact_phone !== undefined && { emergencyPhone: body.contact_phone || undefined }),
+        ...(body.gender !== undefined && { gender: body.gender }),
+        ...(body.birthday !== undefined && { birthYear: by ? parseInt(by, 10) : undefined, birthMonth: bm || undefined, birthDay: bd || undefined }),
+      },
+    }));
+  },
+
+  logout: () => set({ isLoggedIn: false, hasFamilyCircle: false, userId: null, familyId: null }),
 
   joinFamily: () => set({ hasFamilyCircle: true }),
 
@@ -183,9 +370,7 @@ export const useAppStore = create<AppState>((set) => ({
     })),
 
   resolveEvent: (eventId, gatekeeperResponse) => {
-    const now = new Date()
-      .toLocaleString("zh-TW", { hour12: false })
-      .slice(0, 15);
+    const now = formatDate(new Date().toISOString());
     set((s) => {
       const targetEvent = s.events.find((e) => e.id === eventId);
       const updatedMembers = targetEvent
@@ -291,6 +476,6 @@ export const useAppStore = create<AppState>((set) => ({
 
   toggleElderMode: () => set((s) => ({ elderMode: !s.elderMode })),
 
-  blacklistKeywords: ['投資', '解除分期', '帳號異常', '點數卡', '轉帳', '警察'],
+  blacklistKeywords: [],
   setBlacklistKeywords: (keywords) => set({ blacklistKeywords: keywords }),
 }));
