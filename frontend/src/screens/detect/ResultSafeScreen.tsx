@@ -21,7 +21,7 @@ const THEME = {
 export default function ResultSafeScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "ResultSafe">>();
-  const reason = route.params?.reason;
+  const summary = route.params?.summary;
   const s = useElderStyle();
 
   return (
@@ -38,7 +38,7 @@ export default function ResultSafeScreen() {
           </View>
 
           <Text style={[styles.title, s.active && { fontSize: 50 * s.f }]}>安全</Text>
-          <Text style={[styles.desc, s.active && { fontSize: 19 * s.f, lineHeight: 28 * s.f }]}>{reason ?? '目前看起來安全，但仍建議保持警覺'}</Text>
+          <Text style={[styles.desc, s.active && { fontSize: 19 * s.f, lineHeight: 28 * s.f }]}>{summary ?? '目前看起來安全，但仍建議保持警覺'}</Text>
 
           <TouchableOpacity
             style={[styles.primaryBtn, s.active && { paddingVertical: 22 }]}

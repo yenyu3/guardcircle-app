@@ -321,10 +321,14 @@ export default function DetectScreen() {
       attachments.length > 0 && !text.trim()
         ? firstAttachment.type
         : (detectedTypes[0] ?? "text");
+    const types =
+      attachments.length > 0 && !text.trim()
+        ? [firstAttachment.type]
+        : detectedTypes.length > 0 ? detectedTypes : ["text"];
     const input = text.trim() || firstAttachment?.name || "";
     const imageUri = hasImage ? firstAttachment.uri : undefined;
     const attachmentUri = !hasImage && firstAttachment ? firstAttachment.uri : undefined;
-    navigation.navigate("Analyzing", { type, input, imageUri, attachmentUri });
+    navigation.navigate("Analyzing", { type, types, input, imageUri, attachmentUri });
   };
 
   return (
@@ -423,16 +427,27 @@ export default function DetectScreen() {
               </ScrollView>
             )}
 
-            <TextInput
-              ref={inputRef}
-              style={[styles.textInput, isGuardian && styles.textInputLarge, s.active && { fontSize: 22, minHeight: 240 }]}
-              placeholder="貼上可疑訊息、網址或電話號碼…"
-              placeholderTextColor={Colors.textMuted}
-              multiline
-              value={text}
-              onChangeText={setText}
-              textAlignVertical="top"
-            />
+            <View style={styles.textInputWrap}>
+              <TextInput
+                ref={inputRef}
+                style={[styles.textInput, isGuardian && styles.textInputLarge, s.active && { fontSize: 22, minHeight: 240 }]}
+                placeholder="貼上可疑訊息、網址或電話號碼…"
+                placeholderTextColor={Colors.textMuted}
+                multiline
+                value={text}
+                onChangeText={setText}
+                textAlignVertical="top"
+              />
+              {text.length > 0 && (
+                <TouchableOpacity
+                  style={styles.clearBtn}
+                  onPress={() => { setText(""); setAttachments([]); }}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                >
+                  <Ionicons name="close-circle" size={20} color={Colors.textMuted} />
+                </TouchableOpacity>
+              )}
+            </View>
 
             <View style={styles.toolbar}>
               <TouchableOpacity
@@ -709,14 +724,17 @@ const styles = StyleSheet.create({
   },
   typeBadgeText: { fontSize: 12, fontWeight: "700" },
 
+  textInputWrap: { position: 'relative' },
   textInput: {
     fontSize: 16,
     color: Colors.text,
     minHeight: 180,
     maxHeight: 320,
     lineHeight: 24,
+    paddingRight: 28,
   },
   textInputLarge: { fontSize: 19, minHeight: 220 },
+  clearBtn: { position: 'absolute', top: 0, right: 0 },
 
   attachRow: { marginTop: 4 },
   attachItem: { width: 80, marginRight: 10, alignItems: "center" },

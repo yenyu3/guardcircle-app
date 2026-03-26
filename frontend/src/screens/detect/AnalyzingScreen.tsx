@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
+import { File } from "expo-file-system";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -28,7 +29,7 @@ const STEPS = [
 export default function AnalyzingScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "Analyzing">>();
-  const { type, input, imageUri, attachmentUri } = route.params;
+  const { type, types, input, imageUri, attachmentUri } = route.params;
   const { currentUser, addEvent, addContributionPoints, apiAnalyze } = useAppStore();
   const elder = useElderStyle();
   const [step, setStep] = useState(0);
@@ -79,9 +80,23 @@ export default function AnalyzingScreen() {
       setTimeout(() => setStep(3), 3200),
       setTimeout(async () => {
         try {
+          let content = input;
+          let file_ext: string | undefined;
+          if (type === 'image' && imageUri) {
+            const ext = imageUri.split('.').pop()?.toLowerCase() ?? 'jpg';
+            file_ext = ext;
+            const fileObj = new File(imageUri);
+            const buffer = await fileObj.arrayBuffer();
+            const bytes = new Uint8Array(buffer);
+            let binary = '';
+            bytes.forEach((b) => { binary += String.fromCharCode(b); });
+            const base64 = btoa(binary);
+            content = `data:image/${ext};base64,${base64}`;
+          }
           const apiResult = await apiAnalyze({
-            input_type: type as any,
-            content: input,
+            input_type: (types ?? [type]) as any,
+            content,
+            file_ext,
           });
           const { mapRiskLevel } = await import('../../api');
           const riskLevel = mapRiskLevel(apiResult.risk_level);
@@ -89,17 +104,16 @@ export default function AnalyzingScreen() {
             riskLevel,
             riskScore: apiResult.risk_score,
             scamType: apiResult.scam_type ?? apiResult.top_signals?.[0] ?? '無詳細資訊',
-            summary: apiResult.summary ?? apiResult.reason,
+            summary: apiResult.summary || apiResult.reason || '',
             riskFactors: apiResult.risk_factors ?? apiResult.top_signals ?? [],
-            reason: apiResult.reason,
+            topSignals: apiResult.top_signals ?? [],
+            reason: apiResult.reason || '',
+            consequence: apiResult.consequence || '',
           };
-          const now = new Date()
-            .toLocaleString("zh-TW", { hour12: false })
-            .slice(0, 15);
-
-          if (result.riskLevel === "safe") {
+          const { formatDate } = await import('../../store');
+          const now = formatDate(new Date().toISOString());
           const event: DetectEvent = {
-            id: `e_${Date.now()}`,
+            id: apiResult.event_id ?? `e_${Date.now()}`,
             userId: currentUser.id,
             userNickname: currentUser.nickname,
             type: type as any,
@@ -108,13 +122,14 @@ export default function AnalyzingScreen() {
             attachmentUri,
             ...result,
             createdAt: now,
-            status: "safe",
+            status: result.riskLevel === 'safe' ? 'safe' : result.riskLevel === 'high' ? 'high_risk' : 'pending',
           };
-            addEvent(event);
-            if (currentUser.role === "solver") addContributionPoints(10);
-            navigation.replace("ResultSafe", { reason: result.reason });
+          addEvent(event);
+          if (currentUser.role === "solver") addContributionPoints(10);
+
+          if (result.riskLevel === "safe") {
+            navigation.replace("ResultSafe", { summary: result.summary });
           } else if (result.riskLevel === "high") {
-            if (currentUser.role === "solver") addContributionPoints(10);
             navigation.replace("ResultHigh", {
               scamType: result.scamType,
               riskScore: result.riskScore,
@@ -126,7 +141,6 @@ export default function AnalyzingScreen() {
               attachmentUri,
             });
           } else {
-            if (currentUser.role === "solver") addContributionPoints(10);
             navigation.replace("ResultMedium", {
               scamType: result.scamType,
               riskScore: result.riskScore,

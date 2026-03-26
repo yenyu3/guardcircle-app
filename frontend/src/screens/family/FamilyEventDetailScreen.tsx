@@ -326,6 +326,29 @@ export default function FamilyEventDetailScreen() {
           }
         </div>
 
+        <!-- 潛在後果 -->
+        ${event.consequence ? `
+        <div class="card">
+          <div class="card-title">⚠️ 潛在後果</div>
+          <div class="card-body">${event.consequence}</div>
+        </div>` : ''}
+
+        <!-- 關鍵信號 -->
+        ${event.topSignals && event.topSignals.length > 0 ? `
+        <div class="card">
+          <div class="card-title">⚡ 關鍵信號</div>
+          <div class="tag-row">
+            ${event.topSignals.map((s: string) => `<span class="tag">#${s}</span>`).join('')}
+          </div>
+        </div>` : ''}
+
+        <!-- 判斷理由 -->
+        ${event.reason ? `
+        <div class="card">
+          <div class="card-title">📄 判斷理由</div>
+          <div class="card-body">${event.reason}</div>
+        </div>` : ''}
+
         <!-- 風險因子 -->
         ${
           event.riskFactors.length > 0
@@ -485,16 +508,64 @@ export default function FamilyEventDetailScreen() {
             <Text style={styles.cardTitle}>AI 分析結論</Text>
           </View>
           <Text style={styles.cardBody}>{event.summary}</Text>
-          {event.riskFactors.length > 0 && (
+        </View>
+
+        {/* ── 4. 潛在後果 ── */}
+        {event.consequence && (
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="alert-circle-outline" size={20} color={DS.primary} />
+              <Text style={styles.cardTitle}>潛在後果</Text>
+            </View>
+            <Text style={styles.cardBody}>{event.consequence}</Text>
+          </View>
+        )}
+
+        {/* ── 5. 關鍵信號 ── */}
+        {event.topSignals && event.topSignals.length > 0 && (
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="flash-outline" size={20} color={DS.primary} />
+              <Text style={styles.cardTitle}>關鍵信號</Text>
+            </View>
             <View style={styles.tagRow}>
-              {event.riskFactors.map((f, i) => (
+              {event.topSignals.map((s: string, i: number) => (
                 <View key={i} style={styles.tag}>
-                  <Text style={styles.tagText}>#{f}</Text>
+                  <Text style={styles.tagText}>#{s}</Text>
                 </View>
               ))}
             </View>
-          )}
-        </View>
+          </View>
+        )}
+
+        {/* ── 6. 判斷理由 ── */}
+        {event.reason && (
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="document-text-outline" size={20} color={DS.primary} />
+              <Text style={styles.cardTitle}>判斷理由</Text>
+            </View>
+            <Text style={styles.cardBody}>{event.reason}</Text>
+          </View>
+        )}
+
+        {/* ── 7. 風險因子 ── */}
+        {event.riskFactors.length > 0 && (
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="warning-outline" size={20} color={DS.primary} />
+              <Text style={styles.cardTitle}>風險因子</Text>
+            </View>
+            {event.riskFactors.map((f, i) => (
+              <View key={i} style={styles.factorRow}>
+                <View style={[styles.factorNum, { backgroundColor: risk.color }]}>
+                  <Text style={styles.factorNumText}>{i + 1}</Text>
+                </View>
+                <Text style={styles.factorText}>{f}</Text>
+              </View>
+            ))}
+          </View>
+        )}
         {/* ── 行動按鈕 ── */}
         {currentUser.role === "guardian" && (
           <Pressable
@@ -655,6 +726,18 @@ const styles = StyleSheet.create({
     borderColor: DS.primary + "1A",
   },
   tagText: { fontSize: 12, fontWeight: "700", color: DS.onSurfaceVariant },
+
+  factorRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: DS.surface, borderRadius: 8,
+    paddingVertical: 9, paddingHorizontal: 12, marginBottom: 6,
+  },
+  factorNum: {
+    width: 24, height: 24, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  factorNumText: { fontSize: 11, fontWeight: '800', color: '#fff' },
+  factorText: { fontSize: 13, color: DS.onSurface, flex: 1 },
 
   blurBtn: {
     paddingHorizontal: 10,

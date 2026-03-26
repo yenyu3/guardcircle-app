@@ -93,7 +93,7 @@ func findRecentScanEvent(ctx context.Context, userID string, inputType []string,
 	}
 
 	cutoff := time.Now().UTC().Add(-5 * time.Minute)
-	inputTypeJSON, _ := json.Marshal(inputType)
+	inputTypesJSON, _ := json.Marshal(inputType)
 
 	var query string
 	var args []interface{}
@@ -104,10 +104,10 @@ func findRecentScanEvent(ctx context.Context, userID string, inputType []string,
 		                scam_type, summary, consequence, reason, risk_factors, top_signals,
 		                notify_status, created_at
 		         FROM scan_events
-		         WHERE user_id = $1 AND input_type = $2 AND s3_key = $3 AND created_at >= $4
+		         WHERE user_id = $1 AND input_type = $2::jsonb AND s3_key = $3 AND created_at >= $4
 		         ORDER BY created_at DESC
 		         LIMIT 1`
-		args = []interface{}{userID, string(inputTypeJSON), s3Key, cutoff}
+		args = []interface{}{userID, string(inputTypesJSON), s3Key, cutoff}
 	} else {
 		// text/url/phone/image: match by input_content prefix
 		contentPrefix := truncateRunes(inputContent, 200)
@@ -115,14 +115,14 @@ func findRecentScanEvent(ctx context.Context, userID string, inputType []string,
 		                scam_type, summary, consequence, reason, risk_factors, top_signals,
 		                notify_status, created_at
 		         FROM scan_events
-		         WHERE user_id = $1 AND input_type = $2 AND input_content LIKE $3 AND created_at >= $4
+		         WHERE user_id = $1 AND input_type = $2::jsonb AND input_content LIKE $3 AND created_at >= $4
 		         ORDER BY created_at DESC
 		         LIMIT 1`
-		args = []interface{}{userID, string(inputTypeJSON), contentPrefix + "%", cutoff}
+		args = []interface{}{userID, string(inputTypesJSON), contentPrefix + "%", cutoff}
 	}
 
 	var e EventData
-	var inputTypeDB string
+	var inputTypeDB []byte
 	var riskFactorsJSON, topSignalsJSON []byte
 	var createdAt time.Time
 
@@ -139,7 +139,10 @@ func findRecentScanEvent(ctx context.Context, userID string, inputType []string,
 		return nil, fmt.Errorf("query scan_event: %w", err)
 	}
 
-	_ = json.Unmarshal([]byte(inputTypeDB), &e.InputType)
+	_ = json.Unmarshal(inputTypeDB, &e.InputType)
+	if e.InputType == nil {
+		e.InputType = []string{}
+	}
 	e.CreatedAt = createdAt.Format(time.RFC3339)
 	_ = json.Unmarshal(riskFactorsJSON, &e.RiskFactors)
 	_ = json.Unmarshal(topSignalsJSON, &e.TopSignals)

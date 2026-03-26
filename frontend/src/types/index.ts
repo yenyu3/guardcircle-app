@@ -51,7 +51,10 @@ export interface DetectEvent {
   riskScore: number;
   scamType: string;
   summary: string;
+  reason?: string;
+  consequence?: string;
   riskFactors: string[];
+  topSignals?: string[];
   createdAt: string;
   status: EventStatus;
   resolvedAt?: string;

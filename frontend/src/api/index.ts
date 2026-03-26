@@ -99,6 +99,7 @@ export interface FamilyScanEvent {
   risk_score: number;
   scam_type: string;
   summary: string;
+  consequence: string;
   reason: string;
   risk_factors: string[];
   top_signals: string[];
@@ -143,8 +144,9 @@ export interface AnalysisRes {
     risk_level: BackendRiskLevel;
     risk_score: number;
     scam_type: string;
-    summary: string;
-    reason: string;
+    summary: string | null;
+    reason: string | null;
+    consequence: string | null;
     risk_factors: string[];
     top_signals: string[];
     notify_status: string;
@@ -167,6 +169,7 @@ export interface GetUserEventRes {
     risk_score: number;
     scam_type: string;
     summary: string;
+    consequence: string;
     reason: string;
     risk_factors: string[];
     top_signals: string[];
