@@ -42,6 +42,10 @@ locals {
       function_name = "${var.project_name}-auth-login"
       source_path   = "${path.root}/../services/auth-login"
     }
+    scan_events_notify_status = {
+      function_name = "${var.project_name}-scan-events-notify-status"
+      source_path   = "${path.root}/../services/scan-events-notify-status"
+    }
   }
 
   service_dir_sha = {
