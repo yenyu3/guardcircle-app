@@ -84,7 +84,11 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 			se.input_content,
 			se.risk_level,
 			se.risk_score,
+			se.scam_type,
+			se.summary,
 			se.reason,
+			se.risk_factors::text,
+			se.top_signals::text,
 			se.notify_status,
 			to_char(se.created_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
 		FROM scan_events se
@@ -100,9 +104,11 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 
 	eventsList := make([]map[string]interface{}, 0)
 	for rows.Next() {
-		var eventID, userID, nickname, inputType, inputContent, riskLevel, reason, notifyStatus, createdAt string
+		var eventID, userID, nickname, inputType, inputContent, riskLevel, scamType, summary, reason, notifyStatus, createdAt string
 		var riskScore sql.NullInt32
-		if err := rows.Scan(&eventID, &userID, &nickname, &inputType, &inputContent, &riskLevel, &riskScore, &reason, &notifyStatus, &createdAt); err != nil {
+		var riskFactors sql.NullString
+		var topSignals sql.NullString
+		if err := rows.Scan(&eventID, &userID, &nickname, &inputType, &inputContent, &riskLevel, &riskScore, &scamType, &summary, &reason, &riskFactors, &topSignals, &notifyStatus, &createdAt); err != nil {
 			return jsonResp(http.StatusInternalServerError, map[string]string{"error": "failed to read events"})
 		}
 		item := map[string]interface{}{
@@ -112,12 +118,26 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 			"input_type":    inputType,
 			"input_content": inputContent,
 			"risk_level":    riskLevel,
+			"scam_type":     scamType,
+			"summary":       summary,
 			"reason":        reason,
 			"notify_status": notifyStatus,
 			"created_at":    createdAt,
 		}
 		if riskScore.Valid {
 			item["risk_score"] = int(riskScore.Int32)
+		}
+		if riskFactors.Valid && riskFactors.String != "" {
+			var parsed interface{}
+			if err := json.Unmarshal([]byte(riskFactors.String), &parsed); err == nil {
+				item["risk_factors"] = parsed
+			}
+		}
+		if topSignals.Valid && topSignals.String != "" {
+			var parsed interface{}
+			if err := json.Unmarshal([]byte(topSignals.String), &parsed); err == nil {
+				item["top_signals"] = parsed
+			}
 		}
 		eventsList = append(eventsList, item)
 	}
