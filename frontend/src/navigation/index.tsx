@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppStore } from "../store";
 import { Colors } from "../theme";
 import { ScrollRefProvider, useScrollRef } from "./ScrollRefContext";
@@ -133,9 +134,17 @@ const TAB_ITEMS: Record<
 function CustomTabBar({ state, navigation }: any) {
   const { scrollToTop } = useScrollRef();
   const lastPressTime = useRef<Record<string, number>>({});
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={tabStyles.bar}>
+    <View
+      style={[
+        tabStyles.bar,
+        {
+          paddingBottom: insets.bottom + 12,
+        },
+      ]}
+    >
       {state.routes.map((route: any, index: number) => {
         const item = TAB_ITEMS[route.name];
         if (!item) return null;

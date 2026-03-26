@@ -14,14 +14,12 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.angelaliii.guardcircle"
+      "bundleIdentifier": "com.angelal1iii.guardcircle"
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./assets/icon.png"
       },
       "package": "com.angelaliii.guardcircle",
       "permissions": [
@@ -40,7 +38,17 @@
     "plugins": [
       "expo-dev-client",
       "expo-notifications",
-      "./plugins/withSmsInterceptor"
+      "./plugins/withSmsInterceptor",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "toolsReplace": {
+              "android:allowBackup": "true"
+            }
+          }
+        }
+      ]
     ],
     "extra": {
       "eas": {
