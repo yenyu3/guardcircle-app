@@ -2,8 +2,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import {
+  AppState,
   Platform,
   StyleSheet,
   Text,
@@ -47,12 +48,16 @@ import SettingsAdvancedScreen from "../screens/settings/SettingsAdvancedScreen";
 import SettingsAndroidScreen from "../screens/settings/SettingsAndroidScreen";
 import SettingsPrivacyScreen from "../screens/settings/SettingsPrivacyScreen";
 import SettingsProfileScreen from "../screens/settings/SettingsProfileScreen";
+import QuickScanSettingsScreen from "../screens/settings/QuickScanSettingsScreen";
 
 import ScamBriefScreen from "../screens/ScamBriefScreen";
 
 // Other
 import DailyChallengeScreen from "../screens/DailyChallengeScreen";
 import WeeklyReportScreen from "../screens/WeeklyReportScreen";
+
+// Services
+import { consumePendingScreenshot, stopOverlay, startOverlay, isOverlayActive } from "../services/QuickScan";
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -115,6 +120,7 @@ export type RootStackParamList = {
   SettingsPrivacy: undefined;
   SettingsAdvanced: undefined;
   SettingsAndroid: undefined;
+  QuickScanSettings: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -222,9 +228,115 @@ function MainTabs() {
   );
 }
 
+const linking = {
+  prefixes: ["guardcircle://"],
+  config: {
+    screens: {
+      Analyzing: {
+        path: "quickscan",
+        parse: {
+          type: (type: string) => type || "text",
+          // iOS Share Extension sends "content" param; map to "input"
+          input: (_: string) => "",
+        },
+      },
+    },
+  },
+  // Custom URL parser to map "content" → "input"
+  getStateFromPath: (path: string) => {
+    const url = new URL("guardcircle://" + path);
+    if (url.pathname === "/quickscan" || path.startsWith("quickscan")) {
+      const params = new URLSearchParams(url.search || path.split("?")[1] || "");
+      const type = params.get("type") || "text";
+      const content = params.get("content") || "";
+      return {
+        routes: [
+          {
+            name: "Analyzing",
+            params: {
+              type,
+              input: decodeURIComponent(content),
+            },
+          },
+        ],
+      };
+    }
+    return undefined;
+  },
+};
+
+function QuickScanIntentHandler({ navigationRef }: { navigationRef: React.RefObject<any> }) {
+  // Track whether the user has enabled the overlay (so we know to restore it)
+  const overlayEnabled = React.useRef(false);
+
+  // Auto-hide bubble when app is in foreground, show when in background
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+
+    const sub = AppState.addEventListener("change", async (state) => {
+      try {
+        if (state === "active") {
+          // App came to foreground — hide bubble (not needed inside our app)
+          const active = await isOverlayActive();
+          if (active) {
+            overlayEnabled.current = true;
+            stopOverlay();
+          }
+        } else if (state === "background" && overlayEnabled.current) {
+          // App went to background — restore bubble
+          startOverlay();
+        }
+      } catch {
+        // ignore
+      }
+    });
+
+    return () => sub.remove();
+  }, []);
+
+  // Poll for pending screenshots
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+
+    let mounted = true;
+    let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+    const checkPending = async () => {
+      if (!mounted) return;
+      try {
+        const screenshotPath = await consumePendingScreenshot();
+        if (screenshotPath && navigationRef.current) {
+          // Found a pending screenshot — navigate to analysis
+          overlayEnabled.current = true; // keep tracking so it restores later
+          navigationRef.current.navigate("Analyzing", {
+            type: "image",
+            input: "快速掃描擷取",
+            imageUri: "file://" + screenshotPath,
+          });
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    pollTimer = setInterval(checkPending, 1500);
+    setTimeout(checkPending, 800);
+
+    return () => {
+      mounted = false;
+      if (pollTimer) clearInterval(pollTimer);
+    };
+  }, [navigationRef]);
+
+  return null;
+}
+
 export default function AppNavigator() {
+  const navigationRef = useRef<any>(null);
+
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking} ref={navigationRef}>
+      <QuickScanIntentHandler navigationRef={navigationRef} />
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
@@ -269,6 +381,10 @@ export default function AppNavigator() {
         <Stack.Screen
           name="SettingsAndroid"
           component={SettingsAndroidScreen}
+        />
+        <Stack.Screen
+          name="QuickScanSettings"
+          component={QuickScanSettingsScreen}
         />
       </Stack.Navigator>
     </NavigationContainer>

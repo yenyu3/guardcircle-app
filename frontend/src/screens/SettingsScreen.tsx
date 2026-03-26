@@ -254,7 +254,7 @@ export default function SettingsScreen() {
                   color={Colors.primaryDark}
                 />
               </View>
-              <Text style={styles.menuLabel}>{item.label}</Text>
+              <Text style={[styles.menuLabel, { flex: 1 }]}>{item.label}</Text>
               <Ionicons
                 name="chevron-forward"
                 size={18}
@@ -262,6 +262,44 @@ export default function SettingsScreen() {
               />
             </TouchableOpacity>
           ))}
+        </View>
+
+        {/* Quick Scan */}
+        <Text style={styles.sectionLabel}>快速掃描</Text>
+        <View style={[styles.menuCard, Shadow.card]}>
+          <TouchableOpacity
+            style={styles.menuRow}
+            onPress={() => navigation.navigate("QuickScanSettings" as any)}
+            activeOpacity={0.7}
+          >
+            <View
+              style={[
+                styles.iconWrap,
+                { backgroundColor: Colors.primaryDark + "1A" },
+              ]}
+            >
+              <Ionicons
+                name={Platform.OS === "android" ? "scan-outline" : "share-outline"}
+                size={20}
+                color={Colors.primaryDark}
+              />
+            </View>
+            <View style={styles.elderTextWrap}>
+              <Text style={styles.menuLabel}>
+                {Platform.OS === "android" ? "懸浮掃描球" : "分享表單掃描"}
+              </Text>
+              <Text style={styles.menuSub}>
+                {Platform.OS === "android"
+                  ? "常駐畫面邊緣，一鍵擷取畫面偵測詐騙"
+                  : "從 LINE 等 App 分享內容到守護圈分析"}
+              </Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={18}
+              color={Colors.textMuted}
+            />
+          </TouchableOpacity>
         </View>
 
         {/* Android Active Protection */}
@@ -448,7 +486,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  menuLabel: { flex: 1, fontSize: 15, fontWeight: "500", color: Colors.text },
+  menuLabel: { fontSize: 15, fontWeight: "500", color: Colors.text },
   menuSub: { fontSize: 12, color: Colors.textMuted, marginTop: 2 },
 
   elderRow: {

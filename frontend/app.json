@@ -14,7 +14,14 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.angelaliii.guardcircle"
+      "bundleIdentifier": "com.angelaliii.guardcircle",
+      "infoPlist": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": ["guardcircle"]
+          }
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -30,7 +37,9 @@
         "POST_NOTIFICATIONS",
         "INTERNET",
         "FOREGROUND_SERVICE",
-        "FOREGROUND_SERVICE_SPECIAL_USE"
+        "FOREGROUND_SERVICE_SPECIAL_USE",
+        "FOREGROUND_SERVICE_MEDIA_PROJECTION",
+        "SYSTEM_ALERT_WINDOW"
       ],
       "predictiveBackGestureEnabled": false
     },
@@ -40,7 +49,8 @@
     "plugins": [
       "expo-dev-client",
       "expo-notifications",
-      "./plugins/withSmsInterceptor"
+      "./plugins/withSmsInterceptor",
+      "./plugins/withQuickScan"
     ],
     "extra": {
       "eas": {
