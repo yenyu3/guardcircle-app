@@ -142,7 +142,7 @@ function stripPhone(formatted: string): string {
 
 export default function SettingsProfileScreen() {
   const navigation = useNavigation();
-  const { currentUser, setUser, setRole, apiPatchUser } = useAppStore();
+  const { currentUser, setUser, setRole, apiPatchUser, saveAccount } = useAppStore();
 
   const [nickname, setNickname] = useState(currentUser.nickname);
   const [emergencyPhone, setEmergencyPhone] = useState(
@@ -195,6 +195,7 @@ export default function SettingsProfileScreen() {
       birthDay: birthDay || undefined,
       gender: genderMapped,
     });
+    saveAccount();
     // 嘗試同步到後端
     try {
       const backendRole: API.BackendRole = pendingRole === 'solver' ? 'youth' : pendingRole;

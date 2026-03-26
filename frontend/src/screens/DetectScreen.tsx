@@ -321,10 +321,14 @@ export default function DetectScreen() {
       attachments.length > 0 && !text.trim()
         ? firstAttachment.type
         : (detectedTypes[0] ?? "text");
+    const types =
+      attachments.length > 0 && !text.trim()
+        ? [firstAttachment.type]
+        : detectedTypes.length > 0 ? detectedTypes : ["text"];
     const input = text.trim() || firstAttachment?.name || "";
     const imageUri = hasImage ? firstAttachment.uri : undefined;
     const attachmentUri = !hasImage && firstAttachment ? firstAttachment.uri : undefined;
-    navigation.navigate("Analyzing", { type, input, imageUri, attachmentUri });
+    navigation.navigate("Analyzing", { type, types, input, imageUri, attachmentUri });
   };
 
   return (

@@ -101,7 +101,7 @@ export default function ResultHighScreen() {
           </View>
 
           <Text style={[styles.title, s.active && { fontSize: 50 * s.f }]}>危險</Text>
-          <Text style={[styles.desc, s.active && { fontSize: 19 * s.f, lineHeight: 28 * s.f }]}>{reason ?? '已自動通知守門人，請等待家人協助確認'}</Text>
+          <Text style={[styles.desc, s.active && { fontSize: 19 * s.f, lineHeight: 28 * s.f }]}>{summary ?? '已自動通知守門人，請等待家人協助確認'}</Text>
 
           <TouchableOpacity
             style={[styles.callBtn, s.active && { paddingVertical: 22 }]}

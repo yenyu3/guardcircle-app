@@ -12,6 +12,7 @@ import * as API from "../api";
 import { resolveAvatar } from "../components/NpcAvatar";
 
 interface RegisteredAccount {
+  id: string;
   phone: string;
   password: string;
   nickname: string;
@@ -58,7 +59,7 @@ interface AppState {
   // 真實 API 拉取家庭圈成員
   apiFetchFamily: () => Promise<void>;
   // 真實 API 分析
-  apiAnalyze: (params: { input_type: 'text' | 'image' | 'url' | 'phone'; content: string; file_ext?: string }) => Promise<API.AnalysisRes['data']>;
+  apiAnalyze: (params: { input_type: 'text' | 'image' | 'url' | 'phone' | ('text' | 'image' | 'url' | 'phone')[]; content: string; file_ext?: string }) => Promise<API.AnalysisRes['data']>;
   // 真實 API 更新個人資料
   apiPatchUser: (body: API.PatchUserReq) => Promise<void>;
   logout: () => void;
@@ -76,7 +77,7 @@ interface AppState {
   ) => void;
   generatePairingCode: () => string;
   bindGuardian: (pairingCode: string) => boolean;
-  saveAccount: (password: string) => void;
+  saveAccount: (password?: string) => void;
   addContributionPoints: (points: number) => void;
   addReport: () => void;
   submitDailyChallengeResult: (
@@ -153,16 +154,18 @@ export const useAppStore = create<AppState>((set) => ({
     }));
   },
 
-  saveAccount: (password: string) =>
+  saveAccount: (password?: string) =>
     set((s) => {
       const existing = s.registeredAccounts.findIndex(
         (a) => a.phone === s.currentUser.phone,
       );
       const memberStatuses: Record<string, "safe" | "pending" | "high_risk"> = {};
       s.family.members.forEach((m) => { memberStatuses[m.id] = m.status; });
+      const resolvedPassword = password ?? s.registeredAccounts[existing]?.password ?? '';
       const account: RegisteredAccount = {
+        id: s.currentUser.id || s.currentUser.phone,
         phone: s.currentUser.phone,
-        password,
+        password: resolvedPassword,
         nickname: s.currentUser.nickname,
         birthYear: s.currentUser.birthYear,
         birthMonth: s.currentUser.birthMonth,
@@ -192,6 +195,7 @@ export const useAppStore = create<AppState>((set) => ({
       hasFamilyCircle: account.hasFamilyCircle,
       currentUser: {
         ...s.currentUser,
+        id: account.id || account.phone,
         nickname: account.nickname,
         phone: account.phone,
         birthYear: account.birthYear,
@@ -225,13 +229,24 @@ export const useAppStore = create<AppState>((set) => ({
       userId: d.user_id,
       familyId: d.family_id,
       hasFamilyCircle: !!d.family_id,
-      currentUser: { ...s.currentUser, nickname: d.nickname, phone, role },
+      currentUser: { ...s.currentUser, id: d.user_id, nickname: d.nickname, phone, role },
     }));
-    // 補抓 gender 以還原頭貼
+    // 補抓完整個人資料
     try {
       const userRes = await API.getUser(d.user_id);
-      const g = userRes.data.gender as 'male' | 'female' | 'other' | undefined;
-      set((s) => ({ currentUser: { ...s.currentUser, gender: g } }));
+      const u = userRes.data;
+      const g = u.gender as 'male' | 'female' | 'other' | undefined;
+      const [by, bm, bd] = u.birthday ? u.birthday.split('-') : [];
+      set((s) => ({
+        currentUser: {
+          ...s.currentUser,
+          gender: g,
+          emergencyPhone: u.contact_phone || undefined,
+          birthYear: by ? parseInt(by, 10) : undefined,
+          birthMonth: bm || undefined,
+          birthDay: bd || undefined,
+        },
+      }));
     } catch {}
   },
 
@@ -241,7 +256,7 @@ export const useAppStore = create<AppState>((set) => ({
     set((s) => ({
       isLoggedIn: true,
       userId: res.data.user_id,
-      currentUser: { ...s.currentUser, nickname, phone, role: frontendRole },
+      currentUser: { ...s.currentUser, id: res.data.user_id, nickname, phone, role: frontendRole },
     }));
   },
 
@@ -300,7 +315,10 @@ export const useAppStore = create<AppState>((set) => ({
         riskScore: e.risk_score,
         scamType: e.scam_type,
         summary: e.summary,
+        reason: e.reason,
+        consequence: e.consequence,
         riskFactors: e.risk_factors ?? [],
+        topSignals: e.top_signals ?? [],
         createdAt: formatDate(e.created_at),
         status: e.risk_level === 'high' ? 'high_risk' : e.risk_level === 'medium' ? 'pending' : 'safe',
       };
@@ -314,7 +332,7 @@ export const useAppStore = create<AppState>((set) => ({
   apiAnalyze: async ({ input_type, content, file_ext }) => {
     const { userId } = useAppStore.getState();
     if (!userId) throw new Error('not logged in');
-    const res = await API.analyze({ user_id: userId, input_type: [input_type], input_content: content, file_ext });
+    const res = await API.analyze({ user_id: userId, input_type: Array.isArray(input_type) ? input_type : [input_type], input_content: content, file_ext });
     return res.data;
   },
 
@@ -322,11 +340,15 @@ export const useAppStore = create<AppState>((set) => ({
     const { userId } = useAppStore.getState();
     if (!userId) throw new Error('not logged in');
     const res = await API.patchUser(userId, body);
+    const [by, bm, bd] = body.birthday ? body.birthday.split('-') : [];
     set((s) => ({
       currentUser: {
         ...s.currentUser,
         nickname: res.data.nickname,
         role: API.mapRole(res.data.role),
+        ...(body.contact_phone !== undefined && { emergencyPhone: body.contact_phone || undefined }),
+        ...(body.gender !== undefined && { gender: body.gender }),
+        ...(body.birthday !== undefined && { birthYear: by ? parseInt(by, 10) : undefined, birthMonth: bm || undefined, birthDay: bd || undefined }),
       },
     }));
   },

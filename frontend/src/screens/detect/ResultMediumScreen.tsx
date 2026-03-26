@@ -98,7 +98,7 @@ export default function ResultMediumScreen() {
           </View>
 
           <Text style={[styles.title, s.active && { fontSize: 50 * s.f }]}>注意</Text>
-          <Text style={[styles.desc, s.active && { fontSize: 19 * s.f, lineHeight: 28 * s.f }]}>{reason ?? '這個內容有可疑特徵，請選擇處理方式'}</Text>
+          <Text style={[styles.desc, s.active && { fontSize: 19 * s.f, lineHeight: 28 * s.f }]}>{summary ?? '這個內容有可疑特徵，請選擇處理方式'}</Text>
 
           <TouchableOpacity style={[styles.primaryBtn, s.active && { paddingVertical: 22 }]} onPress={handleSendNotification} activeOpacity={0.85}>
             <Ionicons name="notifications" size={s.active ? 22 : 18} color={THEME.primaryBtnText} style={{ marginRight: 6 }} />

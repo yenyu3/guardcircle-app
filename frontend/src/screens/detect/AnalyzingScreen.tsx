@@ -29,7 +29,7 @@ const STEPS = [
 export default function AnalyzingScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "Analyzing">>();
-  const { type, input, imageUri, attachmentUri } = route.params;
+  const { type, types, input, imageUri, attachmentUri } = route.params;
   const { currentUser, addEvent, addContributionPoints, apiAnalyze } = useAppStore();
   const elder = useElderStyle();
   const [step, setStep] = useState(0);
@@ -94,7 +94,7 @@ export default function AnalyzingScreen() {
             content = `data:image/${ext};base64,${base64}`;
           }
           const apiResult = await apiAnalyze({
-            input_type: type as any,
+            input_type: (types ?? [type]) as any,
             content,
             file_ext,
           });
@@ -104,9 +104,11 @@ export default function AnalyzingScreen() {
             riskLevel,
             riskScore: apiResult.risk_score,
             scamType: apiResult.scam_type ?? apiResult.top_signals?.[0] ?? '無詳細資訊',
-            summary: apiResult.summary ?? apiResult.reason,
+            summary: apiResult.summary || apiResult.reason || '',
             riskFactors: apiResult.risk_factors ?? apiResult.top_signals ?? [],
-            reason: apiResult.reason,
+            topSignals: apiResult.top_signals ?? [],
+            reason: apiResult.reason || '',
+            consequence: apiResult.consequence || '',
           };
           const { formatDate } = await import('../../store');
           const now = formatDate(new Date().toISOString());
@@ -126,7 +128,7 @@ export default function AnalyzingScreen() {
           if (currentUser.role === "solver") addContributionPoints(10);
 
           if (result.riskLevel === "safe") {
-            navigation.replace("ResultSafe", { reason: result.reason });
+            navigation.replace("ResultSafe", { summary: result.summary });
           } else if (result.riskLevel === "high") {
             navigation.replace("ResultHigh", {
               scamType: result.scamType,
