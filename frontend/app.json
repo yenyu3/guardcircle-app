@@ -29,14 +29,19 @@
         "READ_SMS",
         "POST_NOTIFICATIONS",
         "INTERNET",
-        "FOREGROUND_SERVICE"
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_SPECIAL_USE"
       ],
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-dev-client", "expo-notifications"],
+    "plugins": [
+      "expo-dev-client",
+      "expo-notifications",
+      "./plugins/withSmsInterceptor"
+    ],
     "extra": {
       "eas": {
         "projectId": "400d1584-8901-4655-aa8f-11470331d22d"

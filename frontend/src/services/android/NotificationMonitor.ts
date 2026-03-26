@@ -1,5 +1,17 @@
-// Placeholder for iOS/Web where SMS access is not supported
-export const initScamProtection = async () => {};
-export const scanSmsMessages = async (count: number = 10) => {};
-export const notificationHeadlessTask = null;
-export const RNAndroidNotificationListenerHeadlessJsName = null;
+// Stub for iOS / Web — SMS interception is Android-only
+
+export async function requestSmsPermissions(): Promise<boolean> {
+  return false;
+}
+
+export async function updateRiskKeywords(_keywords?: string[]): Promise<void> {}
+
+export async function initScamProtection(_keywords?: string[]): Promise<boolean> {
+  return false;
+}
+
+export async function stopScamProtection(): Promise<void> {}
+
+export async function isProtectionRunning(): Promise<boolean> {
+  return false;
+}

@@ -6,7 +6,6 @@ import {
   Alert,
   AppState,
   Image,
-  PermissionsAndroid,
   Platform,
   ScrollView,
   StyleSheet,
@@ -18,7 +17,12 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { RootStackParamList } from "../navigation";
 import { useScrollRef } from "../navigation/ScrollRefContext";
-import { initScamProtection } from "../services/android/NotificationMonitor";
+import {
+  initScamProtection,
+  isProtectionRunning,
+  stopScamProtection,
+  updateRiskKeywords,
+} from "../services/android/NotificationMonitor";
 import { useAppStore } from "../store";
 import { Colors, Radius, Shadow } from "../theme";
 
@@ -54,46 +58,60 @@ const menuItems = [
 
 export default function SettingsScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const { currentUser, logout, elderMode, toggleElderMode } = useAppStore();
+  const { currentUser, logout, elderMode, toggleElderMode, blacklistKeywords } =
+    useAppStore();
   const scrollRef = useRef<ScrollView>(null);
   const { register } = useScrollRef();
 
-  // Android Notification Listener Status
-  const [isNotificationListenerEnabled, setIsNotificationListenerEnabled] =
-    useState(false);
+  // SMS protection service status
+  const [smsProtectionOn, setSmsProtectionOn] = useState(false);
+  const [toggling, setToggling] = useState(false);
 
-  const checkNotificationPermission = async () => {
+  const checkProtectionStatus = async () => {
     if (Platform.OS !== "android") return;
-    try {
-      const granted = await PermissionsAndroid.check(
-        PermissionsAndroid.PERMISSIONS.READ_SMS,
-      );
-      setIsNotificationListenerEnabled(granted);
-    } catch (e) {
-      console.log("Notification Listener Check Failed:", e);
-    }
+    const running = await isProtectionRunning();
+    setSmsProtectionOn(running);
   };
 
   useEffect(() => {
-    checkNotificationPermission();
-    const subscription = AppState.addEventListener("change", (nextAppState) => {
-      if (nextAppState === "active") {
-        checkNotificationPermission();
-      }
+    checkProtectionStatus();
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") checkProtectionStatus();
     });
-
-    return () => {
-      subscription.remove();
-    };
+    return () => sub.remove();
   }, []);
 
-  const toggleNotificationListener = async () => {
+  // Sync keywords whenever they change and protection is on
+  useEffect(() => {
+    if (smsProtectionOn && Platform.OS === "android") {
+      updateRiskKeywords(blacklistKeywords);
+    }
+  }, [blacklistKeywords, smsProtectionOn]);
+
+  const toggleSmsProtection = async () => {
     if (Platform.OS !== "android") {
       Alert.alert("不支援", "主動防護功能僅支援 Android 裝置");
       return;
     }
-    await initScamProtection();
-    checkNotificationPermission();
+    setToggling(true);
+    try {
+      if (smsProtectionOn) {
+        await stopScamProtection();
+        setSmsProtectionOn(false);
+      } else {
+        const ok = await initScamProtection(blacklistKeywords);
+        if (ok) {
+          setSmsProtectionOn(true);
+        } else {
+          Alert.alert(
+            "需要權限",
+            "請允許 GuardCircle 讀取簡訊，才能即時偵測詐騙訊息",
+          );
+        }
+      }
+    } finally {
+      setToggling(false);
+    }
   };
 
   useFocusEffect(
@@ -220,12 +238,15 @@ export default function SettingsScreen() {
                 <View style={styles.elderTextWrap}>
                   <Text style={styles.menuLabel}>即時簡訊偵測</Text>
                   <Text style={styles.menuSub}>
-                    分析收到的簡訊，攔截潛在詐騙
+                    {smsProtectionOn
+                      ? "背景防護運行中，即時攔截詐騙簡訊"
+                      : "開啟後自動分析收到的簡訊"}
                   </Text>
                 </View>
                 <Switch
-                  value={isNotificationListenerEnabled}
-                  onValueChange={toggleNotificationListener}
+                  value={smsProtectionOn}
+                  onValueChange={toggleSmsProtection}
+                  disabled={toggling}
                   trackColor={{ false: Colors.border, true: Colors.danger }}
                   thumbColor={Colors.white}
                 />
