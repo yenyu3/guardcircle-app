@@ -62,7 +62,7 @@ variable "whoscall_base_url" {
 variable "bedrock_model_id" {
   description = "Bedrock model ID for scam analysis (defaults to Claude Sonnet 4 in Go code)"
   type        = string
-  default     = ""
+  default     = "arn:aws:bedrock:us-east-1:271189006497:inference-profile/global.anthropic.claude-sonnet-4-5-20250929-v1:0"
 }
 
 variable "bedrock_kb_id" {
