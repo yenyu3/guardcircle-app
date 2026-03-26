@@ -93,7 +93,7 @@ func findRecentScanEvent(ctx context.Context, userID string, inputType []string,
 	}
 
 	cutoff := time.Now().UTC().Add(-5 * time.Minute)
-	inputTypeStr := strings.Join(inputType, ",")
+	inputTypeJSON, _ := json.Marshal(inputType)
 
 	var query string
 	var args []interface{}
@@ -107,7 +107,7 @@ func findRecentScanEvent(ctx context.Context, userID string, inputType []string,
 		         WHERE user_id = $1 AND input_type = $2 AND s3_key = $3 AND created_at >= $4
 		         ORDER BY created_at DESC
 		         LIMIT 1`
-		args = []interface{}{userID, inputTypeStr, s3Key, cutoff}
+		args = []interface{}{userID, string(inputTypeJSON), s3Key, cutoff}
 	} else {
 		// text/url/phone/image: match by input_content prefix
 		contentPrefix := truncateRunes(inputContent, 200)
@@ -118,7 +118,7 @@ func findRecentScanEvent(ctx context.Context, userID string, inputType []string,
 		         WHERE user_id = $1 AND input_type = $2 AND input_content LIKE $3 AND created_at >= $4
 		         ORDER BY created_at DESC
 		         LIMIT 1`
-		args = []interface{}{userID, inputTypeStr, contentPrefix + "%", cutoff}
+		args = []interface{}{userID, string(inputTypeJSON), contentPrefix + "%", cutoff}
 	}
 
 	var e EventData
@@ -139,7 +139,7 @@ func findRecentScanEvent(ctx context.Context, userID string, inputType []string,
 		return nil, fmt.Errorf("query scan_event: %w", err)
 	}
 
-	e.InputType = strings.Split(inputTypeDB, ",")
+	_ = json.Unmarshal([]byte(inputTypeDB), &e.InputType)
 	e.CreatedAt = createdAt.Format(time.RFC3339)
 	_ = json.Unmarshal(riskFactorsJSON, &e.RiskFactors)
 	_ = json.Unmarshal(topSignalsJSON, &e.TopSignals)
