@@ -45,7 +45,7 @@ type KnowledgeBaseClient interface {
 
 // AnalyzerClient sends data to Bedrock Claude for scam analysis.
 type AnalyzerClient interface {
-	Analyze(ctx context.Context, region, modelID string, req *AnalysisRequest, apiResult *ExternalAPIResult, kbContext string) (*BedrockAnalysis, error)
+	Analyze(ctx context.Context, region, modelID string, req *AnalysisRequest, apiResults []*ExternalAPIResult, kbContext string) (*BedrockAnalysis, error)
 }
 
 // TranscriberClient transcribes media (video/audio/file) to text.
@@ -78,8 +78,8 @@ type realAnalyzer struct {
 	client *bedrockruntime.Client
 }
 
-func (r *realAnalyzer) Analyze(ctx context.Context, region, modelID string, req *AnalysisRequest, apiResult *ExternalAPIResult, kbContext string) (*BedrockAnalysis, error) {
-	return analyzeWithBedrock(ctx, r.client, modelID, req, apiResult, kbContext)
+func (r *realAnalyzer) Analyze(ctx context.Context, region, modelID string, req *AnalysisRequest, apiResults []*ExternalAPIResult, kbContext string) (*BedrockAnalysis, error) {
+	return analyzeWithBedrock(ctx, r.client, modelID, req, apiResults, kbContext)
 }
 
 type realTranscriber struct {

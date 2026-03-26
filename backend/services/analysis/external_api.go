@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"regexp"
 	"time"
 )
 
@@ -31,11 +32,65 @@ func callExternalAPI(ctx context.Context, inputType, content, region, apiKey, ba
 	case "url":
 		return callURLCheck(ctx, content, apiKey, baseURL)
 	case "text", "video", "audio", "file":
-		// video/audio/file have already been transcribed to text at this point
-		return &ExternalAPIResult{Source: inputType, RawData: nil}, nil
+		// Parse URLs and phone numbers from text, query each via Whoscall
+		return callTextExtract(ctx, content, region, apiKey, baseURL)
 	default:
 		return nil, fmt.Errorf("unsupported input_type: %s", inputType)
 	}
+}
+
+// ── Text Extract (parse URLs & phones from text, check each) ────
+
+var (
+	urlRegex   = regexp.MustCompile(`https?://[^\s<>"']+`)
+	phoneRegex = regexp.MustCompile(`(?:0\d{1,2}[-\s]?\d{3,4}[-\s]?\d{3,4}|\+?886[-\s]?\d{1,2}[-\s]?\d{3,4}[-\s]?\d{3,4})`)
+)
+
+func callTextExtract(ctx context.Context, text, region, apiKey, baseURL string) (*ExternalAPIResult, error) {
+	urls := urlRegex.FindAllString(text, -1)
+	phones := phoneRegex.FindAllString(text, -1)
+
+	if len(urls) == 0 && len(phones) == 0 {
+		return &ExternalAPIResult{Source: "text", RawData: nil}, nil
+	}
+
+	// Collect all sub-results
+	var subResults []map[string]interface{}
+
+	for _, u := range urls {
+		log.Printf("  text-extract: checking URL %s", u)
+		result, err := callURLCheck(ctx, u, apiKey, baseURL)
+		if err != nil {
+			log.Printf("  text-extract: URL check error: %v", err)
+			subResults = append(subResults, map[string]interface{}{
+				"type": "url", "value": u, "error": err.Error(),
+			})
+			continue
+		}
+		subResults = append(subResults, map[string]interface{}{
+			"type": "url", "value": u, "result": result.RawData,
+		})
+	}
+
+	for _, p := range phones {
+		log.Printf("  text-extract: checking phone %s", p)
+		result, err := callNumberCheck(ctx, p, region, apiKey, baseURL)
+		if err != nil {
+			log.Printf("  text-extract: number check error: %v", err)
+			subResults = append(subResults, map[string]interface{}{
+				"type": "phone", "value": p, "error": err.Error(),
+			})
+			continue
+		}
+		subResults = append(subResults, map[string]interface{}{
+			"type": "phone", "value": p, "result": result.RawData,
+		})
+	}
+
+	return &ExternalAPIResult{
+		Source:  "text-extract",
+		RawData: subResults,
+	}, nil
 }
 
 // ── Content Check (Image) ───────────────────────────────────────
