@@ -14,7 +14,18 @@
     },
     "ios": {
       "supportsTablet": true,
+<<<<<<< HEAD
       "bundleIdentifier": "com.angelal1iii.guardcircle"
+=======
+      "bundleIdentifier": "com.angelaliii.guardcircle",
+      "infoPlist": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": ["guardcircle"]
+          }
+        ]
+      }
+>>>>>>> a1ed8f020ce8c95a14535eaf9705ebb92be11aa2
     },
     "android": {
       "adaptiveIcon": {
@@ -28,7 +39,9 @@
         "POST_NOTIFICATIONS",
         "INTERNET",
         "FOREGROUND_SERVICE",
-        "FOREGROUND_SERVICE_SPECIAL_USE"
+        "FOREGROUND_SERVICE_SPECIAL_USE",
+        "FOREGROUND_SERVICE_MEDIA_PROJECTION",
+        "SYSTEM_ALERT_WINDOW"
       ],
       "predictiveBackGestureEnabled": false
     },
