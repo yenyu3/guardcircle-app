@@ -96,6 +96,25 @@ resource "aws_iam_role_policy" "lambda_bedrock" {
   })
 }
 
+resource "aws_iam_role_policy" "lambda_s3_uploads" {
+  name = "${var.project_name}-lambda-uploads"
+  role = aws_iam_role.lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+        ]
+        Resource = "arn:aws:s3:::${aws_s3_bucket.uploads.bucket}/*"
+      }
+    ]
+  })
+}
+
 locals {
   lambda_env = {
     DB_HOST = aws_rds_cluster.this.endpoint
@@ -301,5 +320,19 @@ resource "aws_lambda_function" "scan_events_notify_status" {
 
   environment {
     variables = local.lambda_env
+  }
+}
+
+resource "aws_lambda_function" "uploads_presign" {
+  function_name = "${var.project_name}-uploads-presign"
+  role          = aws_iam_role.lambda.arn
+  package_type  = "Image"
+  image_uri     = module.docker_image["uploads_presign"].image_uri
+  architectures = [var.lambda_architecture]
+
+  environment {
+    variables = merge(local.lambda_env, {
+      UPLOADS_BUCKET = aws_s3_bucket.uploads.bucket
+    })
   }
 }

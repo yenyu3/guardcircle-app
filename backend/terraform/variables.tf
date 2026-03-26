@@ -76,3 +76,9 @@ variable "transcribe_s3_bucket" {
   type        = string
   default     = ""
 }
+
+variable "uploads_bucket_name" {
+  description = "S3 bucket name for presigned upload files"
+  type        = string
+  default     = "guardcircle-upload"
+}

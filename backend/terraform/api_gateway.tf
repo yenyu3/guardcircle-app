@@ -80,6 +80,13 @@ resource "aws_apigatewayv2_integration" "scan_events_notify_status" {
   payload_format_version = "2.0"
 }
 
+resource "aws_apigatewayv2_integration" "uploads_presign" {
+  api_id                 = aws_apigatewayv2_api.http.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.uploads_presign.arn
+  payload_format_version = "2.0"
+}
+
 resource "aws_apigatewayv2_route" "post_users" {
   api_id    = aws_apigatewayv2_api.http.id
   route_key = "POST /users"
@@ -144,6 +151,12 @@ resource "aws_apigatewayv2_route" "patch_scan_events_notify_status" {
   api_id    = aws_apigatewayv2_api.http.id
   route_key = "PATCH /scan-events/{event_id}/notify-status"
   target    = "integrations/${aws_apigatewayv2_integration.scan_events_notify_status.id}"
+}
+
+resource "aws_apigatewayv2_route" "post_uploads_presign" {
+  api_id    = aws_apigatewayv2_api.http.id
+  route_key = "POST /uploads/presign"
+  target    = "integrations/${aws_apigatewayv2_integration.uploads_presign.id}"
 }
 
 resource "aws_apigatewayv2_stage" "default" {
@@ -236,6 +249,14 @@ resource "aws_lambda_permission" "apigw_invoke_scan_events_notify_status" {
   statement_id  = "AllowApiGatewayInvokeScanEventsNotifyStatus"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.scan_events_notify_status.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.http.execution_arn}/*/*"
+}
+
+resource "aws_lambda_permission" "apigw_invoke_uploads_presign" {
+  statement_id  = "AllowApiGatewayInvokeUploadsPresign"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.uploads_presign.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.http.execution_arn}/*/*"
 }

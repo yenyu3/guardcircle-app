@@ -46,6 +46,10 @@ locals {
       function_name = "${var.project_name}-scan-events-notify-status"
       source_path   = "${path.root}/../services/scan-events-notify-status"
     }
+    uploads_presign = {
+      function_name = "${var.project_name}-uploads-presign"
+      source_path   = "${path.root}/../services/uploads-presign"
+    }
   }
 
   service_dir_sha = {
