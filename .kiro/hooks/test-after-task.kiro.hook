@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Test After Task",
+  "description": "Automatically run relevant tests after completing a spec task to ensure nothing broke",
+  "version": "1",
+  "when": {
+    "type": "postTaskExecution"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Run the relevant test suite for the completed task and report any failures"
+  }
+}

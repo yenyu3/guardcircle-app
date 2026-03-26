@@ -1,0 +1,19 @@
+{
+  "enabled": true,
+  "name": "Lint on Save",
+  "description": "Automatically run linter when saving TypeScript or JavaScript files to catch code quality issues early",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "*.ts",
+      "*.tsx",
+      "*.js",
+      "*.jsx"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Run the linter on the modified file and fix any issues found"
+  }
+}

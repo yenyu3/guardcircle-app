@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Verify Write Standards",
+  "description": "Check that all file write operations follow project coding standards and conventions",
+  "version": "1",
+  "when": {
+    "type": "preToolUse",
+    "toolTypes": [
+      "write"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Verify this write operation follows our coding standards, naming conventions, and project structure"
+  }
+}
