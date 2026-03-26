@@ -236,7 +236,9 @@ resource "aws_lambda_function" "families_scan_events" {
   }
 
   environment {
-    variables = local.lambda_env
+    variables = merge(local.lambda_env, {
+      UPLOADS_BUCKET = aws_s3_bucket.uploads.bucket
+    })
   }
 }
 
@@ -279,7 +281,9 @@ resource "aws_lambda_function" "user_event" {
   }
 
   environment {
-    variables = local.lambda_env
+    variables = merge(local.lambda_env, {
+      UPLOADS_BUCKET = aws_s3_bucket.uploads.bucket
+    })
   }
 }
 

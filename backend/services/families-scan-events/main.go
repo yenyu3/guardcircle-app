@@ -12,10 +12,17 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-var db *sql.DB
+var (
+	db            *sql.DB
+	s3Presigner   *s3.PresignClient
+	uploadsBucket string
+)
 
 func init() {
 	host := os.Getenv("DB_HOST")
@@ -36,6 +43,14 @@ func init() {
 	conn.SetMaxOpenConns(5)
 	conn.SetConnMaxLifetime(5 * time.Minute)
 	db = conn
+
+	uploadsBucket = os.Getenv("UPLOADS_BUCKET")
+	if uploadsBucket != "" {
+		cfg, err := awsconfig.LoadDefaultConfig(context.Background())
+		if err == nil {
+			s3Presigner = s3.NewPresignClient(s3.NewFromConfig(cfg))
+		}
+	}
 }
 
 func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
@@ -76,12 +91,13 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 	}
 
 	rows, err := db.QueryContext(ctx, `
-		SELECT 
+		SELECT
 			se.event_id::text,
 			se.user_id::text,
 			u.nickname,
 			se.input_type::text,
 			se.input_content,
+			COALESCE(se.s3_key, ''),
 			se.risk_level,
 			se.risk_score,
 			se.scam_type,
@@ -107,11 +123,11 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 
 	eventsList := make([]map[string]interface{}, 0)
 	for rows.Next() {
-		var eventID, userID, nickname, inputTypeJSON, inputContent, riskLevel, scamType, summary, consequence, reason, notifyStatus, updatedBy, updatedAt, createdAt string
+		var eventID, userID, nickname, inputTypeJSON, inputContent, s3Key, riskLevel, scamType, summary, consequence, reason, notifyStatus, updatedBy, updatedAt, createdAt string
 		var riskScore sql.NullInt32
 		var riskFactors sql.NullString
 		var topSignals sql.NullString
-		if err := rows.Scan(&eventID, &userID, &nickname, &inputTypeJSON, &inputContent, &riskLevel, &riskScore, &scamType, &summary, &consequence, &reason, &riskFactors, &topSignals, &notifyStatus, &updatedBy, &updatedAt, &createdAt); err != nil {
+		if err := rows.Scan(&eventID, &userID, &nickname, &inputTypeJSON, &inputContent, &s3Key, &riskLevel, &riskScore, &scamType, &summary, &consequence, &reason, &riskFactors, &topSignals, &notifyStatus, &updatedBy, &updatedAt, &createdAt); err != nil {
 			return jsonResp(http.StatusInternalServerError, map[string]string{"error": "failed to read events"})
 		}
 		var inputTypeParsed []string
@@ -149,6 +165,12 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 				item["top_signals"] = parsed
 			}
 		}
+		if s3Key != "" {
+			item["s3_key"] = s3Key
+			if url := presignGetURL(ctx, s3Key); url != "" {
+				item["media_url"] = url
+			}
+		}
 		eventsList = append(eventsList, item)
 	}
 
@@ -157,6 +179,22 @@ func handler(req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPRespons
 		"family_name": familyName,
 		"events":      eventsList,
 	})
+}
+
+func presignGetURL(ctx context.Context, key string) string {
+	if s3Presigner == nil || uploadsBucket == "" {
+		return ""
+	}
+	out, err := s3Presigner.PresignGetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(uploadsBucket),
+		Key:    aws.String(key),
+	}, func(opts *s3.PresignOptions) {
+		opts.Expires = 1 * time.Hour
+	})
+	if err != nil {
+		return ""
+	}
+	return out.URL
 }
 
 func jsonResp(status int, body interface{}) (events.APIGatewayV2HTTPResponse, error) {
