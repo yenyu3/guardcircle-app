@@ -10,6 +10,9 @@ COPY *.go ./
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -o bootstrap .
 
 FROM public.ecr.aws/lambda/provided:al2
+RUN yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm && \
+    yum install -y ffmpeg poppler-utils && \
+    yum clean all && rm -rf /var/cache/yum
 COPY --from=build /src/bootstrap /var/runtime/bootstrap
 RUN chmod +x /var/runtime/bootstrap
 CMD ["bootstrap"]

@@ -86,11 +86,22 @@ resource "aws_iam_role_policy" "lambda_bedrock" {
       {
         Effect = "Allow"
         Action = [
+          "rekognition:StartContentModeration",
+          "rekognition:GetContentModeration",
+          "rekognition:StartLabelDetection",
+          "rekognition:GetLabelDetection",
+          "rekognition:DetectText",
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
           "s3:PutObject",
           "s3:GetObject",
           "s3:DeleteObject",
         ]
-        Resource = "arn:aws:s3:::${var.transcribe_s3_bucket}/transcribe-input/*"
+        Resource = "arn:aws:s3:::${var.transcribe_s3_bucket}/*"
       }
     ]
   })
