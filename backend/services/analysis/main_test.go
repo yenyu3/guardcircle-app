@@ -201,18 +201,21 @@ func TestTruncateContent(t *testing.T) {
 
 func TestBuildKBQuery(t *testing.T) {
 	cases := []struct {
-		inputType, content, expected string
+		inputTypes []string
+		content    string
+		expected   string
 	}{
-		{"url", "https://scam.com", "詐騙網址 https://scam.com"},
-		{"phone", "+886123", "詐騙電話號碼 +886123"},
-		{"image", "base64...", "詐騙截圖分析"},
-		{"text", "短文", "短文"},
-		{"video", "轉錄文字", "轉錄文字"},
-		{"audio", "轉錄文字", "轉錄文字"},
+		{[]string{"url"}, "https://scam.com", "詐騙網址 https://scam.com"},
+		{[]string{"phone"}, "+886123", "詐騙電話號碼 +886123"},
+		{[]string{"image"}, "base64...", "詐騙截圖分析"},
+		{[]string{"text"}, "短文", "短文"},
+		{[]string{"video"}, "轉錄文字", "轉錄文字"},
+		{[]string{"audio"}, "轉錄文字", "轉錄文字"},
+		{[]string{"text", "url"}, "快點擊 https://scam.com", "快點擊 https://scam.com 詐騙網址 快點擊 https://scam.com"},
 	}
 	for _, c := range cases {
-		if got := buildKBQuery(c.inputType, c.content); got != c.expected {
-			t.Errorf("buildKBQuery(%q, %q) = %q, want %q", c.inputType, c.content, got, c.expected)
+		if got := buildKBQuery(c.inputTypes, c.content); got != c.expected {
+			t.Errorf("buildKBQuery(%v, %q) = %q, want %q", c.inputTypes, c.content, got, c.expected)
 		}
 	}
 	// Long text truncation
@@ -220,7 +223,7 @@ func TestBuildKBQuery(t *testing.T) {
 	for i := range longText {
 		longText[i] = '你'
 	}
-	got := buildKBQuery("text", string(longText))
+	got := buildKBQuery([]string{"text"}, string(longText))
 	if len([]rune(got)) != 200 {
 		t.Errorf("expected 200 runes, got %d", len([]rune(got)))
 	}

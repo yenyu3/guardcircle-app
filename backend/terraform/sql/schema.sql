@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS scan_events (
     risk_score INT CHECK (risk_score >= 0 AND risk_score <= 100),
     scam_type VARCHAR(100),
     summary TEXT,
+    consequence TEXT,
     reason TEXT,
     risk_factors JSONB,
     top_signals JSONB,
