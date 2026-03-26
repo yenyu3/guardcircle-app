@@ -54,6 +54,8 @@ interface AppState {
   apiCreateFamily: (familyName: string, inviteCode: string) => Promise<{ family_id: string; invite_code: string }>;
   // 真實 API 加入家庭圈
   apiJoinFamily: (inviteCode: string) => Promise<void>;
+  // 真實 API 拉取家庭圈成員
+  apiFetchFamily: () => Promise<void>;
   // 真實 API 分析
   apiAnalyze: (params: { input_type: 'text' | 'image' | 'url' | 'phone'; content: string }) => Promise<API.AnalysisRes['data']>;
   // 真實 API 更新個人資料
@@ -229,7 +231,11 @@ export const useAppStore = create<AppState>((set) => ({
     const { userId } = useAppStore.getState();
     if (!userId) throw new Error('not logged in');
     const res = await API.createFamily({ family_name: familyName, invite_code: inviteCode, creator_id: userId });
-    set({ familyId: res.data.family_id, hasFamilyCircle: true });
+    set((s) => ({
+      familyId: res.data.family_id,
+      hasFamilyCircle: true,
+      family: { ...s.family, id: res.data.family_id, name: res.data.family_name, code: res.data.invite_code },
+    }));
     return { family_id: res.data.family_id, invite_code: res.data.invite_code };
   },
 
@@ -237,7 +243,32 @@ export const useAppStore = create<AppState>((set) => ({
     const { userId } = useAppStore.getState();
     if (!userId) throw new Error('not logged in');
     const res = await API.joinFamily({ user_id: userId, invite_code: inviteCode });
-    set({ familyId: res.data.family_id, hasFamilyCircle: true });
+    set((s) => ({
+      familyId: res.data.family_id,
+      hasFamilyCircle: true,
+      family: { ...s.family, id: res.data.family_id, name: res.data.family_name },
+    }));
+  },
+
+  apiFetchFamily: async () => {
+    const { familyId } = useAppStore.getState();
+    if (!familyId) return;
+    const [feedRes, scanRes] = await Promise.all([
+      API.getFamilyFeed(familyId),
+      API.getFamilyScanEvents(familyId, { limit: 1 }),
+    ]);
+    const members: import('../types').FamilyMember[] = feedRes.members_status.map((m) => ({
+      id: m.user_id,
+      nickname: m.nickname,
+      role: API.mapRole(m.role),
+      status: m.last_event
+        ? (m.last_event.risk_level === 'high' ? 'high_risk' : m.last_event.risk_level === 'medium' ? 'pending' : 'safe')
+        : 'safe',
+      lastActive: m.last_event?.created_at ?? '',
+    }));
+    set((s) => ({
+      family: { ...s.family, id: familyId, name: scanRes.family_name || s.family.name, members },
+    }));
   },
 
   apiAnalyze: async ({ input_type, content }) => {

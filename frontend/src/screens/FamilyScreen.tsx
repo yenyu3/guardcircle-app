@@ -31,7 +31,7 @@ const ROLE_LABEL: Record<string, string> = {
 
 export default function FamilyScreen() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const { events, family } = useAppStore();
+  const { events, family, apiFetchFamily } = useAppStore();
   const members = family.members;
   const scrollRef = useRef<ScrollView>(null);
   const { register } = useScrollRef();
@@ -40,6 +40,7 @@ export default function FamilyScreen() {
     React.useCallback(() => {
       register('Family', scrollRef);
       scrollRef.current?.scrollTo({ y: 0, animated: false });
+      apiFetchFamily().catch(() => {});
     }, [])
   );
 
