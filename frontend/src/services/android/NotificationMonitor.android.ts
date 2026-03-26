@@ -97,3 +97,48 @@ export async function isProtectionRunning(): Promise<boolean> {
   if (!SmsInterceptor) return false;
   return SmsInterceptor.isProtectionRunning();
 }
+
+/* ------------------------------------------------------------------ */
+/*  Phase 2 — Notification interception (all apps)                     */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Check if the user has granted Notification Access permission
+ * (system-level, must be enabled manually in Settings).
+ */
+export async function isNotificationAccessEnabled(): Promise<boolean> {
+  if (!SmsInterceptor) return false;
+  return SmsInterceptor.isNotificationAccessEnabled();
+}
+
+/**
+ * Open the system Notification Access settings page so the user
+ * can grant permission to GuardCircle.
+ */
+export async function openNotificationAccessSettings(): Promise<void> {
+  if (!SmsInterceptor) return;
+  await SmsInterceptor.openNotificationAccessSettings();
+}
+
+/**
+ * Enable/disable the notification interception feature.
+ * The NotificationListenerService checks this flag before processing.
+ */
+export async function setNotificationInterceptionEnabled(
+  enabled: boolean,
+  keywords?: string[],
+): Promise<void> {
+  if (!SmsInterceptor) return;
+  if (enabled) {
+    await updateRiskKeywords(keywords);
+  }
+  await SmsInterceptor.setNotificationInterceptionEnabled(enabled);
+}
+
+/**
+ * Check if notification interception is currently enabled.
+ */
+export async function isNotificationInterceptionEnabled(): Promise<boolean> {
+  if (!SmsInterceptor) return false;
+  return SmsInterceptor.isNotificationInterceptionEnabled();
+}

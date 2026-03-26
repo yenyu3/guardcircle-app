@@ -227,10 +227,13 @@ public class SmsForegroundService extends Service {
 function getSmsInterceptorModuleCode(pkg) {
   return `package ${pkg};
 
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
+import android.provider.Settings;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.facebook.react.bridge.Promise;
@@ -252,7 +255,7 @@ public class SmsInterceptorModule extends ReactContextBaseJavaModule {
     @Override
     public String getName() { return "SmsInterceptor"; }
 
-    /* ---- start / stop ---- */
+    /* ---- SMS: start / stop ---- */
 
     @ReactMethod
     public void startProtection(Promise promise) {
@@ -288,7 +291,7 @@ public class SmsInterceptorModule extends ReactContextBaseJavaModule {
         }
     }
 
-    /* ---- status ---- */
+    /* ---- SMS: status ---- */
 
     @ReactMethod
     public void isProtectionRunning(Promise promise) {
@@ -318,6 +321,57 @@ public class SmsInterceptorModule extends ReactContextBaseJavaModule {
         } catch (Exception e) {
             Log.e(TAG, "updateKeywords error", e);
             promise.reject("KW_ERR", e.getMessage());
+        }
+    }
+
+    /* ---- Notification interception (Phase 2) ---- */
+
+    @ReactMethod
+    public void isNotificationAccessEnabled(Promise promise) {
+        try {
+            Context ctx = getReactApplicationContext();
+            String pkgName = ctx.getPackageName();
+            String flat = Settings.Secure.getString(
+                    ctx.getContentResolver(), "enabled_notification_listeners");
+            boolean enabled = flat != null && flat.contains(pkgName);
+            Log.d(TAG, "notificationAccess enabled=" + enabled);
+            promise.resolve(enabled);
+        } catch (Exception e) {
+            promise.reject("NOTIF_CHECK_ERR", e.getMessage());
+        }
+    }
+
+    @ReactMethod
+    public void openNotificationAccessSettings(Promise promise) {
+        try {
+            Intent intent = new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS");
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getReactApplicationContext().startActivity(intent);
+            promise.resolve(true);
+        } catch (Exception e) {
+            promise.reject("NOTIF_OPEN_ERR", e.getMessage());
+        }
+    }
+
+    @ReactMethod
+    public void setNotificationInterceptionEnabled(boolean enabled, Promise promise) {
+        try {
+            prefs(getReactApplicationContext()).edit()
+                    .putBoolean("notif_intercept_enabled", enabled).apply();
+            Log.d(TAG, "notif_intercept_enabled=" + enabled);
+            promise.resolve(true);
+        } catch (Exception e) {
+            promise.reject("NOTIF_SET_ERR", e.getMessage());
+        }
+    }
+
+    @ReactMethod
+    public void isNotificationInterceptionEnabled(Promise promise) {
+        try {
+            promise.resolve(prefs(getReactApplicationContext())
+                    .getBoolean("notif_intercept_enabled", false));
+        } catch (Exception e) {
+            promise.reject("NOTIF_GET_ERR", e.getMessage());
         }
     }
 
@@ -356,6 +410,155 @@ public class SmsInterceptorPackage implements ReactPackage {
 `;
 }
 
+function getNotificationInterceptorServiceCode(pkg) {
+  return `package ${pkg};
+
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.os.Build;
+import android.os.Handler;
+import android.provider.Telephony;
+import android.os.Looper;
+import android.service.notification.NotificationListenerService;
+import android.service.notification.StatusBarNotification;
+import android.util.Log;
+
+import androidx.core.app.NotificationCompat;
+
+/**
+ * NotificationListenerService — intercepts notifications from ALL apps.
+ * Checks content against scam keywords and sends an alert if matched.
+ */
+public class NotificationInterceptorService extends NotificationListenerService {
+
+    private static final String TAG = "GuardCircle_NotifListener";
+    private static final String CHANNEL_ID = "scam_alerts";
+    private static final String PREFS_NAME = "SmsInterceptorPrefs";
+
+    @Override
+    public void onNotificationPosted(StatusBarNotification sbn) {
+        // Skip our own notifications to avoid infinite loop
+        if (sbn.getPackageName().equals(getPackageName())) return;
+
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        if (!prefs.getBoolean("notif_intercept_enabled", false)) return;
+
+        // Skip default SMS app if SMS protection is already enabled (avoid duplicate alerts)
+        if (prefs.getBoolean("enabled", false)) {
+            String defaultSmsApp = Telephony.Sms.getDefaultSmsPackage(this);
+            if (sbn.getPackageName().equals(defaultSmsApp)) {
+                Log.d(TAG, "Skipping SMS app notification (handled by SmsReceiver)");
+                return;
+            }
+        }
+
+        // Extract notification text
+        Notification notification = sbn.getNotification();
+        if (notification == null || notification.extras == null) return;
+
+        CharSequence titleCs = notification.extras.getCharSequence(Notification.EXTRA_TITLE);
+        CharSequence textCs = notification.extras.getCharSequence(Notification.EXTRA_TEXT);
+        CharSequence bigTextCs = notification.extras.getCharSequence(Notification.EXTRA_BIG_TEXT);
+
+        String title = titleCs != null ? titleCs.toString() : "";
+        String text = textCs != null ? textCs.toString() : "";
+        String bigText = bigTextCs != null ? bigTextCs.toString() : "";
+
+        String combined = title + " " + text + " " + bigText;
+        if (combined.trim().isEmpty()) return;
+
+        Log.d(TAG, "Notification from " + sbn.getPackageName() + ": " + combined.substring(0, Math.min(combined.length(), 100)));
+
+        // Check keywords
+        String keywordsStr = prefs.getString("keywords", "");
+        if (keywordsStr.isEmpty()) return;
+
+        String[] keywords = keywordsStr.split(",");
+        String matched = null;
+        for (String kw : keywords) {
+            if (!kw.isEmpty() && combined.contains(kw)) {
+                matched = kw;
+                break;
+            }
+        }
+
+        if (matched != null) {
+            Log.d(TAG, "MATCH keyword=" + matched + " from " + sbn.getPackageName());
+            String appName = getAppName(sbn.getPackageName());
+            final String fAppName = appName;
+            final String fCombined = combined;
+            final String fMatched = matched;
+            new Handler(Looper.getMainLooper()).postDelayed(
+                () -> sendAlert(fAppName, fCombined, fMatched),
+                2000
+            );
+        }
+    }
+
+    private String getAppName(String packageName) {
+        PackageManager pm = getPackageManager();
+        try {
+            return pm.getApplicationLabel(
+                    pm.getApplicationInfo(packageName, 0)).toString();
+        } catch (Exception e) {
+            return packageName;
+        }
+    }
+
+    private void sendAlert(String appName, String content, String keyword) {
+        Log.d(TAG, "sendAlert for app=" + appName + " keyword=" + keyword);
+        try {
+            NotificationManager nm =
+                    (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                NotificationChannel ch = new NotificationChannel(
+                        CHANNEL_ID, "詐騙警報", NotificationManager.IMPORTANCE_HIGH);
+                ch.setDescription("即時詐騙通知警報");
+                nm.createNotificationChannel(ch);
+            }
+
+            Intent launch = getPackageManager()
+                    .getLaunchIntentForPackage(getPackageName());
+            PendingIntent pi = launch != null
+                    ? PendingIntent.getActivity(this, 0, launch,
+                        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE)
+                    : null;
+
+            String alertTitle = "⚠️ 疑似詐騙通知";
+            String alertText = appName + " 的通知含有可疑關鍵字「" + keyword + "」";
+            String big = alertText + "\\n\\n請勿點擊連結或提供個資！";
+
+            NotificationCompat.Builder builder =
+                    new NotificationCompat.Builder(this, CHANNEL_ID)
+                            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+                            .setContentTitle(alertTitle)
+                            .setContentText(alertText)
+                            .setStyle(new NotificationCompat.BigTextStyle().bigText(big))
+                            .setPriority(NotificationCompat.PRIORITY_HIGH)
+                            .setDefaults(NotificationCompat.DEFAULT_ALL)
+                            .setCategory(NotificationCompat.CATEGORY_ALARM)
+                            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                            .setAutoCancel(true);
+
+            if (pi != null) builder.setContentIntent(pi);
+
+            nm.notify((int) (System.currentTimeMillis() % Integer.MAX_VALUE), builder.build());
+            Log.d(TAG, "alert notification sent");
+        } catch (Exception e) {
+            Log.e(TAG, "sendAlert error", e);
+        }
+    }
+}
+`;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Config plugin helpers                                              */
 /* ------------------------------------------------------------------ */
@@ -382,6 +585,7 @@ function withJavaSources(config) {
       fs.writeFileSync(path.join(dir, "SmsForegroundService.java"), getSmsForegroundServiceCode(pkg));
       fs.writeFileSync(path.join(dir, "SmsInterceptorModule.java"), getSmsInterceptorModuleCode(pkg));
       fs.writeFileSync(path.join(dir, "SmsInterceptorPackage.java"), getSmsInterceptorPackageCode(pkg));
+      fs.writeFileSync(path.join(dir, "NotificationInterceptorService.java"), getNotificationInterceptorServiceCode(pkg));
 
       return cfg;
     },
@@ -450,6 +654,26 @@ function withManifest(config) {
               "android:name": "android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE",
               "android:value": "Monitors incoming SMS for scam detection",
             },
+          },
+        ],
+      });
+    }
+
+    /* notification listener service */
+    const notifServiceName = ".NotificationInterceptorService";
+    if (!app.service.find((s) => s.$?.["android:name"] === notifServiceName)) {
+      app.service.push({
+        $: {
+          "android:name": notifServiceName,
+          "android:enabled": "true",
+          "android:exported": "true",
+          "android:permission": "android.permission.BIND_NOTIFICATION_LISTENER_SERVICE",
+        },
+        "intent-filter": [
+          {
+            action: [
+              { $: { "android:name": "android.service.notification.NotificationListenerService" } },
+            ],
           },
         ],
       });

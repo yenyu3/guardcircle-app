@@ -19,7 +19,11 @@ import { RootStackParamList } from "../navigation";
 import { useScrollRef } from "../navigation/ScrollRefContext";
 import {
   initScamProtection,
+  isNotificationAccessEnabled,
+  isNotificationInterceptionEnabled,
   isProtectionRunning,
+  openNotificationAccessSettings,
+  setNotificationInterceptionEnabled,
   stopScamProtection,
   updateRiskKeywords,
 } from "../services/android/NotificationMonitor";
@@ -67,10 +71,18 @@ export default function SettingsScreen() {
   const [smsProtectionOn, setSmsProtectionOn] = useState(false);
   const [toggling, setToggling] = useState(false);
 
+  // Notification interception status (Phase 2)
+  const [notifInterceptOn, setNotifInterceptOn] = useState(false);
+  const [togglingNotif, setTogglingNotif] = useState(false);
+
   const checkProtectionStatus = async () => {
     if (Platform.OS !== "android") return;
     const running = await isProtectionRunning();
     setSmsProtectionOn(running);
+    // Check notification interception: both system access + app toggle
+    const access = await isNotificationAccessEnabled();
+    const enabled = await isNotificationInterceptionEnabled();
+    setNotifInterceptOn(access && enabled);
   };
 
   useEffect(() => {
@@ -81,12 +93,12 @@ export default function SettingsScreen() {
     return () => sub.remove();
   }, []);
 
-  // Sync keywords whenever they change and protection is on
+  // Sync keywords whenever they change and any protection is on
   useEffect(() => {
-    if (smsProtectionOn && Platform.OS === "android") {
+    if ((smsProtectionOn || notifInterceptOn) && Platform.OS === "android") {
       updateRiskKeywords(blacklistKeywords);
     }
-  }, [blacklistKeywords, smsProtectionOn]);
+  }, [blacklistKeywords, smsProtectionOn, notifInterceptOn]);
 
   const toggleSmsProtection = async () => {
     if (Platform.OS !== "android") {
@@ -111,6 +123,41 @@ export default function SettingsScreen() {
       }
     } finally {
       setToggling(false);
+    }
+  };
+
+  const toggleNotifIntercept = async () => {
+    if (Platform.OS !== "android") {
+      Alert.alert("不支援", "主動防護功能僅支援 Android 裝置");
+      return;
+    }
+    setTogglingNotif(true);
+    try {
+      if (notifInterceptOn) {
+        await setNotificationInterceptionEnabled(false);
+        setNotifInterceptOn(false);
+      } else {
+        // Check if system-level notification access is granted
+        const access = await isNotificationAccessEnabled();
+        if (!access) {
+          Alert.alert(
+            "需要通知存取權限",
+            "請在系統設定中允許 GuardCircle 讀取通知，才能偵測 LINE、Messenger 等 App 中的詐騙訊息。\n\n點擊「前往設定」後，找到 GuardCircle 並開啟。",
+            [
+              { text: "取消" },
+              {
+                text: "前往設定",
+                onPress: () => openNotificationAccessSettings(),
+              },
+            ],
+          );
+          return;
+        }
+        await setNotificationInterceptionEnabled(true, blacklistKeywords);
+        setNotifInterceptOn(true);
+      }
+    } finally {
+      setTogglingNotif(false);
     }
   };
 
@@ -222,7 +269,8 @@ export default function SettingsScreen() {
           <>
             <Text style={styles.sectionLabel}>主動防護</Text>
             <View style={[styles.menuCard, Shadow.card, { marginBottom: 28 }]}>
-              <View style={styles.elderRow}>
+              {/* SMS interception */}
+              <View style={[styles.elderRow, styles.menuBorder]}>
                 <View
                   style={[
                     styles.iconWrap,
@@ -248,6 +296,37 @@ export default function SettingsScreen() {
                   onValueChange={toggleSmsProtection}
                   disabled={toggling}
                   trackColor={{ false: Colors.border, true: Colors.danger }}
+                  thumbColor={Colors.white}
+                />
+              </View>
+
+              {/* Notification interception (Phase 2) */}
+              <View style={styles.elderRow}>
+                <View
+                  style={[
+                    styles.iconWrap,
+                    { backgroundColor: Colors.warning + "1A" },
+                  ]}
+                >
+                  <Ionicons
+                    name="notifications-outline"
+                    size={20}
+                    color={Colors.warning}
+                  />
+                </View>
+                <View style={styles.elderTextWrap}>
+                  <Text style={styles.menuLabel}>通知內容偵測</Text>
+                  <Text style={styles.menuSub}>
+                    {notifInterceptOn
+                      ? "監控 LINE、Messenger 等通知中"
+                      : "分析其他 App 通知，攔截詐騙訊息"}
+                  </Text>
+                </View>
+                <Switch
+                  value={notifInterceptOn}
+                  onValueChange={toggleNotifIntercept}
+                  disabled={togglingNotif}
+                  trackColor={{ false: Colors.border, true: Colors.warning }}
                   thumbColor={Colors.white}
                 />
               </View>

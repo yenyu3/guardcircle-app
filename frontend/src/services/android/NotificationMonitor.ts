@@ -15,3 +15,18 @@ export async function stopScamProtection(): Promise<void> {}
 export async function isProtectionRunning(): Promise<boolean> {
   return false;
 }
+
+export async function isNotificationAccessEnabled(): Promise<boolean> {
+  return false;
+}
+
+export async function openNotificationAccessSettings(): Promise<void> {}
+
+export async function setNotificationInterceptionEnabled(
+  _enabled: boolean,
+  _keywords?: string[],
+): Promise<void> {}
+
+export async function isNotificationInterceptionEnabled(): Promise<boolean> {
+  return false;
+}
