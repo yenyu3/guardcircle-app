@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
+import { File } from "expo-file-system";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -79,9 +80,23 @@ export default function AnalyzingScreen() {
       setTimeout(() => setStep(3), 3200),
       setTimeout(async () => {
         try {
+          let content = input;
+          let file_ext: string | undefined;
+          if (type === 'image' && imageUri) {
+            const ext = imageUri.split('.').pop()?.toLowerCase() ?? 'jpg';
+            file_ext = ext;
+            const fileObj = new File(imageUri);
+            const buffer = await fileObj.arrayBuffer();
+            const bytes = new Uint8Array(buffer);
+            let binary = '';
+            bytes.forEach((b) => { binary += String.fromCharCode(b); });
+            const base64 = btoa(binary);
+            content = `data:image/${ext};base64,${base64}`;
+          }
           const apiResult = await apiAnalyze({
             input_type: type as any,
-            content: input,
+            content,
+            file_ext,
           });
           const { mapRiskLevel } = await import('../../api');
           const riskLevel = mapRiskLevel(apiResult.risk_level);
@@ -93,13 +108,10 @@ export default function AnalyzingScreen() {
             riskFactors: apiResult.risk_factors ?? apiResult.top_signals ?? [],
             reason: apiResult.reason,
           };
-          const now = new Date()
-            .toLocaleString("zh-TW", { hour12: false })
-            .slice(0, 15);
-
-          if (result.riskLevel === "safe") {
+          const { formatDate } = await import('../../store');
+          const now = formatDate(new Date().toISOString());
           const event: DetectEvent = {
-            id: `e_${Date.now()}`,
+            id: apiResult.event_id ?? `e_${Date.now()}`,
             userId: currentUser.id,
             userNickname: currentUser.nickname,
             type: type as any,
@@ -108,13 +120,14 @@ export default function AnalyzingScreen() {
             attachmentUri,
             ...result,
             createdAt: now,
-            status: "safe",
+            status: result.riskLevel === 'safe' ? 'safe' : result.riskLevel === 'high' ? 'high_risk' : 'pending',
           };
-            addEvent(event);
-            if (currentUser.role === "solver") addContributionPoints(10);
+          addEvent(event);
+          if (currentUser.role === "solver") addContributionPoints(10);
+
+          if (result.riskLevel === "safe") {
             navigation.replace("ResultSafe", { reason: result.reason });
           } else if (result.riskLevel === "high") {
-            if (currentUser.role === "solver") addContributionPoints(10);
             navigation.replace("ResultHigh", {
               scamType: result.scamType,
               riskScore: result.riskScore,
@@ -126,7 +139,6 @@ export default function AnalyzingScreen() {
               attachmentUri,
             });
           } else {
-            if (currentUser.role === "solver") addContributionPoints(10);
             navigation.replace("ResultMedium", {
               scamType: result.scamType,
               riskScore: result.riskScore,

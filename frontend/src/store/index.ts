@@ -58,7 +58,7 @@ interface AppState {
   // 真實 API 拉取家庭圈成員
   apiFetchFamily: () => Promise<void>;
   // 真實 API 分析
-  apiAnalyze: (params: { input_type: 'text' | 'image' | 'url' | 'phone'; content: string }) => Promise<API.AnalysisRes['data']>;
+  apiAnalyze: (params: { input_type: 'text' | 'image' | 'url' | 'phone'; content: string; file_ext?: string }) => Promise<API.AnalysisRes['data']>;
   // 真實 API 更新個人資料
   apiPatchUser: (body: API.PatchUserReq) => Promise<void>;
   logout: () => void;
@@ -311,10 +311,10 @@ export const useAppStore = create<AppState>((set) => ({
     }));
   },
 
-  apiAnalyze: async ({ input_type, content }) => {
+  apiAnalyze: async ({ input_type, content, file_ext }) => {
     const { userId } = useAppStore.getState();
     if (!userId) throw new Error('not logged in');
-    const res = await API.analyze({ user_id: userId, input_type: [input_type], input_content: content });
+    const res = await API.analyze({ user_id: userId, input_type: [input_type], input_content: content, file_ext });
     return res.data;
   },
 
