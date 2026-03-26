@@ -8,6 +8,7 @@ import (
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/bedrockagentruntime"
 	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime"
+	"github.com/aws/aws-sdk-go-v2/service/rekognition"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	txclient "github.com/aws/aws-sdk-go-v2/service/transcribe"
 )
@@ -30,6 +31,8 @@ type Dependencies struct {
 	KnowledgeBase  KnowledgeBaseClient
 	Analyzer       AnalyzerClient
 	Transcriber    TranscriberClient
+	FileExtractor  FileExtractorClient
+	VideoAnalyzer  VideoAnalyzerClient
 	DB             DBClient
 }
 
@@ -51,6 +54,17 @@ type AnalyzerClient interface {
 // TranscriberClient transcribes media (video/audio/file) to text.
 type TranscriberClient interface {
 	Transcribe(ctx context.Context, region, bucket, base64Content, fileExt string) (string, error)
+	TranscribeFromS3(ctx context.Context, region, bucket, s3Key, fileExt string) (string, error)
+}
+
+// FileExtractorClient extracts text content from files in S3 (PDF, text/code).
+type FileExtractorClient interface {
+	Extract(ctx context.Context, bucket, s3Key, fileExt string) (string, error)
+}
+
+// VideoAnalyzerClient runs Rekognition on video in S3.
+type VideoAnalyzerClient interface {
+	Analyze(ctx context.Context, bucket, s3Key string) (*VideoAnalysisResult, error)
 }
 
 // DBClient writes scan events to the database.
@@ -89,6 +103,27 @@ type realTranscriber struct {
 
 func (r *realTranscriber) Transcribe(ctx context.Context, region, bucket, base64Content, fileExt string) (string, error) {
 	return transcribeMedia(ctx, r.s3Client, r.txClient, bucket, base64Content, fileExt)
+}
+
+func (r *realTranscriber) TranscribeFromS3(ctx context.Context, region, bucket, s3Key, fileExt string) (string, error) {
+	return transcribeFromS3Key(ctx, r.s3Client, r.txClient, bucket, s3Key, fileExt)
+}
+
+type realFileExtractor struct {
+	s3Client *s3.Client
+}
+
+func (r *realFileExtractor) Extract(ctx context.Context, bucket, s3Key, fileExt string) (string, error) {
+	return extractFileText(ctx, r.s3Client, bucket, s3Key, fileExt)
+}
+
+type realVideoAnalyzer struct {
+	client   *rekognition.Client
+	s3Client *s3.Client
+}
+
+func (r *realVideoAnalyzer) Analyze(ctx context.Context, bucket, s3Key string) (*VideoAnalysisResult, error) {
+	return analyzeVideoWithRekognition(ctx, r.client, r.s3Client, bucket, s3Key)
 }
 
 type realDB struct{}
@@ -137,6 +172,8 @@ func newProductionDeps() *Dependencies {
 		KnowledgeBase: &realKnowledgeBase{client: bedrockagentruntime.NewFromConfig(awsCfg)},
 		Analyzer:      &realAnalyzer{client: bedrockruntime.NewFromConfig(awsCfg)},
 		Transcriber:   &realTranscriber{s3Client: s3.NewFromConfig(awsCfg), txClient: txclient.NewFromConfig(awsCfg)},
+		FileExtractor: &realFileExtractor{s3Client: s3.NewFromConfig(awsCfg)},
+		VideoAnalyzer: &realVideoAnalyzer{client: rekognition.NewFromConfig(awsCfg), s3Client: s3.NewFromConfig(awsCfg)},
 		DB:            &realDB{},
 	}
 }
