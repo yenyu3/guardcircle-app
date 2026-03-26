@@ -55,13 +55,14 @@ func writeScanEvent(ctx context.Context, e *EventData) error {
 
 	riskFactorsJSON, _ := json.Marshal(e.RiskFactors)
 	topSignalsJSON, _ := json.Marshal(e.TopSignals)
+	inputTypesJSON, _ := json.Marshal(e.InputType)
 
 	_, err = conn.ExecContext(ctx,
 		`INSERT INTO scan_events (event_id, user_id, input_type, input_content, risk_level, risk_score, scam_type, summary, consequence, reason, risk_factors, top_signals, notify_status)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
 		e.EventID,
 		e.UserID,
-		strings.Join(e.InputType, ","),
+		inputTypesJSON,
 		e.InputContent,
 		e.RiskLevel,
 		e.RiskScore,
