@@ -46,6 +46,7 @@ export default function FamilyJoinScreen() {
   const [showQR, setShowQR] = useState(false);
   const [showPairingModal, setShowPairingModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [joinError, setJoinError] = useState<string | null>(null);
   const [pairingCode] = useState(() =>
     String(Math.floor(1000 + Math.random() * 9000))
   );
@@ -79,6 +80,7 @@ export default function FamilyJoinScreen() {
   const handleJoin = async () => {
     if (!codeComplete) { showAlert("請輸入完整的 6 位數代碼"); return; }
     setLoading(true);
+    setJoinError(null);
     try {
       await apiJoinFamily(digits.join(''));
       saveAccount(password);
@@ -88,7 +90,7 @@ export default function FamilyJoinScreen() {
       const msg = e?.status === 404 ? "找不到此家庭圈，請確認 ID 是否正確"
         : e?.status === 400 ? "邀請碼無效或已過期，請確認後再試"
         : `加入失敗（${e?.message ?? '未知錯誤'}）`;
-      showAlert("加入失敗", msg);
+      setJoinError(msg);
     } finally {
       setLoading(false);
     }
@@ -232,6 +234,7 @@ export default function FamilyJoinScreen() {
             </View>
             <Pressable
               onPress={handleJoin}
+              disabled={loading}
               style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }, !codeComplete && styles.solidBtnDisabled]}
             >
               <LinearGradient
@@ -240,9 +243,17 @@ export default function FamilyJoinScreen() {
                 end={{ x: 1, y: 1 }}
                 style={styles.gradientBtn}
               >
-                <Text style={styles.solidBtnText}>送出加入申請</Text>
+                <Text style={styles.solidBtnText}>{loading ? '加入中...' : '送出加入申請'}</Text>
               </LinearGradient>
             </Pressable>
+            {joinError && (
+              <View style={styles.errorWrap}>
+                <Text style={styles.errorText}>{joinError}</Text>
+                <Pressable onPress={handleJoin} style={styles.retryBtn}>
+                  <Text style={styles.retryText}>重試</Text>
+                </Pressable>
+              </View>
+            )}
           </View>
         )}
 
@@ -274,6 +285,7 @@ export default function FamilyJoinScreen() {
             </View>
             <Pressable
               onPress={handleJoin}
+              disabled={loading}
               style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }, !codeComplete && styles.solidBtnDisabled]}
             >
               <LinearGradient
@@ -282,9 +294,17 @@ export default function FamilyJoinScreen() {
                 end={{ x: 1, y: 1 }}
                 style={styles.gradientBtn}
               >
-                <Text style={styles.solidBtnText}>送出加入申請</Text>
+                <Text style={styles.solidBtnText}>{loading ? '加入中...' : '送出加入申請'}</Text>
               </LinearGradient>
             </Pressable>
+            {joinError && (
+              <View style={styles.errorWrap}>
+                <Text style={styles.errorText}>{joinError}</Text>
+                <Pressable onPress={handleJoin} style={styles.retryBtn}>
+                  <Text style={styles.retryText}>重試</Text>
+                </Pressable>
+              </View>
+            )}
           </View>
         )}
 
@@ -702,4 +722,24 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: DS.primary,
   },
+  errorWrap: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: "#fff0eb",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#f4b8a0",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  errorText: { flex: 1, fontSize: 13, color: "#b94a2c" },
+  retryBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: Radius.full,
+    backgroundColor: DS.primary,
+  },
+  retryText: { color: "#fff", fontSize: 13, fontWeight: "700" },
 });
