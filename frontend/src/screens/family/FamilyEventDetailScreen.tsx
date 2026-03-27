@@ -128,12 +128,12 @@ export default function FamilyEventDetailScreen() {
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <style>
-          @page { margin: 18mm 14mm; size: A4; }
+          @page { margin: 20mm 16mm; size: A4; }
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body {
             font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
             background: #fff8f1; color: #1f1b12;
-            max-width: 560px; margin: 0 auto; padding: 0 4px;
+            padding: 0 4px;
           }
 
           /* ── top bar ── */
@@ -141,6 +141,8 @@ export default function FamilyEventDetailScreen() {
             background: #89502e; border-radius: 14px;
             padding: 18px 24px 14px; margin-bottom: 18px;
             display: flex; align-items: center; justify-content: space-between;
+            page-break-inside: avoid;
+            break-inside: avoid;
           }
           .top-bar-left .badge {
             font-size: 9px; font-weight: 800; letter-spacing: 2px;
@@ -155,6 +157,8 @@ export default function FamilyEventDetailScreen() {
             background: #fcf2e3; border-radius: 14px;
             padding: 24px 20px 20px; margin-bottom: 14px;
             text-align: center; border: 1px solid #d7c2b9;
+            page-break-inside: avoid;
+            break-inside: avoid;
           }
           .hero svg { display: block; margin: 0 auto 14px; }
           .risk-pill {
@@ -178,6 +182,8 @@ export default function FamilyEventDetailScreen() {
             background: #f6edde; border-radius: 14px;
             padding: 18px 20px; margin-bottom: 14px;
             border: 1px solid #d7c2b944;
+            page-break-inside: avoid;
+            break-inside: avoid;
           }
           .card-title {
             font-size: 14px; font-weight: 700; color: #1f1b12;
@@ -212,6 +218,8 @@ export default function FamilyEventDetailScreen() {
             display: flex; align-items: center; gap: 10px;
             background: #ebe1d3; border-radius: 8px;
             padding: 9px 12px; margin-bottom: 6px;
+            page-break-inside: avoid;
+            break-inside: avoid;
           }
           .factor-num {
             min-width: 24px; height: 24px; border-radius: 12px;
@@ -226,6 +234,8 @@ export default function FamilyEventDetailScreen() {
             text-align: center; font-size: 11px; color: #89502e;
             margin-top: 20px; padding-top: 14px;
             border-top: 1px solid #d7c2b9;
+            page-break-inside: avoid;
+            break-inside: avoid;
           }
         </style>
       </head>
