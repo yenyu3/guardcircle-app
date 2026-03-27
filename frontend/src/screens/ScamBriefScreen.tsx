@@ -10,6 +10,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Colors, Radius, Shadow } from "../theme";
@@ -150,7 +151,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  container: { paddingHorizontal: 20, paddingBottom: 48 },
+  container: { paddingHorizontal: 20, paddingBottom: Platform.OS === 'web' ? 100 : 48 },
 
   metaRow: {
     flexDirection: "row",

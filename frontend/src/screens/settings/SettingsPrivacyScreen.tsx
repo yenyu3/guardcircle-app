@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Header from '../../components/Header';
 import { Colors, Radius, Shadow } from '../../theme';
@@ -98,7 +98,7 @@ export default function SettingsPrivacyScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
-  container: { paddingHorizontal: 20, paddingBottom: 40, gap: 16, paddingTop: 8 },
+  container: { paddingHorizontal: 20, paddingBottom: Platform.OS === 'web' ? 100 : 40, gap: 16, paddingTop: 8 },
 
   card: { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 20 },
   sectionTitle: { fontSize: 15, fontWeight: '700', color: Colors.text, marginBottom: 4 },

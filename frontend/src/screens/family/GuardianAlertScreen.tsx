@@ -8,6 +8,7 @@ import {
   Alert,
   Animated,
   Image,
+  Platform,
 } from "react-native";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -254,7 +255,7 @@ const s = StyleSheet.create({
   container: {
     paddingHorizontal: 20,
     paddingTop: 8,
-    paddingBottom: 48,
+    paddingBottom: Platform.OS === 'web' ? 100 : 48,
     gap: 16,
   },
 

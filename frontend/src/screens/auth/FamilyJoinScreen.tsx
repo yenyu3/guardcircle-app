@@ -434,7 +434,7 @@ export default function FamilyJoinScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: DS.bg },
 
-  scroll: { paddingHorizontal: 20, paddingBottom: 48 },
+  scroll: { paddingHorizontal: 20, paddingBottom: Platform.OS === 'web' ? 60 : 48 },
 
   title: {
     fontSize: 30,

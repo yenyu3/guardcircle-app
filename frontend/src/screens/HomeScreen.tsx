@@ -5,6 +5,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef } from "react";
 import {
   Animated,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -1036,7 +1037,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
-  container: { padding: 20, paddingTop: 8, paddingBottom: 32 },
+  container: { padding: 20, paddingTop: 8, paddingBottom: Platform.OS === 'web' ? 100 : 32 },
   // Guardian
   gGreeting: {
     fontSize: 34,

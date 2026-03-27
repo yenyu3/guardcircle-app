@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Platform,
 } from "react-native";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
@@ -659,7 +660,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  container: { paddingHorizontal: 20, paddingBottom: 48 },
+  container: { paddingHorizontal: 20, paddingBottom: Platform.OS === 'web' ? 100 : 48 },
 
   heroTitle: {
     fontSize: 22,

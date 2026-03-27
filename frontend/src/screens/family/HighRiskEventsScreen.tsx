@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -146,7 +147,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: '#fca5a540',
   },
   countText: { fontSize: 13, fontWeight: '700', color: Colors.danger },
-  container: { paddingHorizontal: 20, paddingBottom: 40, gap: 14 },
+  container: { paddingHorizontal: 20, paddingBottom: Platform.OS === 'web' ? 100 : 40, gap: 14 },
   // Empty
   emptyWrap: { alignItems: 'center', gap: 12, paddingTop: 80 },
   emptyTitle: { fontSize: 20, fontWeight: '800', color: Colors.text },

@@ -3,6 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
 import {
   Alert,
+  Platform,
   ScrollView,
   StyleSheet,
   Switch,
@@ -114,7 +115,7 @@ export default function SettingsAdvancedScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
-  container: { paddingHorizontal: 20, paddingBottom: 40, gap: 16, paddingTop: 8 },
+  container: { paddingHorizontal: 20, paddingBottom: Platform.OS === 'web' ? 100 : 40, gap: 16, paddingTop: 8 },
 
   card: {
     backgroundColor: Colors.white,

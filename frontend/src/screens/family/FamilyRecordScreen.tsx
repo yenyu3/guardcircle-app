@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
   filterActive: { backgroundColor: Colors.primaryDark },
   filterText: { fontSize: 13, fontWeight: '600', color: Colors.textLight },
   filterTextActive: { color: Colors.white },
-  container: { padding: 16, paddingBottom: 32 },
+  container: { padding: 16, paddingBottom: Platform.OS === 'web' ? 100 : 32 },
   eventCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 10 },
   timelineLeft: { alignItems: 'center', paddingTop: 4 },
   dot: { width: 12, height: 12, borderRadius: 6 },
