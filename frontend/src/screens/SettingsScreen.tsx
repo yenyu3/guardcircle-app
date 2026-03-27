@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image, Switch, Platform } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -116,12 +116,16 @@ export default function SettingsScreen() {
         <TouchableOpacity
           style={styles.logoutBtn}
           activeOpacity={0.8}
-          onPress={() =>
-            Alert.alert('登出', '確定要登出嗎？', [
-              { text: '取消' },
-              { text: '登出', style: 'destructive', onPress: () => { logout(); navigation.replace('Register'); } },
-            ])
-          }
+          onPress={() => {
+            if (Platform.OS === 'web') {
+              if (window.confirm('確定要登出嗎？')) { logout(); navigation.replace('Register'); }
+            } else {
+              Alert.alert('登出', '確定要登出嗎？', [
+                { text: '取消' },
+                { text: '登出', style: 'destructive', onPress: () => { logout(); navigation.replace('Register'); } },
+              ]);
+            }
+          }}
         >
           <Ionicons name="log-out-outline" size={20} color={Colors.danger} />
           <Text style={styles.logoutText}>登出帳號</Text>

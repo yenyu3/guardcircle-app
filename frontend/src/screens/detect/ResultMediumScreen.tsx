@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   header: { paddingHorizontal: 16, paddingVertical: 12 },
   backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
-  content: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32, marginTop: -40 },
+  content: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 },
   iconWrapper: { width: 120, height: 120, alignItems: "center", justifyContent: "center", marginBottom: 28 },
   halo: { position: "absolute", width: 120, height: 120, borderRadius: 60, backgroundColor: "#fff" },
   iconCircle: {

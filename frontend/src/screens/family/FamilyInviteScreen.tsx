@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, Alert, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,35 +9,29 @@ import { useAppStore } from '../../store';
 
 export default function FamilyInviteScreen() {
   const navigation = useNavigation();
-  const { bindGuardian } = useAppStore();
+  const { apiAddFamilyMember } = useAppStore();
 
-  const [digits, setDigits] = useState(['', '', '', '']);
-  const refs = useRef<(TextInput | null)[]>([]);
+  const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleDigit = (val: string, idx: number) => {
-    const ch = val.replace(/[^0-9]/g, '').slice(-1);
-    const next = [...digits]; next[idx] = ch; setDigits(next);
+  const complete = phone.trim().length === 10;
+
+  const handleAdd = async () => {
+    if (!complete) return;
     setError('');
-    if (ch && idx < 3) refs.current[idx + 1]?.focus();
-  };
-
-  const handleKeyPress = (e: any, idx: number) => {
-    if (e.nativeEvent.key === 'Backspace' && !digits[idx] && idx > 0)
-      refs.current[idx - 1]?.focus();
-  };
-
-  const complete = digits.every((d) => d !== '');
-
-  const handleBind = () => {
-    const code = digits.join('');
-    if (code === '0000') { setError('配對碼錯誤，請確認後再試'); return; }
-    const ok = bindGuardian(code);
-    if (ok) {
-      Alert.alert('綁定成功', '成員已成功加入守護圈');
+    setLoading(true);
+    try {
+      await apiAddFamilyMember(phone.trim());
+      Alert.alert('新增成功', '成員已成功加入守護圈');
       navigation.goBack();
-    } else {
-      setError('配對碼錯誤，請確認後再試');
+    } catch (e: any) {
+      const status = e?.status ?? e?.response?.status;
+      if (status === 404) setError('找不到此手機號碼的使用者');
+      else if (status === 400) setError('請確認手機號碼格式');
+      else setError('新增失敗，請稍後再試');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -48,24 +42,20 @@ export default function FamilyInviteScreen() {
         <View style={styles.iconWrap}>
           <Ionicons name="person-add" size={40} color={Colors.primaryDark} />
         </View>
-        <Text style={styles.title}>輸入配對碼</Text>
-        <Text style={styles.desc}>請對方在 App 內產生 4 位配對碼{'\n'}輸入後即可加入守護圈</Text>
+        <Text style={styles.title}>輸入手機號碼</Text>
+        <Text style={styles.desc}>{`請輸入對方的手機號碼
+確認後即可加入守護圈`}</Text>
 
-        <View style={styles.digitRow}>
-          {digits.map((d, i) => (
-            <TextInput
-              key={i}
-              ref={(r) => { refs.current[i] = r; }}
-              style={[styles.digitBox, d && styles.digitBoxFilled, !!error && styles.digitBoxError]}
-              value={d}
-              onChangeText={(v) => handleDigit(v, i)}
-              onKeyPress={(e) => handleKeyPress(e, i)}
-              keyboardType="number-pad"
-              maxLength={1}
-              textAlign="center"
-            />
-          ))}
-        </View>
+        <TextInput
+          style={[styles.input, !!error && styles.inputError]}
+          value={phone}
+          onChangeText={(v) => { setPhone(v.replace(/[^0-9]/g, '')); setError(''); }}
+          placeholder="0912345678"
+          placeholderTextColor={Colors.textLight}
+          keyboardType="phone-pad"
+          maxLength={10}
+          autoCorrect={false}
+        />
 
         {!!error && (
           <View style={styles.errorWrap}>
@@ -74,9 +64,9 @@ export default function FamilyInviteScreen() {
           </View>
         )}
 
-        <Pressable onPress={handleBind} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}>
-          <View style={[styles.btn, !complete && styles.btnDisabled]}>
-            <Text style={styles.btnText}>確認綁定</Text>
+        <Pressable onPress={handleAdd} disabled={!complete || loading} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}>
+          <View style={[styles.btn, (!complete || loading) && styles.btnDisabled]}>
+            <Text style={styles.btnText}>{loading ? '新增中...' : '確認新增'}</Text>
           </View>
         </Pressable>
       </View>
@@ -94,14 +84,13 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 24, fontWeight: '800', color: Colors.text, marginBottom: 10 },
   desc: { fontSize: 15, color: Colors.textLight, textAlign: 'center', lineHeight: 24, marginBottom: 36 },
-  digitRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
-  digitBox: {
-    width: 64, height: 72, borderRadius: 16,
-    backgroundColor: Colors.white, fontSize: 32, fontWeight: '800', color: Colors.primaryDark,
-    borderWidth: 2, borderColor: Colors.border, textAlign: 'center',
+  input: {
+    width: '100%', height: 56, borderRadius: 16,
+    backgroundColor: Colors.white, fontSize: 18, color: Colors.primaryDark,
+    borderWidth: 2, borderColor: Colors.border, paddingHorizontal: 16,
+    marginBottom: 12,
   },
-  digitBoxFilled: { borderColor: Colors.primaryDark },
-  digitBoxError: { borderColor: Colors.danger, backgroundColor: '#fff5f5' },
+  inputError: { borderColor: Colors.danger, backgroundColor: '#fff5f5' },
   errorWrap: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 24 },
   errorText: { fontSize: 14, color: Colors.danger, fontWeight: '600' },
   btn: {

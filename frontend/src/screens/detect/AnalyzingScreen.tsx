@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
-import { File } from "expo-file-system";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -86,12 +85,13 @@ export default function AnalyzingScreen() {
           if (type === 'image' && imageUri) {
             const ext = imageUri.split('.').pop()?.toLowerCase() ?? 'jpg';
             file_ext = ext;
-            const fileObj = new File(imageUri);
-            const buffer = await fileObj.arrayBuffer();
-            const bytes = new Uint8Array(buffer);
-            let binary = '';
-            bytes.forEach((b) => { binary += String.fromCharCode(b); });
-            const base64 = btoa(binary);
+            const blob = await (await fetch(imageUri)).blob();
+            const base64 = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve((reader.result as string).split(',')[1]);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
             content = base64;
           }
           const apiResult = await apiAnalyze({

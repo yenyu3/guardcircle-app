@@ -23,6 +23,7 @@ interface RegisteredAccount {
   emergencyPhone?: string;
   role: Role;
   hasFamilyCircle: boolean;
+  familyId?: string | null;
   contributionPoints?: number;
   reportCount?: number;
   memberStatuses?: Record<string, "safe" | "pending" | "high_risk">;
@@ -58,6 +59,8 @@ interface AppState {
   apiJoinFamily: (inviteCode: string) => Promise<void>;
   // 真實 API 拉取家庭圈成員
   apiFetchFamily: () => Promise<void>;
+  // 真實 API 新增家庭圈成員（手機號碼）
+  apiAddFamilyMember: (phone: string) => Promise<void>;
   // Polling
   startFamilyPolling: () => void;
   stopFamilyPolling: () => void;
@@ -179,6 +182,7 @@ export const useAppStore = create<AppState>((set) => ({
         emergencyPhone: s.currentUser.emergencyPhone,
         role: s.currentUser.role,
         hasFamilyCircle: s.hasFamilyCircle,
+        familyId: s.familyId,
         contributionPoints: s.currentUser.contributionPoints ?? 0,
         reportCount: s.currentUser.reportCount ?? 0,
         memberStatuses,
@@ -198,6 +202,7 @@ export const useAppStore = create<AppState>((set) => ({
     set((s) => ({
       isLoggedIn: true,
       hasFamilyCircle: account.hasFamilyCircle,
+      familyId: account.familyId ?? null,
       currentUser: {
         ...s.currentUser,
         id: account.id || account.phone,
@@ -270,7 +275,9 @@ export const useAppStore = create<AppState>((set) => ({
   apiCreateFamily: async (familyName, inviteCode) => {
     const { userId } = useAppStore.getState();
     if (!userId) throw new Error('not logged in');
-    const res = await API.createFamily({ family_name: familyName, invite_code: inviteCode, creator_id: userId });
+    const payload = { family_name: familyName, invite_code: inviteCode, creator_id: userId };
+    console.log('[apiCreateFamily] payload:', JSON.stringify(payload, null, 2));
+    const res = await API.createFamily(payload);
     set((s) => ({
       familyId: res.data.family_id,
       hasFamilyCircle: true,
@@ -282,7 +289,9 @@ export const useAppStore = create<AppState>((set) => ({
   apiJoinFamily: async (inviteCode) => {
     const { userId } = useAppStore.getState();
     if (!userId) throw new Error('not logged in');
-    const res = await API.joinFamily({ user_id: userId, invite_code: inviteCode });
+    const payload = { user_id: userId, invite_code: inviteCode };
+    console.log('[apiJoinFamily] payload:', JSON.stringify(payload, null, 2));
+    const res = await API.joinFamily(payload);
     set((s) => ({
       familyId: res.data.family_id,
       hasFamilyCircle: true,
@@ -290,8 +299,15 @@ export const useAppStore = create<AppState>((set) => ({
     }));
   },
 
-  apiFetchFamily: async () => {
+  apiAddFamilyMember: async (phone) => {
     const { familyId } = useAppStore.getState();
+    if (!familyId) throw new Error('no family');
+    await API.addFamilyMember({ phone, family_id: familyId });
+    await useAppStore.getState().apiFetchFamily();
+  },
+
+  apiFetchFamily: async () => {
+    const { familyId, currentUser } = useAppStore.getState();
     if (!familyId) return;
 
     // 分頁全量拉取所有揃描事件
@@ -312,7 +328,7 @@ export const useAppStore = create<AppState>((set) => ({
     const members: import('../types').FamilyMember[] = feedRes.members_status.map((m) => ({
       id: m.user_id,
       nickname: m.nickname,
-      role: API.mapRole(m.role),
+      role: m.user_id === currentUser.id ? currentUser.role : API.mapRole(m.role),
       avatar: resolveAvatar(API.mapRole(m.role), m.user_id),
       status: m.last_event
         ? (m.last_event.risk_level === 'high' ? 'high_risk' : m.last_event.risk_level === 'medium' ? 'pending' : 'safe')

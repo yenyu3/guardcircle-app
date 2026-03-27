@@ -16,7 +16,7 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { Colors, Radius } from "../../theme";
-import { useAppStore } from "../../store";
+import { useAppStore } from '../../store';
 import { RootStackParamList } from "../../navigation";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -175,6 +175,8 @@ export default function RegisterScreen() {
         setErrors({ phone: '此手機號碼已被註冊' });
       } else {
         login(nickname, stripPhone(phone), yr, gender, emergencyPhone, birthMonth, birthDay);
+        // API 失敗時用 phone 當 userId，讓後續 FamilyJoin 流程可繼續
+        useAppStore.setState({ userId: stripPhone(phone) });
         saveAccount(password);
         navigation.replace("RoleSelect");
       }
