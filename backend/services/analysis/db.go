@@ -84,8 +84,8 @@ func writeScanEvent(ctx context.Context, e *EventData) error {
 }
 
 // findRecentScanEvent looks for a scan_event created within the last 5 minutes.
-// For text/url/phone/image: matches by user_id + input_type + input_content prefix (200 chars).
-// For video/audio/file: matches by user_id + input_type + s3_key.
+// When s3_key is present: matches by user_id + s3_key (prioritized for any request with media).
+// When s3_key is absent: matches by user_id + input_type + input_content prefix (200 chars).
 func findRecentScanEvent(ctx context.Context, userID string, inputType []string, inputContent, s3Key string) (*EventData, error) {
 	conn, err := getDB()
 	if err != nil {
@@ -93,23 +93,23 @@ func findRecentScanEvent(ctx context.Context, userID string, inputType []string,
 	}
 
 	cutoff := time.Now().UTC().Add(-5 * time.Minute)
-	inputTypesJSON, _ := json.Marshal(inputType)
 
 	var query string
 	var args []interface{}
 
 	if s3Key != "" {
-		// video/audio/file: match by s3_key
+		// Has s3_key: match by user_id + s3_key (works for mixed types too)
 		query = `SELECT event_id, user_id, input_type, input_content, risk_level, risk_score,
 		                scam_type, summary, consequence, reason, risk_factors, top_signals,
 		                notify_status, created_at
 		         FROM scan_events
-		         WHERE user_id = $1 AND input_type = $2::jsonb AND s3_key = $3 AND created_at >= $4
+		         WHERE user_id = $1 AND s3_key = $2 AND created_at >= $3
 		         ORDER BY created_at DESC
 		         LIMIT 1`
-		args = []interface{}{userID, string(inputTypesJSON), s3Key, cutoff}
+		args = []interface{}{userID, s3Key, cutoff}
 	} else {
-		// text/url/phone/image: match by input_content prefix
+		// No s3_key: text/url/phone/image only — match by input_content prefix
+		inputTypesJSON, _ := json.Marshal(inputType)
 		contentPrefix := truncateRunes(inputContent, 200)
 		query = `SELECT event_id, user_id, input_type, input_content, risk_level, risk_score,
 		                scam_type, summary, consequence, reason, risk_factors, top_signals,

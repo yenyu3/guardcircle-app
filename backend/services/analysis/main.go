@@ -89,26 +89,36 @@ func handleAnalysis(ctx context.Context, req events.APIGatewayV2HTTPRequest, d *
 
 	log.Printf("[PIPELINE] user_id=%s input_type=%v region=%s", ar.UserID, ar.InputType, ar.Region)
 
-	// 2. Route media/file types to appropriate handler
+	// 2. Classify input types into text-based and media-based
+	var textTypes, mediaTypes []string
 	needsTranscribe := false
 	needsFileExtract := false
 	isVideo := false
 	for _, t := range ar.InputType {
-		if t == "video" || t == "audio" {
+		switch t {
+		case "text", "url", "phone":
+			textTypes = append(textTypes, t)
+		case "image":
+			mediaTypes = append(mediaTypes, t)
+		case "video", "audio":
+			mediaTypes = append(mediaTypes, t)
 			needsTranscribe = true
-		}
-		if t == "file" {
+			if t == "video" {
+				isVideo = true
+			}
+		case "file":
+			mediaTypes = append(mediaTypes, t)
 			if isDocumentFile(ar.FileExt) {
 				needsFileExtract = true
 			} else {
 				needsTranscribe = true
 			}
 		}
-		if t == "video" {
-			isVideo = true
-		}
 	}
 
+	// Preserve original text content before media processing may modify it
+	originalContent := ar.InputContent
+	var mediaContext string
 	var rekognitionContext string
 
 	// 2a. File extraction (PDF, text/code files)
@@ -129,7 +139,7 @@ func handleAnalysis(ctx context.Context, req events.APIGatewayV2HTTPRequest, d *
 			extractedText = "(無法擷取檔案文字內容)"
 		}
 		log.Printf("[FILE_EXTRACT] extracted %d chars", len([]rune(extractedText)))
-		ar.InputContent = extractedText
+		mediaContext = extractedText
 	}
 
 	// 2b. Transcribe (video/audio, or non-document files)
@@ -179,8 +189,6 @@ func handleAnalysis(ctx context.Context, req events.APIGatewayV2HTTPRequest, d *
 
 		if transcribeErr != nil {
 			if isVideo {
-				// Video: Transcribe failure is non-fatal (e.g. no audio track in screen recordings)
-				// Pipeline continues with Rekognition visual analysis and/or placeholder text
 				log.Printf("[TRANSCRIBE] error (non-fatal for video): %v", transcribeErr)
 			} else {
 				log.Printf("[TRANSCRIBE] error: %v", transcribeErr)
@@ -190,8 +198,18 @@ func handleAnalysis(ctx context.Context, req events.APIGatewayV2HTTPRequest, d *
 		if transcribedText == "" {
 			transcribedText = "(無法辨識語音內容)"
 		}
-		ar.InputContent = transcribedText
+		mediaContext = transcribedText
 	}
+
+	// 2c. Combine original text content with media context
+	if len(textTypes) > 0 && mediaContext != "" {
+		// Mixed mode: text + media
+		ar.InputContent = originalContent + "\n\n以下是附加媒體資訊：\n" + mediaContext
+	} else if mediaContext != "" {
+		// Media-only mode
+		ar.InputContent = mediaContext
+	}
+	// else: text-only, ar.InputContent stays as-is
 
 	// 3. Call external API for each input type
 	var apiResults []*ExternalAPIResult

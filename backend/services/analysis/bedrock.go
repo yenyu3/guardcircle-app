@@ -221,10 +221,16 @@ func systemPrompt() string {
 func buildPrompt(req *AnalysisRequest, apiResults []*ExternalAPIResult, kbContext string) string {
 	var sb strings.Builder
 
-	if isImageRequest(req.InputType) {
-		sb.WriteString(fmt.Sprintf("## 使用者提交內容\n- 類型：%s\n- 圖片已附在上方，請直接分析圖片內容\n\n", strings.Join(req.InputType, ", ")))
+	typeLabel := strings.Join(req.InputType, ", ")
+
+	if isImageRequest(req.InputType) && !hasTextTypes(req.InputType) {
+		// Image-only: use vision content block (handled in analyzeWithBedrock)
+		sb.WriteString(fmt.Sprintf("## 使用者提交內容\n- 類型：%s\n- 圖片已附在上方，請直接分析圖片內容\n\n", typeLabel))
+	} else if isImageRequest(req.InputType) && hasTextTypes(req.InputType) {
+		// Mixed: text + image
+		sb.WriteString(fmt.Sprintf("## 使用者提交內容\n- 類型：%s\n- 文字內容：%s\n- 圖片已附在上方，請一併分析\n\n", typeLabel, truncateForPrompt(req.InputContent, 2000)))
 	} else {
-		sb.WriteString(fmt.Sprintf("## 使用者提交內容\n- 類型：%s\n- 內容：%s\n\n", strings.Join(req.InputType, ", "), truncateForPrompt(req.InputContent, 2000)))
+		sb.WriteString(fmt.Sprintf("## 使用者提交內容\n- 類型：%s\n- 內容：%s\n\n", typeLabel, truncateForPrompt(req.InputContent, 2000)))
 	}
 
 	for _, apiResult := range apiResults {
@@ -281,6 +287,16 @@ func extractJSON(text string) string {
 func isImageRequest(inputTypes []string) bool {
 	for _, t := range inputTypes {
 		if t == "image" {
+			return true
+		}
+	}
+	return false
+}
+
+// hasTextTypes checks if input types contain any text-based type (text, url, phone).
+func hasTextTypes(inputTypes []string) bool {
+	for _, t := range inputTypes {
+		if t == "text" || t == "url" || t == "phone" {
 			return true
 		}
 	}
