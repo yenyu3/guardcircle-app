@@ -223,6 +223,23 @@ resource "aws_lambda_function" "families_join" {
   }
 }
 
+resource "aws_lambda_function" "families_add_member" {
+  function_name = "${var.project_name}-families-add-member"
+  role          = aws_iam_role.lambda.arn
+  package_type  = "Image"
+  image_uri     = module.docker_image["families_add_member"].image_uri
+  architectures = [var.lambda_architecture]
+
+  vpc_config {
+    subnet_ids         = local.lambda_subnets
+    security_group_ids = [aws_security_group.lambda.id]
+  }
+
+  environment {
+    variables = local.lambda_env
+  }
+}
+
 resource "aws_lambda_function" "families_scan_events" {
   function_name = "${var.project_name}-families-scan-events"
   role          = aws_iam_role.lambda.arn

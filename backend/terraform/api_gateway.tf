@@ -44,6 +44,13 @@ resource "aws_apigatewayv2_integration" "families_join" {
   payload_format_version = "2.0"
 }
 
+resource "aws_apigatewayv2_integration" "families_add_member" {
+  api_id                 = aws_apigatewayv2_api.http.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.families_add_member.arn
+  payload_format_version = "2.0"
+}
+
 resource "aws_apigatewayv2_integration" "families_scan_events" {
   api_id                 = aws_apigatewayv2_api.http.id
   integration_type       = "AWS_PROXY"
@@ -121,6 +128,12 @@ resource "aws_apigatewayv2_route" "post_families_join" {
   api_id    = aws_apigatewayv2_api.http.id
   route_key = "POST /families/join"
   target    = "integrations/${aws_apigatewayv2_integration.families_join.id}"
+}
+
+resource "aws_apigatewayv2_route" "post_families_add_member" {
+  api_id    = aws_apigatewayv2_api.http.id
+  route_key = "POST /families/add-member"
+  target    = "integrations/${aws_apigatewayv2_integration.families_add_member.id}"
 }
 
 resource "aws_apigatewayv2_route" "get_family_scan_events" {
@@ -207,6 +220,14 @@ resource "aws_lambda_permission" "apigw_invoke_families_join" {
   statement_id  = "AllowApiGatewayInvokeFamiliesJoin"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.families_join.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.http.execution_arn}/*/*"
+}
+
+resource "aws_lambda_permission" "apigw_invoke_families_add_member" {
+  statement_id  = "AllowApiGatewayInvokeFamiliesAddMember"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.families_add_member.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.http.execution_arn}/*/*"
 }

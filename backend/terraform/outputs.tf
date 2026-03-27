@@ -26,6 +26,7 @@ output "lambda_names" {
     aws_lambda_function.users_patch.function_name,
     aws_lambda_function.families_create.function_name,
     aws_lambda_function.families_join.function_name,
+    aws_lambda_function.families_add_member.function_name,
     aws_lambda_function.families_scan_events.function_name,
     aws_lambda_function.analysis.function_name,
     aws_lambda_function.user_event.function_name,

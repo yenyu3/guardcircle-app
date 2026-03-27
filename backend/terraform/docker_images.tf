@@ -22,6 +22,10 @@ locals {
       function_name = "${var.project_name}-families-join"
       source_path   = "${path.root}/../services/families-join"
     }
+    families_add_member = {
+      function_name = "${var.project_name}-families-add-member"
+      source_path   = "${path.root}/../services/families-add-member"
+    }
     families_scan_events = {
       function_name = "${var.project_name}-families-scan-events"
       source_path   = "${path.root}/../services/families-scan-events"
