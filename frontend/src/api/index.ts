@@ -289,3 +289,18 @@ export interface LoginRes {
 
 export const login = (body: LoginReq) =>
   api.post<LoginRes>('/auth/login', body);
+
+// ── 5.13 新增家庭圈成員（手機號碼）────────────────────────────
+
+export interface AddFamilyMemberReq {
+  phone: string;
+  family_id: string;
+}
+
+export interface AddFamilyMemberRes {
+  message: string;
+  data: { user_id: string; phone: string; family_id: string; family_name: string };
+}
+
+export const addFamilyMember = (body: AddFamilyMemberReq) =>
+  api.post<AddFamilyMemberRes>('/families/add-member', body);

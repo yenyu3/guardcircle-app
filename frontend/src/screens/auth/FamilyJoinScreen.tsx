@@ -9,6 +9,7 @@ import {
   Pressable,
   Share,
   Modal,
+  Platform,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -70,18 +71,24 @@ export default function FamilyJoinScreen() {
 
   const codeComplete = digits.every((d) => d !== "");
 
+  const showAlert = (title: string, msg?: string) => {
+    if (Platform.OS === 'web') { window.alert(msg ? `${title}\n${msg}` : title); }
+    else { Alert.alert(title, msg); }
+  };
+
   const handleJoin = async () => {
-    if (!codeComplete) {
-      Alert.alert("請輸入完整的 6 位數代碼");
-      return;
-    }
+    if (!codeComplete) { showAlert("請輸入完整的 6 位數代碼"); return; }
     setLoading(true);
     try {
       await apiJoinFamily(digits.join(''));
       saveAccount(password);
       navigation.replace("Main");
-    } catch {
-      Alert.alert("加入失敗", "邀請碼無效或已過期，請確認後再試");
+    } catch (e: any) {
+      console.log('[handleJoin] error:', e?.status, e?.message);
+      const msg = e?.status === 404 ? "找不到此家庭圈，請確認 ID 是否正確"
+        : e?.status === 400 ? "邀請碼無效或已過期，請確認後再試"
+        : `加入失敗（${e?.message ?? '未知錯誤'}）`;
+      showAlert("加入失敗", msg);
     } finally {
       setLoading(false);
     }
@@ -93,27 +100,31 @@ export default function FamilyJoinScreen() {
 
   const handleShare = async () => {
     await Clipboard.setStringAsync(circleId);
-    await Share.share({
-      message: `加入我的守護圈！\n家庭圈 ID：${circleId}\n家庭名稱：${familyName}`,
-      title: `加入${familyName}`,
-    });
+    if (Platform.OS === 'web') {
+      window.alert(`家庭圈 ID：${circleId}\n已複製到剪貼簿，請傳送給家人`);
+    } else {
+      await Share.share({
+        message: `加入我的守護圈！\n家庭圈 ID：${circleId}\n家庭名稱：${familyName}`,
+        title: `加入${familyName}`,
+      });
+    }
   };
 
   const handleCreate = async () => {
-    if (!familyName) {
-      Alert.alert("請輸入家庭名稱");
-      return;
-    }
+    if (!familyName) { showAlert("請輸入家庭名稱"); return; }
     setLoading(true);
     try {
       await apiCreateFamily(familyName, circleId);
-    } catch {
+      saveAccount(password);
+      navigation.replace("Main");
+    } catch (e: any) {
+      console.log('[handleCreate] error:', e?.status, e?.message);
       joinFamily();
+      saveAccount(password);
+      navigation.replace("Main");
     } finally {
       setLoading(false);
     }
-    saveAccount(password);
-    navigation.replace("Main");
   };
 
   const showInvite = role === "guardian" || role === "solver";
@@ -380,9 +391,13 @@ export default function FamilyJoinScreen() {
               <Pressable
                 onPress={async () => {
                   await Clipboard.setStringAsync(pairingCode);
-                  await Share.share({
-                    message: `我的守護圈配對碼：${pairingCode}\n請在 App 輸入此碼幫我完成設定`,
-                  });
+                  if (Platform.OS === 'web') {
+                    window.alert(`配對碼：${pairingCode}\n已複製到剪貼簿`);
+                  } else {
+                    await Share.share({
+                      message: `我的守護圈配對碼：${pairingCode}\n請在 App 輸入此碼幫我完成設定`,
+                    });
+                  }
                 }}
                 style={({ pressed }) => [{ width: "100%", opacity: pressed ? 0.85 : 1 }]}
               >
@@ -510,8 +525,8 @@ const styles = StyleSheet.create({
   // Digit input
   digitRow: { flexDirection: "row", gap: 8, marginBottom: 20 },
   digitBox: {
-    flex: 1,
-    aspectRatio: 1,
+    width: 42,
+    height: 52,
     backgroundColor: DS.white,
     borderRadius: 12,
     fontSize: 24,
