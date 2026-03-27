@@ -98,14 +98,20 @@ export default function FamilyEventDetailScreen() {
       </div>`).join('');
 
     let inputContentHtml = `<div class="input-box">${event.input}</div>`;
-    if (event.imageUri) {
-      try {
-        const base64 = await FileSystem.readAsStringAsync(event.imageUri, { encoding: FileSystem.EncodingType.Base64 });
-        const ext = event.imageUri.split('.').pop()?.toLowerCase() ?? 'jpeg';
-        const mime = ext === 'png' ? 'image/png' : ext === 'gif' ? 'image/gif' : 'image/jpeg';
-        inputContentHtml = `<img src="data:${mime};base64,${base64}" style="max-width:100%;border-radius:8px;" />`;
-      } catch {
-        // 讀取失敗時 fallback 顯示檔名
+    const imageUri = event.imageUri ?? (event.type === 'image' ? event.attachmentUri : undefined);
+    if (imageUri) {
+      if (event.attachmentUri && !event.imageUri) {
+        // 直接用 media_url，不需要 base64
+        inputContentHtml = `<img src="${imageUri}" style="max-width:100%;border-radius:8px;" />`;
+      } else {
+        try {
+          const base64 = await FileSystem.readAsStringAsync(imageUri, { encoding: FileSystem.EncodingType.Base64 });
+          const ext = imageUri.split('.').pop()?.toLowerCase() ?? 'jpeg';
+          const mime = ext === 'png' ? 'image/png' : ext === 'gif' ? 'image/gif' : 'image/jpeg';
+          inputContentHtml = `<img src="data:${mime};base64,${base64}" style="max-width:100%;border-radius:8px;" />`;
+        } catch {
+          inputContentHtml = `<img src="${imageUri}" style="max-width:100%;border-radius:8px;" />`;
+        }
       }
     }
 
@@ -382,8 +388,8 @@ export default function FamilyEventDetailScreen() {
             )}
           </View>
           <View style={[styles.inputBox, blurred && event.type === 'image' && styles.blurred]}>
-            {event.imageUri ? (
-              <Image source={{ uri: event.imageUri }} style={styles.inputImage} resizeMode="contain" />
+            {(event.imageUri || (event.type === 'image' && event.attachmentUri)) ? (
+              <Image source={{ uri: event.imageUri ?? event.attachmentUri }} style={styles.inputImage} resizeMode="contain" />
             ) : event.attachmentUri && event.type === 'video' ? (
               <Video
                 source={{ uri: event.attachmentUri }}

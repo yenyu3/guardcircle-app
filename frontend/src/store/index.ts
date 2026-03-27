@@ -346,12 +346,14 @@ export const useAppStore = create<AppState>((set) => ({
       }
       // media_url 含 \u0026 編碼，decodeURIComponent 轉換
       const mediaUrl = e.media_url ? decodeURIComponent(e.media_url.replace(/\\u0026/g, '&')) : undefined;
+      // 圖片類型的 input_content 是 base64，不應顯示為文字
+      const isBase64 = parsedType === 'image' && e.input_content && e.input_content.length > 100 && !/\s/.test(e.input_content.slice(0, 50));
       return {
         id: e.event_id,
         userId: e.user_id,
         userNickname: e.user_nickname,
         type: parsedType,
-        input: e.input_content,
+        input: isBase64 ? '' : e.input_content,
         attachmentUri: mediaUrl,
         riskLevel: API.mapRiskLevel(e.risk_level),
         riskScore: e.risk_score,
