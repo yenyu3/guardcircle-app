@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, Alert, Pressable, Linking, Image,
+  TouchableOpacity, Alert, Pressable, Linking, Image, Platform,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -534,7 +534,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 18, fontWeight: '700', color: DS.primary },
   iconBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
 
-  container: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 48, gap: 20 },
+  container: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: Platform.OS === 'web' ? 100 : 48, gap: 20 },
 
   // Hero
   heroSection: { alignItems: 'center', gap: 14, paddingVertical: 8 },

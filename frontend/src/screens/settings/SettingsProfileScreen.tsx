@@ -10,6 +10,7 @@ import {
   Image,
   Modal,
   PanResponder,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -429,7 +430,7 @@ export default function SettingsProfileScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
-  container: { paddingHorizontal: 20, paddingBottom: 40, gap: 16 },
+  container: { paddingHorizontal: 20, paddingBottom: Platform.OS === 'web' ? 100 : 40, gap: 16 },
 
   avatarSection: { alignItems: "center", paddingVertical: 24, gap: 10 },
   avatarImg: { width: 100, height: 100, borderRadius: 50, borderWidth: 4, borderColor: Colors.white, ...Shadow.strong },

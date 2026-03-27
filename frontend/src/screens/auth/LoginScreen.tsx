@@ -186,6 +186,7 @@ const styles = StyleSheet.create({
   scroll: {
     flexGrow: 1, paddingHorizontal: 24, paddingVertical: 16,
     alignItems: "center", justifyContent: "flex-start", paddingTop: 28,
+    paddingBottom: Platform.OS === 'web' ? 60 : 24,
   },
   brand: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 },
   brandName: { fontSize: 24, fontWeight: "800", color: DS.primary, letterSpacing: -0.5 },

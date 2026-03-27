@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
   headerTitle: { flex: 1, textAlign: 'center', fontSize: 20, fontWeight: '700', color: Colors.text },
   headerRight: { width: 36 },
 
-  container: { paddingHorizontal: 20, paddingBottom: 40 },
+  container: { paddingHorizontal: 20, paddingBottom: Platform.OS === 'web' ? 100 : 40 },
 
   profileSection: { alignItems: 'center', paddingVertical: 24, gap: 8 },
   avatarImg: {

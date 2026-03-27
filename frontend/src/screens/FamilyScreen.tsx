@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Pressable, Platform } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -178,7 +178,7 @@ export default function FamilyScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
-  container: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 40 },
+  container: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: Platform.OS === 'web' ? 100 : 40 },
   sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
   sectionTitle: { fontSize: 17, fontWeight: '700', color: Colors.text },
   countPill: { backgroundColor: Colors.primary + '22', borderRadius: Radius.full, paddingHorizontal: 12, paddingVertical: 4 },

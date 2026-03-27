@@ -6,6 +6,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Button from "../components/Button";
@@ -183,7 +184,7 @@ export default function DailyChallengeScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
-  container: { padding: 20, paddingBottom: 28 },
+  container: { padding: 20, paddingBottom: 28, ...Platform.select({ web: { paddingBottom: 100 } }) },
   emptyWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
   emptyText: { fontSize: 16, color: Colors.textLight },
   metaRow: {

@@ -668,7 +668,7 @@ export default function DetectScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
-  container: { paddingHorizontal: 20, paddingBottom: 40 },
+  container: { paddingHorizontal: 20, paddingBottom: Platform.OS === 'web' ? 100 : 40 },
   hero: { marginTop: 8, marginBottom: 20 },
   titleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   title: {

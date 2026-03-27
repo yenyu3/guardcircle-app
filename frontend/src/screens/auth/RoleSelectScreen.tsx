@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Pressable,
   Image,
+  Platform,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -218,7 +219,7 @@ const styles = StyleSheet.create({
   headerTitle: {},
   avatar: {},
 
-  scroll: { paddingHorizontal: 20, paddingBottom: 40 },
+  scroll: { paddingHorizontal: 20, paddingBottom: Platform.OS === 'web' ? 60 : 40 },
 
   titleWrap: { marginTop: 12, marginBottom: 24 },
   title: {

@@ -29,7 +29,7 @@ export default function App() {
       <StatusBar style="dark" backgroundColor="#FFF5E6" />
       {isWeb ? (
         <View style={{ flex: 1, alignItems: 'center', backgroundColor: '#e8ddd5' }}>
-          <View style={{ width: '100%', maxWidth: 390, flex: 1, overflow: 'hidden' }}>
+          <View style={{ width: '100%', maxWidth: 390, flex: 1, minHeight: '100vh' as any }}>
             <AppNavigator />
           </View>
         </View>
