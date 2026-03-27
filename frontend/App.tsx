@@ -28,8 +28,8 @@ export default function App() {
     <SafeAreaProvider>
       <StatusBar style="dark" backgroundColor="#FFF5E6" />
       {isWeb ? (
-        <View style={{ flex: 1, alignItems: 'center', backgroundColor: '#e8ddd5' }}>
-          <View style={{ width: '100%', maxWidth: 390, flex: 1, minHeight: '100vh' as any }}>
+        <View style={{ flex: 1, alignItems: 'center', backgroundColor: '#e8ddd5', height: '100dvh' as any, overflow: 'hidden' }}>
+          <View style={{ width: '100%', maxWidth: 390, flex: 1, height: '100%', overflow: 'hidden' }}>
             <AppNavigator />
           </View>
         </View>

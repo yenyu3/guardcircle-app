@@ -183,6 +183,11 @@ const tabStyles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 16,
     elevation: 12,
+    ...(Platform.OS === "web" ? {
+      position: "sticky" as any,
+      bottom: 0,
+      zIndex: 100,
+    } : {}),
   },
   item: { flex: 1, alignItems: "center", gap: 4 },
   pill: {
