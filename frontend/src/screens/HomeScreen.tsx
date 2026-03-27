@@ -1018,9 +1018,7 @@ export default function HomeScreen() {
         <Banner
           message="你還沒加入家庭圈，前往設定加入"
           variant="info"
-          onPress={() =>
-            (navigation as any).navigate("Main", { screen: "Settings" })
-          }
+          onPress={() => navigation.navigate("FamilyJoin")}
           style={{ marginHorizontal: 20, marginTop: 12 }}
         />
       )}
