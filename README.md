@@ -1,51 +1,30 @@
 # GuardCircle App
 
-## 專案結構
+## 系統介紹
+
+GuardCircle 是一套家人防詐守護系統，提供：
+- 內容偵測：文字、網址、電話、圖片、檔案、音訊/影片等
+- 家庭圈：邀請家人、事件總覽與通知
+- 風險評估：AI 分析與可解釋原因
+
+## 系統畫面
+
+![App Launch](img/app-launch.jpg)
+![Signup](img/signup.jpg)
+![Role Select](img/role-select.jpg)
+![Family Join/Create](img/family-join-create.jpg)
+![Home Dashboard](img/home-dashboard.jpg)
+![Detect Screen](img/detect-screen.jpg)
+![Family Screen](img/family-screen.jpg)
+![Settings Screen](img/settings-screen.jpg)
+
+## Repo 檔案結構
 
 ```
 guardcircle-app/
+├── backend/        # 後端（Terraform + Lambda）
 ├── frontend/       # React Native (Expo) 前端
-└── backend/        # 後端（開發中）
-```
-
-## 前端環境需求
-
-- Node.js 18+
-- 手機安裝 [Expo Go](https://expo.dev/go)（iOS / Android 皆可）
-
-## 前端啟動步驟
-
-```bash
-# 1. 進入前端資料夾
-cd guardcircle-app\frontend
-
-# 2. 安裝套件（第一次需要）
-npm install --legacy-peer-deps
-
-# 3. 啟動開發伺服器
-npm start
-```
-
-啟動後終端機會顯示 QR Code，用手機 Expo Go 掃描即可預覽。
-手機和電腦需在同一個 Wi-Fi 網路下。
-
-## 前端專案結構
-
-```
-frontend/
-├── App.tsx
-├── index.ts
-├── app.json
-└── src/
-    ├── screens/        # 所有頁面
-    │   ├── auth/       # 登入、角色選擇、加入家庭圈
-    │   ├── detect/     # 偵測流程（輸入、分析、結果）
-    │   ├── family/     # 家庭圈相關頁面
-    │   └── settings/   # 設定子頁面
-    ├── components/     # 共用元件（Button、Card、Banner 等）
-    ├── navigation/     # 導航設定
-    ├── store/          # Zustand 狀態管理
-    ├── mock/           # Mock 資料
-    ├── theme/          # 顏色、字體、間距設定
-    └── types/          # TypeScript 型別定義
+├── img/            # 系統畫面截圖
+├── scripts/        # 部署腳本
+└── README.md
 ```
